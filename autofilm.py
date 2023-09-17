@@ -19,13 +19,17 @@ def list_files(webdav_url, username, password):
             # 获取WebDAV服务器上的文件列表
             items = client.list()
         except:
+            print(f'第{q}次连接失败，{q+1}秒后重试...')
             q += 1
-            print('连接失败，1秒后重试...')
-            time.sleep(1)
+            time.sleep(q)
         else:
             if q > 1:
                 print('重连成功...')
             break
+
+    if q == 15:
+        print('连接失败，请检查网络设置！')
+        exit()
 
     for item in items[1:]:
         if item[-1] == '/':
@@ -93,9 +97,9 @@ for b in files_all:
                         f.write(r.content)
                         f.close
                 except:
+                    print(f'第{p}次下载失败，{p+1}秒后重试...')
                     p += 1
-                    print('下载失败，1秒后重试...')
-                    time.sleep(1)
+                    time.sleep(p)
                 else:
                     if p > 1:
                         print('重新下载成功！')
