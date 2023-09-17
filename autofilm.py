@@ -1,8 +1,10 @@
-import argparse
 from webdav3.client import Client
-import os,time,requests
+import argparse,os,requests,time
 
-def list_files(webdav_url, username, password):
+# 如果depth为None，则会递归遍历整个WebDAV服务器
+# 如果depth为正整数，则会递归遍历到指定深度
+# 如果depth为0，则只会遍历当前文件夹中的文件和文件夹，不会继续递归遍历下一级文件夹。
+def list_files(webdav_url, username, password, depth=None):
     # 创建WebDAV客户端
     options = {
         'webdav_hostname': webdav_url,
@@ -33,7 +35,13 @@ def list_files(webdav_url, username, password):
 
     for item in items[1:]:
         if item[-1] == '/':
-            directory.append(item)
+            # 如果是文件夹，则递归遍历其中的文件和文件夹
+            if depth is None or depth > 0:
+                subdirectory, subfiles = list_files(webdav_url + item, username, password, depth=None if depth is None else depth - 1)
+                directory += [item + subitem for subitem in subdirectory]
+                files += [item + subitem for subitem in subfiles]
+            else:
+                directory.append(item)
         else:
             files.append(item)
     return directory, files
@@ -48,56 +56,38 @@ parser.add_argument('--output_path', type=str, help='输出文件目录', requir
 args = parser.parse_args()
 
 # 调用函数获取文件列表并保存到本地
-directory = list_files(args.webdav_url, args.username, args.password)[0]
-files = list_files(args.webdav_url, args.username, args.password)[1]
+directory = list_files(args.webdav_url, args.username, args.password, depth=None)[0]
+files = list_files(args.webdav_url, args.username, args.password, depth=None)[1]
 
-url_1 = [args.webdav_url]
-url_2 = []
-url_3 = []
-files_1 = [args.webdav_url + str(k) for k in files]
-files_2 = []
-files_3 = []
-if directory != []:
-    for u in directory:
-        url_2.append(args.webdav_url + u)
-        files_2 += [args.webdav_url + u + str(i) for i in list_files(args.webdav_url + u, args.username, args.password)[1]]
-    for x in url_2:
-        l_x = list_files(x, args.username, args.password)[0]
-        if l_x != []:
-            for y in l_x:
-                url_3.append(x + y)
-                files_3 += [x + y + str(j) for j in list_files(x + y, args.username, args.password)[1]]
-url = url_1 + url_2 + url_3
-files_all = files_1 + files_2 + files_3
+urls = [args.webdav_url + item for item in directory + files]
 
-for b in files_all:
-    if b[-3:].upper() in ['MP4','MKV','FLV','AVI']:
-        if not os.path.exists(args.output_path + b.replace(args.webdav_url,'')[:-3] + 'strm' ):
-            print('正在处理：' + b.replace(args.webdav_url,''))
+for url in urls:
+    if url[-1] == '/':
+        continue
+    filename = os.path.basename(url)
+    local_path = os.path.join(args.output_path, url.replace(args.webdav_url, '').lstrip('/'))
+    if filename[-3:].upper() in ['MP4', 'MKV', 'FLV', 'AVI']:
+        if not os.path.exists(os.path.join(args.output_path, filename[:-3] + 'strm')):
+            print('正在处理：' + filename)
             try:
-                os.makedirs(os.path.dirname(args.output_path + b.replace(args.webdav_url,'')[:-3] + 'strm'), exist_ok=True)
-                with open(args.output_path + b.replace(args.webdav_url,'')[:-3] + 'strm', "w", encoding='utf-8') as f:
-                    f.write(b.replace('/dav','/d'))
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                with open(os.path.join(local_path[:-3] + 'strm'), "w", encoding='utf-8') as f:
+                    f.write(url.replace('/dav', '/d'))
             except:
-                try:
-                    os.makedirs(os.path.dirname(args.output_path + b.replace(args.webdav_url,'').replace('：','.')[:-3] + 'strm'), exist_ok=True)
-                    with open(args.output_path + b.replace(args.webdav_url,'').replace('：','.')[:-3] + 'strm', "w", encoding='utf-8') as f:
-                        f.write(b.replace('/dav','/d'))
-                except:
-                    print(b.replace(args.webdav_url,'') + '处理失败，文件名包含特殊符号，建议重命名！')
-    elif b[-3:].upper() in ['ASS','SRT','SSA','JPG','NFO']:
-        if not os.path.exists(args.output_path + b.replace(args.webdav_url,'')):
+                print(filename + '处理失败，文件名包含特殊符号，建议重命名！')
+    elif filename[-3:].upper() in ['ASS', 'SRT', 'SSA', 'JPG', 'NFO']:
+        if not os.path.exists(local_path):
             p = 1
             while p < 10:
                 try:
-                    print('正在下载：' + args.output_path + b.replace(args.webdav_url,''))
-                    r = requests.get(b.replace('/dav','/d'))
-                    os.makedirs(os.path.dirname(args.output_path + b.replace(args.webdav_url,'')), exist_ok=True)
-                    with open (args.output_path + b.replace(args.webdav_url,''), 'wb') as f:
+                    print('正在下载：' + filename)
+                    r = requests.get(url.replace('/dav', '/d'))
+                    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                    with open(local_path, 'wb') as f:
                         f.write(r.content)
                         f.close
                 except:
-                    print(f'第{p}次下载失败，{p+1}秒后重试...')
+                    print(f'第{p}次下载失败，{p + 1}秒后重试...')
                     p += 1
                     time.sleep(p)
                 else:
