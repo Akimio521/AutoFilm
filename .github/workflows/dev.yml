@@ -1,0 +1,82 @@
+name: AutoFilm Workflow DEV
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '请选择运行分支'
+        required: true
+        default: 'Dev'
+      ssh:
+        description: '是否进行SSH连接'
+        required: true
+        default: 'false'
+
+jobs:
+  AutoFilm:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 下载仓库
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch }}
+
+    - name: 安装Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install webdavclient3 requests
+
+    - name: 运行AutoFilm程序
+      run: |
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/A/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/B/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/C/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/D/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/E/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/F/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/G/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/H/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/I/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/J/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/K/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/L/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/M/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/N/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/O/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/P/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/Q/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/R/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/S/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/T/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/U/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/V/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/W/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/X/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/Y/ --username alist --password alist --output_path AutoFilm/动漫/
+        python autofilm.py --webdav_url https://al.chirmyram.com/dav/ani/Z/ --username alist --password alist --output_path AutoFilm/动漫/
+    
+    - name: SSH连接到Actions
+      uses: P3TERX/ssh2actions@v1.0.0
+      if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
+        
+    - name: 打包输出文件
+      run: |
+        zip -r AutoFilm-$(date +%Y-%m-%d).zip ./AutoFilm/ 
+      
+    - name: 创建并发布Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: Emby扫库文件
+        name: AutoFilm-$(date +%Y-%m-%d)
+        body: TODO New Release.
+        body_path: .config
+        draft: false
+        prerelease: false
+        files: |
+          AutoFilm-$(date +%Y-%m-%d).zip
+          LICENSE 
