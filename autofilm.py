@@ -4,7 +4,7 @@ import argparse,os,requests,time
 # 如果depth为None，则会递归遍历整个WebDAV服务器
 # 如果depth为正整数，则会递归遍历到指定深度
 # 如果depth为0，则只会遍历当前文件夹中的文件和文件夹，不会继续递归遍历下一级文件夹。
-def list_files(webdav_url, username, password, depth=None):
+def list_files(webdav_url, username, password, depth=None, path=''):
     # 创建WebDAV客户端
     options = {
         'webdav_hostname': webdav_url,
@@ -37,13 +37,15 @@ def list_files(webdav_url, username, password, depth=None):
         if item[-1] == '/':
             # 如果是文件夹，则递归遍历其中的文件和文件夹
             if depth is None or depth > 0:
-                subdirectory, subfiles = list_files(webdav_url + item, username, password, depth=None if depth is None else depth - 1)
+                subdirectory, subfiles = list_files(webdav_url + item, username, password, depth=None if depth is None else depth - 1, path=path+item)
                 directory += [item + subitem for subitem in subdirectory]
                 files += [item + subitem for subitem in subfiles]
             else:
                 directory.append(item)
         else:
             files.append(item)
+    if path:
+        print(f'当前文件夹路径：{path}')
     return directory, files
 
 
@@ -56,8 +58,8 @@ parser.add_argument('--output_path', type=str, help='输出文件目录', requir
 args = parser.parse_args()
 
 # 调用函数获取文件列表并保存到本地
-directory = list_files(args.webdav_url, args.username, args.password, depth=None)[0]
-files = list_files(args.webdav_url, args.username, args.password, depth=None)[1]
+directory = list_files(args.webdav_url, args.username, args.password, depth=None, path='')[0]
+files = list_files(args.webdav_url, args.username, args.password, depth=None, path='')[1]
 
 urls = [args.webdav_url + item for item in directory + files]
 
