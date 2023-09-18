@@ -82,6 +82,15 @@ parser.add_argument('--nfo', type=str, help='是否下载NFO文件', choices=['t
 parser.add_argument('--img', type=str, help='是否下载JPG和PNG文件', choices=['true', 'false'], default='false')
 args = parser.parse_args()
 
+print('启动参数：')
+print(f'Webdav服务器地址：{args.webdav_url}')
+print(f'Webdav登入用户名：{args.username}')
+print(f'Webdav登入密码：{args.password}')
+print(f'文件输出路径：{args.output_path}')
+print(f'是否下载字幕：{args.subtitle}')
+print(f'是否下载电影信息：{args.nfo}')
+print(f'是否下载图片：{args.img}')
+
 directory = list_files(args.webdav_url, args.username, args.password, depth=None, path='')[0]
 files = list_files(args.webdav_url, args.username, args.password, depth=None, path='')[1]
 
