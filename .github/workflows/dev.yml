@@ -7,14 +7,16 @@ on:
         description: '请选择运行分支'
         required: true
         default: 'Dev'
+      config:
+        description: '请输入config文件地址'
+        required: true
+        default: 'config/'
       ssh:
         description: '是否进行SSH连接'
         required: true
         default: 'false'
+      
 
-
-env:
-  CONFIG_FILE: autofilm.config
 
 jobs:
   AutoFilm:
@@ -37,7 +39,7 @@ jobs:
 
     - name: 运行AutoFilm-actions程序
       run: |
-        python autofilm-actions.py --path ${{ env.CONFIG_FILE }}
+        python autofilm-actions.py --path ${{ github.event.inputs.config }}
         
     
     - name: SSH连接到Actions
