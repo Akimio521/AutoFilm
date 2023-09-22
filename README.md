@@ -1,11 +1,11 @@
 # AutoFilm
-**一个为Emby服务器提供直链播放的小项目**
+**一个为Emby、Jellyfin服务器提供直链播放的小项目**
 
 ## 优点
 - [x] 轻量化Emby服务器，降低Emby服务器的性能需求以及硬盘需求
 - [x] 运行稳定
-- [x] 相比直接访问Webdav，Emby服务器可以提供更好的视频搜索功能以及自带刮削器，以及多设备同步播放进度
-- [x] 提高访问速度，播放速度不受Emby服务器带宽限制
+- [x] 相比直接访问Webdav，Emby、Jellyfin服务器可以提供更好的视频搜索功能以及自带刮削器，以及多设备同步播放进度
+- [x] 提高访问速度，播放速度不受Jellyfin服务器带宽限制
 - [x] Github Workflows自动下载打包上传至Release
 
 ## Todo LIST
@@ -57,6 +57,10 @@ python3 .\autofilm.py --webdav_url https://alist.example.com:666/dav/视频/动�
 
 至此，整个AutoFilm输出文件夹就可以代替原本的Emby视频媒体库了，如果Alist开启了302重定向，Emby客户端会跳转访问阿里云盘的地址，因此访问速度与Alist和Emby服务器完全不相干，如果NAS是采用CloudFlare进行内网穿透的话，播放效果也不再受到影响
 
+## 不同服务器对Strm文件的处理
+- Emby：服务器下载直链视频，并提交客户端进行流控，连接速度同时受限于Emby服务器的上下行带宽
+- Jellyfin：直接提交给客户端播放器，连接速度不受Jellyfin服务器带宽限制
+- Plex：无法识别，处理不了
 ## 鸣谢
 感谢[七米蓝](https://github.com/ChirmyRam/ChirmyRam-OneDrive-Repository)分享Alist，为本项目的Workflows提供视频源
 
