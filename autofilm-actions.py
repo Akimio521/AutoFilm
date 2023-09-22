@@ -48,7 +48,7 @@ def main():
 
     params_list = read_config_file(config_file_path)
     for params in params_list:
-        command = 'python autofilm.py'
+        command = 'python3 autofilm.py'
         for key, value in params.items():
             if key == 'subtitle' or key == 'nfo' or key == 'img':
                 if value:
