@@ -60,6 +60,11 @@ python3 .\autofilm.py --webdav_url https://alist.example.com:666/dav/视频/动�
 ## 鸣谢
 感谢[七米蓝](https://github.com/ChirmyRam/ChirmyRam-OneDrive-Repository)分享Alist，为本项目的Workflows提供视频源
 
+## Star History
+<a href="https://github.com/zui-lang/AutoFilm/stargazers">
+    <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=zui-lang/AutoFilm&type=Date">
+</a> 
+
 ## 请我喝杯咖啡吧
 **如果你认为这个项目有帮到你，欢迎请我喝杯咖啡**
 ![欢迎请我喝咖啡](https://img.shizu.eu.org/2023/09/1694935115/6506a84bcbaff.webp)
