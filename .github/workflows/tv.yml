@@ -1,0 +1,49 @@
+name: AutoFilm-TV-Actions
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '请选择运行分支'
+        required: true
+        default: 'Dev'
+
+jobs:
+  AutoFilm-TV:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 下载仓库
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch }}
+
+    - name: 安装Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install webdavclient3 requests
+
+    - name: 运行AutoFilm-actions程序
+      run: |
+        python autofilm-actions.py --path config/tv.config
+             
+    - name: 打包输出文件
+      run: |
+        zip -r AutoFilm-$(date +%Y-%m-%d).zip ./AutoFilm/ 
+      
+    - name: 创建并发布Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: Emby扫库文件
+        name: AutoFilm-TV-$(date +%Y-%m-%d)
+        body: TODO New Release.
+        body_path: Release.md
+        draft: false
+        prerelease: false
+        files: |
+          AutoFilm-$(date +%Y-%m-%d).zip
+          LICENSE 
