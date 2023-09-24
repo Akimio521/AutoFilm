@@ -5,7 +5,9 @@ on:
       branch:
         description: '请选择运行分支'
         required: true
-        default: 'Dev'      
+        default: 'Dev'
+  schedule:
+    - cron: 0 4 1 * *       
 
 jobs:
   AutoFilm-Anime:
@@ -32,17 +34,27 @@ jobs:
         
     - name: 打包输出文件
       run: |
-        zip -r AutoFilm-$(date +%Y-%m-%d).zip ./AutoFilm/ 
+        zip -r AutoFilm.zip ./Meida/
+    
+    - name: 更新Release.md
+      run: |
+        echo "更新时间：$(date +'%Y年%m月%d日 %H点%M分')" >> Release.md
+        
+    - name: 上传到Github Action空间
+      uses: actions/upload-artifact@main
+      with:
+        name: AutoFilm-Anime-$(date +'%Y-%m-%d')
+        path: AutoFilm.zip
       
     - name: 创建并发布Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: Emby扫库文件
-        name: AutoFilm-Anime-$(date +%Y-%m-%d)
+        tag_name: 动漫更新
+        name: AutoFilm-动漫
         body: TODO New Release.
         body_path: Release.md
         draft: false
         prerelease: false
         files: |
-          AutoFilm-$(date +%Y-%m-%d).zip
+          AutoFilm.zip
           LICENSE 
