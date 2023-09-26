@@ -35,18 +35,24 @@ python3 .\autofilm.py -h
 ```
 
 ### 运行：
-```
-python3 .\autofilm.py --webdav_url webdav服务器地址 --username webdav账号 --password webdav密码 --output_path 输出文件目录
-```
 示例：我的Alist地址为`https://alist.example.com:666`，我要下载`/视频/动漫/`里面的视频，下载路径在`D盘电影文件夹中的动漫文件夹`，我的Alist的访问账号的`myAlist`，密码是`listpwd`
 ```
 python3 .\autofilm.py --webdav_url https://alist.example.com:666/dav/视频/动漫/ --username myAlist --password Alistpwd  --output_path D:电影//动漫//
 ```
 
-### 其他参数
+### 必要参数
+- **webdav_url**：webdav服务器地址
+- **username**：webdav账号
+- **password**：webdav密码
+
+### 非必要参数
+- **output_path**：输出文件目录，默认为当前文件夹的子目录`Media`
 - **subtitle**：是否下载字幕文件，默认`true`
 - **nfo**：是否下载NFO文件，默认`false`
 - **img**：是否下载JPG和PNG图片文件，默认`false`
+
+## 关于开发
+本项目采用`main`分支为稳定版、`Dev`分支为开发版，建议Fork`Dev`分支，提交Pr也建议提交到`Dev`分支，`main`分支不定期同步`Dev`分支进度，如果`Dev`分支中有`TEST`字样的Commit，则代表在测试中，二次开发时建议reset回上一个分支中
 
 ## 实现思路
 我的NAS上搭建了Alist和Emby两个服务器，我的音乐库在阿里云盘上，最开始是利用Alist挂载阿里云盘然后Rclone到本地挂载到Emby上，但是每次Emby扫库时，NAS的运行压力就会变大，而且观看体验并不好
