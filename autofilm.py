@@ -7,7 +7,7 @@ import argparse, os, requests, time
 如果depth为正整数，则会递归遍历到指定深度
 如果depth为0，则只会遍历当前文件夹中的文件和文件夹，不会继续递归遍历下一级文件夹。
 '''
-def list_files(webdav_url, username, password, depth=None, path=''):
+def list_files(webdav_url, username, password, depth=None, path='', count=0):
     options = {
         'webdav_hostname': webdav_url,
         'webdav_login': username,
@@ -37,22 +37,23 @@ def list_files(webdav_url, username, password, depth=None, path=''):
     for item in items[1:]:
         if item[-1] == '/':
             if depth is None or depth > 0:
-                subdirectory, subfiles = list_files(webdav_url + item, username, password, depth=None if depth is None else depth - 1, path=path+item)
+                subdirectory, subfiles, count = list_files(webdav_url + item, username, password, depth=None if depth is None else depth - 1, path=path+item, count=count)
                 directory += [item + subitem for subitem in subdirectory]
                 files += [item + subitem for subitem in subfiles]
             else:
                 directory.append(item)
         else:
             files.append(item)
+            count += 1
     if path:
         print(f'当前文件夹路径：{path}')
-    return directory, files
+    return directory, files, count
 
 '''
 下载函数
 用于'ASS', 'SRT', 'SSA','NFO','JPG', 'PNG'文件的下载
 '''   
-def download_file(url, local_path, filename):
+def download_file(url, local_path, filename, total_count):
     p = 1
     while p < 10:
         try:
@@ -71,6 +72,8 @@ def download_file(url, local_path, filename):
                 print('重新下载成功！')
             print(filename + '下载成功！')
             break
+        progress = int((p / 10) * 100)
+        print(f'已完成 {progress}%，共 {total_count} 个文件')
 
 parser = argparse.ArgumentParser(description='Autofilm script')
 parser.add_argument('--webdav_url', type=str, help='WebDAV服务器地址', required=True)
@@ -91,10 +94,11 @@ print(f'是否下载字幕：{args.subtitle}')
 print(f'是否下载电影信息：{args.nfo}')
 print(f'是否下载图片：{args.img}')
 
-directory = list_files(args.webdav_url, args.username, args.password, depth=None, path='')[0]
-files = list_files(args.webdav_url, args.username, args.password, depth=None, path='')[1]
+directory, files, count = list_files(args.webdav_url, args.username, args.password, depth=None, path='', count=0)
 
 urls = [args.webdav_url + item for item in directory + files]
+
+download_count = 0
 
 for url in urls:
     if url[-1] == '/':
@@ -114,12 +118,18 @@ for url in urls:
                 print(filename + '处理失败，文件名包含特殊符号，建议重命名！')
     elif args.subtitle == 'true' and file_ext in ['ASS', 'SRT', 'SSA']:
         if not os.path.exists(local_path):
-            download_file(url, local_path, filename)
+            download_file(url, local_path, filename, count)
+            download_count += 1
     elif args.nfo == 'true' and file_ext == 'NFO':
         if not os.path.exists(local_path):
-            download_file(url, local_path, filename)
+            download_file(url, local_path, filename, count)
+            download_count += 1
     elif args.img == 'true' and file_ext in ['JPG', 'PNG']:
         if not os.path.exists(local_path):
-            download_file(url, local_path, filename)
+            download_file(url, local_path, filename, count)
+            download_count += 1
+
+    progress = int((download_count / count) * 100)
+    print(f'已完成 {progress}%，共 {count} 个文件')
 
 print('处理完毕！')
