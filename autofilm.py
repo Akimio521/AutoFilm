@@ -62,7 +62,7 @@ def download_file(url, local_path, filename, total_count):
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             with open(local_path, 'wb') as f:
                 f.write(r.content)
-                f.close
+                f.close()
         except:
             print(f'第{p}次下载失败，{p + 1}秒后重试...')
             p += 1
