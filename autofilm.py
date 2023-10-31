@@ -107,7 +107,7 @@ for url in urls:
     local_path = os.path.join(args.output_path, url.replace(args.webdav_url, '').lstrip('/'))
     file_ext = filename[-3:].upper()
 
-    if file_ext in ['MP4', 'MKV', 'FLV', 'AVI']:
+    if file_ext in ['MP4', 'MKV', 'FLV', 'AVI', 'WMV']:
         if not os.path.exists(os.path.join(args.output_path, filename[:-3] + 'strm')):
             print('正在处理：' + filename)
             try:
@@ -116,7 +116,7 @@ for url in urls:
                     f.write(url.replace('/dav', '/d'))
             except:
                 print(filename + '处理失败，文件名包含特殊符号，建议重命名！')
-    elif args.subtitle == 'true' and file_ext in ['ASS', 'SRT', 'SSA']:
+    elif args.subtitle == 'true' and file_ext in ['ASS', 'SRT', 'SSA', 'SUB']:
         if not os.path.exists(local_path):
             download_file(url, local_path, filename, count)
             download_count += 1
