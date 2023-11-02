@@ -17,7 +17,7 @@
 本项目采用`main`分支为稳定版、`Dev`分支为开发版，建议Fork`Dev`分支，提交Pr也建议提交到`Dev`分支，`main`分支不定期同步`Dev`分支进度，如果`Dev`分支中有`TEST`字样的Commit，则代表在测试中，二次开发时建议reset回上一个分支中
 
 ## 使用教程
-详情见[Akimio的博客](https://blog.akimio.top/post/1031/#使用教程)
+详情见[Akimio的博客](https://blog.akimio.top/posts/1031/#使用教程)
 ## 鸣谢
 感谢[七米蓝](https://github.com/ChirmyRam/ChirmyRam-OneDrive-Repository)分享Alist，为本项目的Workflows提供视频源
 
@@ -28,4 +28,4 @@
 
 ## 请我喝杯咖啡吧
 **如果你认为这个项目有帮到你，欢迎请我喝杯咖啡**
-![欢迎请我喝咖啡](https://img.akimio.top/reward/coffee.png/)
+![欢迎请我喝咖啡](https://img.akimio.top/reward/coffee.png)
