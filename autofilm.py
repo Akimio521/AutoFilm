@@ -1,6 +1,8 @@
 from webdav3.client import Client
 import argparse, os, requests, time
 
+from version import APP_VERSION
+
 '''
 遍历Webdav服务器函数
 如果depth为None，则会递归遍历整个WebDAV服务器
@@ -76,73 +78,77 @@ def download_file(url, local_path, filename, total_count):
         progress = int((p / 10) * 100)
         print(f'已完成 {progress}%，共 {total_count} 个文件')
 
-parser = argparse.ArgumentParser(description='Autofilm script')
-parser.add_argument('--webdav_url', type=str, help='WebDAV服务器地址', required=True)
-parser.add_argument('--username', type=str, help='WebDAV账号', required=True)
-parser.add_argument('--password', type=str, help='WebDAV密码', required=True)
-parser.add_argument('--output_path', type=str, help='输出文件目录', default='./Media/')
-parser.add_argument('--subtitle', type=str, help='是否下载字幕文件', choices=['true', 'false'], default='true')
-parser.add_argument('--nfo', type=str, help='是否下载NFO文件', choices=['true', 'false'], default='false')
-parser.add_argument('--img', type=str, help='是否下载JPG和PNG文件', choices=['true', 'false'], default='false')
-parser.add_argument('--show_path', type=str, help='遍历时是否显示文件夹路径', choices=['true', 'false'], default='false')
-parser.add_argument('--proxy', type=str, help='HTTP代理服务器，格式为IP:端口号')
-args = parser.parse_args()
 
-print('启动参数：')
-print(f'Webdav服务器地址：{args.webdav_url}')
-print(f'Webdav登入用户名：{args.username}')
-print(f'Webdav登入密码：{args.password}')
-print(f'文件输出路径：{args.output_path}')
-print(f'是否下载字幕：{args.subtitle}')
-print(f'是否下载电影信息：{args.nfo}')
-print(f'是否下载图片：{args.img}')
-print(f'遍历时是否显示文件夹路径：{args.show_path}')
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Autofilm script')
+    parser.add_argument('--webdav_url', type=str, help='WebDAV服务器地址', required=True)
+    parser.add_argument('--username', type=str, help='WebDAV账号', required=True)
+    parser.add_argument('--password', type=str, help='WebDAV密码', required=True)
+    parser.add_argument('--output_path', type=str, help='输出文件目录', default='./Media/')
+    parser.add_argument('--subtitle', type=str, help='是否下载字幕文件', choices=['true', 'false'], default='true')
+    parser.add_argument('--nfo', type=str, help='是否下载NFO文件', choices=['true', 'false'], default='false')
+    parser.add_argument('--img', type=str, help='是否下载JPG和PNG文件', choices=['true', 'false'], default='false')
+    parser.add_argument('--show_path', type=str, help='遍历时是否显示文件夹路径', choices=['true', 'false'], default='false')
+    parser.add_argument('--proxy', type=str, help='HTTP代理服务器，格式为IP:端口号')
+    args = parser.parse_args()
 
-proxies = None
-if args.proxy:
-    proxies = {
-        'http': f'http://{args.proxy}',
-        'https': f'http://{args.proxy}'
-    }
+    print(f"当前的APP版本是：{APP_VERSION}")
 
-directory, files, count = list_files(args.webdav_url, args.username, args.password, args.show_path, depth=None, path='', count=0, proxies=proxies)
+    print('启动参数：')
+    print(f'Webdav服务器地址：{args.webdav_url}')
+    print(f'Webdav登入用户名：{args.username}')
+    print(f'Webdav登入密码：{args.password}')
+    print(f'文件输出路径：{args.output_path}')
+    print(f'是否下载字幕：{args.subtitle}')
+    print(f'是否下载电影信息：{args.nfo}')
+    print(f'是否下载图片：{args.img}')
+    print(f'遍历时是否显示文件夹路径：{args.show_path}')
 
-urls = [args.webdav_url + item for item in directory + files]
+    proxies = None
+    if args.proxy:
+        proxies = {
+            'http': f'http://{args.proxy}',
+            'https': f'http://{args.proxy}'
+        }
 
-download_count = 0
+    directory, files, count = list_files(args.webdav_url, args.username, args.password, args.show_path, depth=None, path='', count=0, proxies=proxies)
 
-for url in urls:
-    if url[-1] == '/':
-        continue
-    filename = os.path.basename(url)
-    local_path = os.path.join(args.output_path, url.replace(args.webdav_url, '').lstrip('/'))
-    file_ext = filename[-3:].upper()
+    urls = [args.webdav_url + item for item in directory + files]
 
-    valid_extensions = ['mp4', 'mkv', 'flv', 'avi', 'wmv', 'ts', 'rmvb', 'webm']
-    if filename.lower().endswith(tuple(valid_extensions)):
-        new_filename = filename.rsplit('.', 1)[0] + '.strm'
-        if not os.path.exists(os.path.join(args.output_path, new_filename)):
-            print('正在处理：' + filename)
-            try:
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                with open(os.path.join(local_path[:-3] + 'strm'), "w", encoding='utf-8') as f:
-                    f.write(url.replace('/dav', '/d'))
-            except:
-                print(filename + '处理失败，文件名包含特殊符号，建议重命名！')
-    elif args.subtitle == 'true' and file_ext in ['ASS', 'SRT', 'SSA', 'SUB']:
-        if not os.path.exists(local_path):
-            download_file(url, local_path, filename, count)
-            download_count += 1
-    elif args.nfo == 'true' and file_ext == 'NFO':
-        if not os.path.exists(local_path):
-            download_file(url, local_path, filename, count)
-            download_count += 1
-    elif args.img == 'true' and file_ext in ['JPG', 'PNG']:
-        if not os.path.exists(local_path):
-            download_file(url, local_path, filename, count)
-            download_count += 1
+    download_count = 0
 
-    progress = int((download_count / count) * 100)
-    print(f'已完成 {progress}%，共 {count} 个文件')
+    for url in urls:
+        if url[-1] == '/':
+            continue
+        filename = os.path.basename(url)
+        local_path = os.path.join(args.output_path, url.replace(args.webdav_url, '').lstrip('/'))
+        file_ext = filename[-3:].upper()
 
-print('处理完毕！')
+        valid_extensions = ['mp4', 'mkv', 'flv', 'avi', 'wmv', 'ts', 'rmvb', 'webm']
+        if filename.lower().endswith(tuple(valid_extensions)):
+            new_filename = filename.rsplit('.', 1)[0] + '.strm'
+            if not os.path.exists(os.path.join(args.output_path, new_filename)):
+                print('正在处理：' + filename)
+                try:
+                    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                    with open(os.path.join(local_path[:-3] + 'strm'), "w", encoding='utf-8') as f:
+                        f.write(url.replace('/dav', '/d'))
+                except:
+                    print(filename + '处理失败，文件名包含特殊符号，建议重命名！')
+        elif args.subtitle == 'true' and file_ext in ['ASS', 'SRT', 'SSA', 'SUB']:
+            if not os.path.exists(local_path):
+                download_file(url, local_path, filename, count)
+                download_count += 1
+        elif args.nfo == 'true' and file_ext == 'NFO':
+            if not os.path.exists(local_path):
+                download_file(url, local_path, filename, count)
+                download_count += 1
+        elif args.img == 'true' and file_ext in ['JPG', 'PNG']:
+            if not os.path.exists(local_path):
+                download_file(url, local_path, filename, count)
+                download_count += 1
+
+        progress = int((download_count / count) * 100)
+        print(f'已完成 {progress}%，共 {count} 个文件')
+
+    print('处理完毕！')
