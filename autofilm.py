@@ -118,8 +118,10 @@ for url in urls:
     local_path = os.path.join(args.output_path, url.replace(args.webdav_url, '').lstrip('/'))
     file_ext = filename[-3:].upper()
 
-    if file_ext in ['MP4', 'MKV', 'FLV', 'AVI', 'WMV']:
-        if not os.path.exists(os.path.join(args.output_path, filename[:-3] + 'strm')):
+    valid_extensions = ['mp4', 'mkv', 'flv', 'avi', 'wmv', 'ts', 'rmvb', 'webm']
+    if filename.lower().endswith(tuple(valid_extensions)):
+        new_filename = filename.rsplit('.', 1)[0] + '.strm'
+        if not os.path.exists(os.path.join(args.output_path, new_filename)):
             print('正在处理：' + filename)
             try:
                 os.makedirs(os.path.dirname(local_path), exist_ok=True)
