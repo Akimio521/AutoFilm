@@ -131,7 +131,7 @@ if __name__ == '__main__':
                 print('正在处理：' + filename)
                 try:
                     os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                    with open(os.path.join(local_path[:-3] + 'strm'), "w", encoding='utf-8') as f:
+                    with open(os.path.join(local_path.rsplit('.', 1)[0] + '.strm'), "w", encoding='utf-8') as f:
                         f.write(url.replace('/dav', '/d'))
                 except:
                     print(filename + '处理失败，文件名包含特殊符号，建议重命名！')
