@@ -2,7 +2,7 @@
 **一个为Emby、Jellyfin服务器提供直链播放的小项目**
 
 # 说明文档
-详情见[Akimio的博客](https://blog.akimio.top/posts/1031/#使用教程)
+详情见[AutoFilm说明文档](https://blog.akimio.top/posts/1031/)
 
 # 优点
 - [x] 轻量化Emby服务器，降低Emby服务器的性能需求以及硬盘需求
@@ -12,8 +12,15 @@
 
 # TODO LIST
 - [x] 从config文件中读取多个参数
-- [ ] 优化程序运行效率
+- [x] 优化程序运行效率（多线程处理）
+- [ ] 增加Docker镜像
+- [ ] Strm模式/媒体库模式
+- [ ] 监控模式
 - [ ] 对接TMDB实现分类、重命名、刮削等功能
+
+# 更新日志
+- 2024.2.1： v1.0.0，完全重构AutoFilm，不再兼容v0.1，实现多线程，大幅度提升任务处理速度
+- 2024.1.28：v0.1.1，初始版本持续迭代
 
 # 开源许可证
 **本项目采用 GNU Affero General Public License（GNU AGPL）开源许可证。**

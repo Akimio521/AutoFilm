@@ -1,1 +1,7 @@
-Media/*
+config/config.yaml
+strm/*
+media/*
+__pycache__/*
+
+*bak
+test-*

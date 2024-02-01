@@ -1,0 +1,3 @@
+webdavclient3 == 3.14.6
+requests == 2.31.0
+PyYAML == 6.0.1

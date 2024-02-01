@@ -1,0 +1,24 @@
+setting:
+  output_path: ./media/     # 输出路径
+  l_threads: 3              # list_files线程数
+  p_threads: 8              # processing_file线程数
+  subtitle: True            # 是否下载字幕
+  img: False                # 是否下载图片
+  nfo: True                 # 是否下载视频信息文件
+webdav:
+  动漫A:                                        # 任意字符，用于标识Webdav服务器
+    url: https://al.chirmyram.com/dav/ani/A/    # Webdav服务器URL
+    username: alist                             # Webdav账号
+    password: alist                             # Webdav密码
+  动漫B:
+    url: https://al.chirmyram.com/dav/ani/B/
+    username: alist
+    password: alist
+  电影A:
+    url: https://al.chirmyram.com/dav/mov/电影/A
+    username: alist
+    password: alist
+   我的Alist:
+    url: http://192.168.1.1:5244/dav/阿里云/
+    username: admin
+    password: adminadmin
