@@ -19,8 +19,7 @@ webdav:
   电影A:
     url: https://al.chirmyram.com/dav/mov/电影/A/
     username: alist
-    password: alist
-    token: "alist-a1b2c3d4-12..."
+    password: alist                             # 或者直接不填写token项
   我的Alist:
     url: http://192.168.1.1:5244/dav/阿里云/
     username: admin

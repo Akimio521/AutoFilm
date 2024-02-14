@@ -128,7 +128,10 @@ def main(config_path: str):
         url = value["url"]
         username = value["username"]
         password = value["password"]
-        token = value["token"]
+        try:
+            token = value["token"]
+        except KeyError:
+            token = ""
 
         urls_queue = queue.Queue()
         files_queue = queue.Queue()
