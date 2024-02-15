@@ -7,6 +7,7 @@ import time
 import hmac
 import hashlib
 import base64
+import urllib.parse
 from webdav3.client import Client
 
 def sign(secret_key: str, data: str):
@@ -49,7 +50,7 @@ def list_files(username: str, password: str, urls_queue: queue.Queue, files_queu
                 files_queue.put(url + item)
     print(f"{threading.current_thread().name}处理完毕")
 
-def strm_file(url: str, output_path: str, filename: str, file_absolute_path: str, token: str):
+def strm_file(url: str, output_path: str, filename: str, file_absolute_path: str, token: str, url_encode: bool):
     strm_filename = filename.rsplit(".", 1)[0] + ".strm"
     local_path = os.path.join(output_path, strm_filename)
     if not os.path.exists(local_path):
@@ -57,7 +58,10 @@ def strm_file(url: str, output_path: str, filename: str, file_absolute_path: str
             print(f"正在下载：{filename}")
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             with open(local_path, "wb") as file:
-                file.write((url.replace("/dav", "/d") + filename + sign(token, file_absolute_path)).encode())
+                url_string = url.replace("/dav", "/d") + filename + sign(token, file_absolute_path)
+                if url_encode:
+                    url_string = urllib.parse.quote(url_string, safe='@#$&=:/,;?+\'')
+                file.write(url_string.encode())
             print(f"{filename}处理成功")
         except Exception as e:
             print(f"{filename}处理失败，错误信息：{str(e)}")
@@ -78,7 +82,7 @@ def download_file(url: str, output_path: str, filename: str, file_absolute_path:
     else:
         print(f"{filename}已存在，跳过下载")
 
-def processing_file(output_path: str, url_base: str, files_queue: queue.Queue, subtitle: bool, img: bool, nfo: bool, token: str):
+def processing_file(output_path: str, url_base: str, files_queue: queue.Queue, subtitle: bool, img: bool, nfo: bool, token: str, url_encode: bool):
     video_format = ["mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm"]
     subtitle_format = ["ass", "srt", "ssa", "sub"]
     img_format = ["png", "jpg"]
@@ -94,7 +98,7 @@ def processing_file(output_path: str, url_base: str, files_queue: queue.Queue, s
             print(f"{threading.current_thread().name}——正在处理:{file_url}，剩余{files_queue.qsize()}个文件待处理")
             filename = file_url.replace(url_base, "")
             if filename.lower().endswith(tuple(video_format)):
-                strm_file(url_base, output_path, filename, file_absolute_path, token)
+                strm_file(url_base, output_path, filename, file_absolute_path, token, url_encode)
             elif filename.lower().endswith(tuple(subtitle_format)) & subtitle:
                 download_file(url_base, output_path, filename, file_absolute_path, token)
             elif filename.lower().endswith(tuple(img_format)) & img:
@@ -118,6 +122,10 @@ def main(config_path: str):
     subtitle = config_data["setting"]["subtitle"]
     img = config_data["setting"]["img"]
     nfo = config_data["setting"]["nfo"]
+    try:
+        url_encode = config_data["setting"]["url_encode"]
+    except KeyError:
+        url_encode = False
 
     webdav_data = config_data["webdav"]
     print(f"一共读取到{len(webdav_data)}个Webdav配置")
@@ -152,7 +160,7 @@ def main(config_path: str):
 
         for thread in range(p_threads):
             print(f"processing_file线程{thread}启动中")
-            t = threading.Thread(target=processing_file, args=(output_path, url, files_queue, subtitle, img, nfo, token), name=f"processing_file线程{thread}")
+            t = threading.Thread(target=processing_file, args=(output_path, url, files_queue, subtitle, img, nfo, token, url_encode), name=f"processing_file线程{thread}")
             t.start()
             print(f"processing_file线程{thread}已启动，{processing_file_interval}秒后启动下一个线程")
             time.sleep(processing_file_interval)
