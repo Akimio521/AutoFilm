@@ -5,6 +5,7 @@ setting:
   subtitle: True            # 是否下载字幕
   img: False                # 是否下载图片
   nfo: True                 # 是否下载视频信息文件
+  url_encode: True          # 是否对生成的strm文件中的链接进行URL编码
 webdav:
   动漫A:                                        # 任意字符，用于标识Webdav服务器
     url: https://al.chirmyram.com/dav/ani/A/    # Webdav服务器URL
