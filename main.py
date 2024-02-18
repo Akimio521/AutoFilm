@@ -1,5 +1,6 @@
 import argparse
 import time
+import logging
 
 import autofilm
 from version import APP_VERSION 
@@ -9,12 +10,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Autofilm参数配置')
     parser.add_argument('--config_path', type=str, help='配置文件路径', default='./config/config.yaml')
+    parser.add_argument('--log_level', type=str, help='日志级别', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
     args = parser.parse_args()
 
-    print(f"当前的APP版本是：{APP_VERSION}")
-    print(f'配置文件路径：{args.config_path}')
+    formatter = "[%(asctime)s][%(levelname)s]%(funcName)s:%(message)s"
+    logging.basicConfig(format=formatter, level=getattr(logging, args.log_level))
+
+    logging.info(f"当前的APP版本是：{APP_VERSION}")
+    logging.info(f'配置文件路径：{args.config_path}')
 
     autofilm.main(args.config_path)
 
-    print("10秒后程序自动退出")
+    logging.info("10秒后程序自动退出")
     time.sleep(10)
