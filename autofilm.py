@@ -10,8 +10,9 @@ import base64
 import urllib.parse
 import logging
 from webdav3.client import Client
+from typing import Union
 
-def sign(secret_key: str, data: str):
+def sign(secret_key: str, data: str) -> str:
     if secret_key == "":
         return ""
     h = hmac.new(secret_key.encode(), digestmod=hashlib.sha256)
@@ -112,6 +113,16 @@ def processing_file(output_path: str, url_base: str, files_queue: queue.Queue, s
             time.sleep(waite_time)
     logging.debug(f"{threading.current_thread().name}处理完毕")
 
+def get_config_value(*keys: str, config: dict, default_value: Union[str, bool, int], error_message: str) -> Union[str, bool, int]:
+    try:
+        config_value = config
+        for key in keys:
+            config_value = config_value[key]
+    except Exception as e:
+        logging.warning(f"{error_message}，已加载默认配置，错误信息：{str(e)}")
+        config_value = default_value
+    return config_value
+
 def main(config_path: str):
     try:
         with open(config_path, "r", encoding="utf-8") as file:
@@ -119,44 +130,15 @@ def main(config_path: str):
     except Exception as e:
             logging.critical(f"配置文件{config_path}加载失败，程序即将停止，错误信息：{str(e)}")
     else:
-        try:
-            output_path = config_data["setting"]["output_path"]
-        except Exception as e:
-            logging.warning(f"输出路径读取错误，已加载默认配置，错误信息：{str(e)}")
-            output_path = "./media/"
-        try:
-            l_threads = config_data["setting"]["l_threads"]
-        except Exception as e:
-            logging.warning(f"list线程数读取错误，已加载默认配置，错误信息：{str(e)}")
-            l_threads = 1
-        try:
-            p_threads = config_data["setting"]["p_threads"]
-        except Exception as e:
-            logging.warning(f"processing线程数读取错误，已加载默认配置，错误信息：{str(e)}")
-            p_threads = 1
-        logging.info(f"输出目录：{output_path}；list_files线程数：{l_threads}；processing_file线程数：{p_threads}")
-        
-        try:
-            subtitle = config_data["setting"]["subtitle"]
-        except Exception as e:
-            logging.warning(f"字幕设置读取错误，默认不下载，错误信息：{str(e)}")
-            subtitle = False
-        try:
-            img = config_data["setting"]["img"]
-        except Exception as e:
-            logging.warning(f"海报图片设置数读取错误，默认不下载，错误信息：{str(e)}")
-            img = False
-        try:
-            nfo = config_data["setting"]["nfo"]
-        except Exception as e:
-            logging.warning(f"视频信息设置读取错误，默认不下载，错误信息：{str(e)}")
-            nfo = False
-        try:
-            url_encode = config_data["setting"]["url_encode"]
-        except Exception as e:
-            logging.warning(f"URL编码设置读取错误，默认不编码，错误信息：{str(e)}")
-            url_encode = False
+        output_path = get_config_value("setting", "output_path", config=config_data, default_value="./media/", error_message="输出路径读取错误")
+        l_threads = get_config_value("setting", "l_threads", config=config_data, default_value=1, error_message="list线程数读取错误")
+        p_threads = get_config_value("setting", "p_threads", config=config_data, error_message="processing线程数读取错误")
+        subtitle = get_config_value("setting", "subtitle", config=config_data, default_value=False, error_message="字幕设置数读取错误")
+        img = get_config_value("setting", "img", config=config_data, default_value=False, error_message="海报图片设置数读取错误")
+        nfo = get_config_value("setting", "nfo", config=config_data, default_value=False, error_message="视频信息设置读取错误")
+        url_encode = get_config_value("setting", "url_encode", config=config_data, default_value=False, error_message="URL编码设置读取错误")
 
+        logging.info(f"输出目录：{output_path}；list_files线程数：{l_threads}；processing_file线程数：{p_threads}")
         try:
             webdav_data = config_data["webdav"]
         except Exception as e:
