@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import os
 import queue
 import threading
@@ -12,142 +13,49 @@ import logging
 from webdav3.client import Client
 from typing import Union
 
-def sign(secret_key: str, data: str) -> str:
-    if secret_key == "":
-        return ""
-    h = hmac.new(secret_key.encode(), digestmod=hashlib.sha256)
-    expire_time_stamp = str(0)
-    h.update((data + ":" + expire_time_stamp).encode())
-    return f"?sign={base64.urlsafe_b64encode(h.digest()).decode()}:0"
+class AutoFilm:
+    def __init__(self, config_path: str, ):
+        self.config_data = {}
 
-def list_files(username: str, password: str, urls_queue: queue.Queue, files_queue: queue.Queue):
-    while not urls_queue.empty():
-        url = urls_queue.get()
-        logging.debug(f"{threading.current_thread().name}——正在处理:{url}，剩余{urls_queue.qsize()}个URL待处理")
-        options = {
-            "webdav_hostname": url,
-            "webdav_login": username,
-            "webdav_password": password
-        }
-        client = Client(options)
+        self.urls_queue = queue.Queue()
+        self.files_queue = queue.Queue()
 
-        try_number = 1
-        try_max = 15
+        self.list_files_interval = 10
+        self.lp_interval = 10
+        self.processing_file_interval = 10
 
-        while try_number < try_max:
-            try:
-                items = client.list()
-            except Exception as e:
-                logging.warning(f"{threading.current_thread().name}遇到错误，第{try_number}尝试失败；错误信息：{str(e)}，传入URL：{url}")
-                time.sleep(try_number)
-                try_number += 1
-            else:
-                if try_number > 1:
-                    logging.warning(f"{url}重连成功")
-                break
-        for item in items[1:]:
-            if item.endswith("/"):
-                urls_queue.put(url + item)
-            else:
-                files_queue.put(url + item)
-    logging.debug(f"{threading.current_thread().name}处理完毕")
+        self.try_max = 15
 
-def strm_file(url: str, output_path: str, filename: str, file_absolute_path: str, token: str, url_encode: bool):
-    strm_filename = filename.rsplit(".", 1)[0] + ".strm"
-    local_path = os.path.join(output_path, strm_filename)
-    if not os.path.exists(local_path):
+        self.library_mode = True
+        self.video_format = ["mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm"]
+        self.subtitle_format = ["ass", "srt", "ssa", "sub"]
+        self.img_format = ["png", "jpg"]
+
+        self.waite_max = 10
+        self.waite_time = 5
+
         try:
-            logging.debug(f"正在下载：{filename}")
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            with open(local_path, "wb") as file:
-                url_string = url.replace("/dav", "/d") + filename + sign(token, file_absolute_path)
-                if url_encode:
-                    url_string = urllib.parse.quote(url_string, safe='@#$&=:/,;?+\'')
-                file.write(url_string.encode())
-            logging.debug(f"{filename}处理成功")
+            with open(config_path, "r", encoding="utf-8") as file:
+                self.config_data = yaml.safe_load(file)
         except Exception as e:
-            logging.warning(f"{filename}处理失败，错误信息：{str(e)}")
-    else:
-        logging.debug(f"{filename}已存在，跳过处理")
-
-def download_file(url: str, output_path: str, filename: str, file_absolute_path: str, token: str):
-    local_path = os.path.join(output_path, filename)
-    if not os.path.exists(local_path):
-        try:
-            logging.debug(f"正在下载：{filename}")
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            response = requests.get(url.replace("/dav", "/d") + filename + sign(token, file_absolute_path))
-            with open(local_path, "wb") as file:
-                file.write(response.content)
-        except Exception as e:
-            logging.warning(f"{filename}下载失败，错误信息：{str(e)}")
-    else:
-        logging.debug(f"{filename}已存在，跳过下载")
-
-def processing_file(output_path: str, url_base: str, files_queue: queue.Queue, subtitle: bool, img: bool, nfo: bool, token: str, url_encode: bool):
-    video_format = ["mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm"]
-    subtitle_format = ["ass", "srt", "ssa", "sub"]
-    img_format = ["png", "jpg"]
-
-    waite_number = 0
-    waite_max = 10
-    waite_time = 5
-
-    while waite_number < waite_max:
-        if not files_queue.empty():
-            file_url = files_queue.get()
-            file_absolute_path = file_url[file_url.index("/dav") + 4:]
-            logging.debug(f"{threading.current_thread().name}——正在处理:{file_url}，剩余{files_queue.qsize()}个文件待处理")
-            filename = file_url.replace(url_base, "")
-            if filename.lower().endswith(tuple(video_format)):
-                strm_file(url_base, output_path, filename, file_absolute_path, token, url_encode)
-            elif filename.lower().endswith(tuple(subtitle_format)) & subtitle:
-                download_file(url_base, output_path, filename, file_absolute_path, token)
-            elif filename.lower().endswith(tuple(img_format)) & img:
-                download_file(url_base, output_path, filename, file_absolute_path, token)
-            elif filename.lower().endswith("nfo") & nfo:
-                download_file(url_base, output_path, filename, file_absolute_path, token)
-        else:
-            waite_number += 1
-            logging.debug(f"files_queue列表为空，当前尝试次数：{waite_number}，共尝试{waite_max}次，{waite_time}秒后重试")
-            time.sleep(waite_time)
-    logging.debug(f"{threading.current_thread().name}处理完毕")
-
-def get_config_value(*keys: str, config: dict, default_value: Union[str, bool, int], error_message: str) -> Union[str, bool, int]:
-    try:
-        config_value = config
-        for key in keys:
-            config_value = config_value[key]
-    except Exception as e:
-        logging.warning(f"{error_message}，已加载默认配置，错误信息：{str(e)}")
-        config_value = default_value
-    return config_value
-
-def main(config_path: str):
-    try:
-        with open(config_path, "r", encoding="utf-8") as file:
-            config_data = yaml.safe_load(file)
-    except Exception as e:
             logging.critical(f"配置文件{config_path}加载失败，程序即将停止，错误信息：{str(e)}")
-    else:
-        output_path = get_config_value("setting", "output_path", config=config_data, default_value="./media/", error_message="输出路径读取错误")
-        l_threads = get_config_value("setting", "l_threads", config=config_data, default_value=1, error_message="list线程数读取错误")
-        p_threads = get_config_value("setting", "p_threads", config=config_data, error_message="processing线程数读取错误")
-        subtitle = get_config_value("setting", "subtitle", config=config_data, default_value=False, error_message="字幕设置数读取错误")
-        img = get_config_value("setting", "img", config=config_data, default_value=False, error_message="海报图片设置数读取错误")
-        nfo = get_config_value("setting", "nfo", config=config_data, default_value=False, error_message="视频信息设置读取错误")
-        url_encode = get_config_value("setting", "url_encode", config=config_data, default_value=False, error_message="URL编码设置读取错误")
-
-        logging.info(f"输出目录：{output_path}；list_files线程数：{l_threads}；processing_file线程数：{p_threads}")
-        try:
-            webdav_data = config_data["webdav"]
-        except Exception as e:
-            logging.critical(f"Webdav服务器配置读取失败，错误信息：{str(e)}")
         else:
-            logging.info(f"一共读取到{len(webdav_data)}个Webdav配置")
+            self.output_path = self.get_config_value("setting", "output_path", default_value="./media/", error_message="输出路径读取错误，默认设置为'./media/'")
+            self.l_threads = self.get_config_value("setting", "l_threads", default_value=1, error_message="list线程数读取错误，默认单线程")
+            self.p_threads = self.get_config_value("setting", "p_threads", default_value=1, error_message="processing线程数读取错误，默认单线程")
+            self.subtitle = self.get_config_value("setting", "subtitle", default_value=False, error_message="字幕设置数读取错误，默认不下载")
+            self.img = self.get_config_value("setting", "img", default_value=False, error_message="海报图片设置数读取错误，默认不下载")
+            self.nfo = self.get_config_value("setting", "nfo", default_value=False, error_message="视频信息设置读取错误，默认不下载")
+            self.url_encode = self.get_config_value("setting", "url_encode", default_value=True, error_message="URL编码设置读取错误，请更新config.yaml")
+            logging.info(f"输出目录：{self.output_path}；list_files线程数：{self.l_threads}；processing_file线程数：{self.p_threads}")
+
+    def run(self) -> None:
+        webdav_datas = self.get_config_value("webdav", default_value={}, error_message="Webdav服务器列表读取失败")
+        if webdav_datas:
+            logging.debug("webdav列表加载成功")
             round = 1
-            for key, value in webdav_data.items():
-                logging.info(f"开始生成[{key}]Webdav服务器的Strm文件\；剩余{(len(webdav_data) - round)}个Webdav服务器未进行")
+            for key, value in webdav_datas.items():
+                logging.info(f"开始生成[{key}]Webdav服务器的Strm文件；剩余{(len(webdav_datas) - round)}个Webdav服务器未进行")
                 try:
                     url = value["url"]
                     username = value["username"]
@@ -155,34 +63,142 @@ def main(config_path: str):
                 except Exception as e:
                     logging.error(f"Webdav服务器账号密码地址读取错误，错误信息：{str(e)}")
                 else:
-                    try:
-                        token = value["token"]
-                    except Exception as e:
-                        logging.warning(f"Alist令牌token读取错误，请更新config配置文件，错误信息：{str(e)}")
-                        token = ""
+                    token = self.get_config_value("token", default_value="", error_message="Alist令牌token读取错误，默认关闭")
 
-                    urls_queue = queue.Queue()
-                    files_queue = queue.Queue()
-                    urls_queue.put(url)
+                    self.urls_queue.put(url)
 
-                    list_files_interval = 10
-                    lp_interval = 10
-                    processing_file_interval = 10
+                    for thread in range(self.l_threads):
+                        logging.debug(f"list_files线程{thread+1}启动中")
+                        list_files_thread = threading.Thread(target=self.list_files, args=(username, password), name=f"list_files线程{thread+1}")
+                        list_files_thread.start()
+                        logging.debug(f"list_files线程{thread+1}已启动，{self.list_files_interval}秒后启动下一个线程")
+                        time.sleep(self.list_files_interval)
 
-                    for thread in range(l_threads):
-                        logging.debug(f"list_files线程{thread}启动中")
-                        t = threading.Thread(target=list_files, args=(username, password, urls_queue, files_queue), name=f"list_files线程{thread}")
-                        t.start()
-                        logging.debug(f"list_files线程{thread}已启动，{list_files_interval}秒后启动下一个线程")
-                        time.sleep(list_files_interval)
+                    time.sleep(self.lp_interval)
 
-                    time.sleep(lp_interval)
-
-                    for thread in range(p_threads):
-                        logging.debug(f"processing_file线程{thread}启动中")
-                        t = threading.Thread(target=processing_file, args=(output_path, url, files_queue, subtitle, img, nfo, token, url_encode), name=f"processing_file线程{thread}")
-                        t.start()
-                        logging.debug(f"processing_file线程{thread}已启动，{processing_file_interval}秒后启动下一个线程")
-                        time.sleep(processing_file_interval)
+                    for thread in range(self.p_threads):
+                        logging.debug(f"processing_file线程{thread+1}启动中")
+                        processing_file_thread = threading.Thread(target=self.processing_file, args=(url, token), name=f"processing_file线程{thread+1}")
+                        processing_file_thread.start()
+                        logging.debug(f"processing_file线程{thread+1}已启动，{self.processing_file_interval}秒后启动下一个线程")
+                        time.sleep(self.processing_file_interval)
 
                     round += 1
+        else:
+            logging.error("webdav列表加载失败")
+
+    def get_config_value(self,*keys: str, default_value: Union[str, bool, int, dict], error_message: str) -> Union[str, bool, int, dict]:
+        try:
+            config_value = self.config_data
+            for key in keys:
+                config_value = config_value[key]
+        except Exception as e:
+            logging.warning(f"{error_message}，错误信息：{str(e)}")
+            config_value = default_value
+        return config_value
+    
+    def list_files(self, username, password) -> None:
+        while not self.urls_queue.empty():
+            url = self.urls_queue.get()
+            logging.debug(f"{threading.current_thread().name}——正在处理:{url}，剩余{self.urls_queue.qsize()}个URL待处理")
+            client = Client(options={"webdav_hostname": url,"webdav_login": username,"webdav_password": password})
+            
+            try_number = 1
+            while try_number <= self.try_max:
+                try:
+                    items = client.list()
+                except Exception as e:
+                    logging.warning(f"{threading.current_thread().name}遇到错误，第{try_number}尝试失败；错误信息：{str(e)}，传入URL：{url}")
+                    time.sleep(try_number)
+                    try_number += 1
+                else:
+                    if try_number > 1:
+                        logging.warning(f"{url}重连成功")
+                    break
+            for item in items[1:]:
+                if item.endswith("/"):
+                    self.urls_queue.put(url + item)
+                else:
+                    self.files_queue.put(url + item)
+            logging.debug(f"{threading.current_thread().name}处理完毕")
+
+    def get_file_relative_path(self, file_url: str, base_url: str, filename:str) -> str:
+        relative_path = file_url.replace(base_url, '').replace(filename, '')
+        # 添加斜杠作为路径的结尾
+        if not relative_path.endswith("/"):
+            relative_path += "/"
+        return relative_path
+    
+    def sign(self, secret_key: str, data: str) -> str:
+        if secret_key == "":
+            return ""
+        h = hmac.new(secret_key.encode(), digestmod=hashlib.sha256)
+        expire_time_stamp = str(0)
+        h.update((data + ":" + expire_time_stamp).encode())
+        return f"?sign={base64.urlsafe_b64encode(h.digest()).decode()}:0"
+
+    def strm_file(self, file_url: str, filename: str, file_absolute_path: str, token: str) -> None:
+        strm_filename = filename.rsplit(".", 1)[0] + ".strm"
+        local_path = os.path.join(self.output_path, strm_filename)
+        if not os.path.exists(local_path):
+            try:
+                logging.debug(f"正在下载：{filename}")
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                with open(local_path, "wb") as file:
+                    url_string = file_url.replace("/dav", "/d") + self.sign(secret_key=token, data=file_absolute_path)
+                    if self.url_encode:
+                        url_string = urllib.parse.quote(url_string, safe='@#$&=:/,;?+\'')
+                    file.write(url_string.encode())
+                logging.debug(f"{filename}处理成功")
+            except Exception as e:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                logging.warning(f"{filename}处理失败，错误信息：{str(e)}")
+        else:
+            logging.debug(f"{filename}已存在，跳过处理")
+
+    def download_file(self, file_url: str, filename: str, file_absolute_path: str, token: str) -> None:
+        local_path = os.path.join(self.output_path, filename)
+        if not os.path.exists(local_path):
+            try:
+                logging.debug(f"正在下载：{filename}")
+                os.makedirs(os.path.dirname(local_path), exist_ok=True) # 创建递归目录
+                response = requests.get(file_url.replace("/dav", "/d") + self.sign(secret_key=token, data=file_absolute_path))
+                with open(local_path, "wb") as file:
+                    file.write(response.content)
+            except Exception as e:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                logging.warning(f"{filename}下载失败，错误信息：{str(e)}")
+        else:
+            logging.debug(f"{filename}已存在，跳过下载")
+
+    def processing_file(self, base_url:str, token: str) -> None:
+        waite_number = 1
+        while waite_number <= self.waite_max:
+            if not self.files_queue.empty():
+                file_url = self.files_queue.get()
+
+                logging.debug(f"{threading.current_thread().name}——正在处理:{file_url}，剩余{self.files_queue.qsize()}个文件待处理")
+
+                file_absolute_path = file_url[file_url.index("/dav") + 4:]
+                filename = os.path.basename(file_url)
+                if self.library_mode:
+                    file_relative_path = self.get_file_relative_path(file_url=file_url, base_url=base_url, filename=filename)
+                    
+                    if filename.lower().endswith(tuple(self.video_format)):
+                        self.strm_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
+                    elif filename.lower().endswith(tuple(self.subtitle_format)) & self.subtitle:
+                        self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
+                    elif filename.lower().endswith(tuple(self.img_format)) & self.img:
+                        self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
+                    elif filename.lower().endswith("nfo") & self.nfo:
+                        self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
+                else:
+                    if filename.lower().endswith(tuple(self.video_format)):
+                        self.strm_file(file_url=file_url, filename=filename, file_absolute_path=file_absolute_path, token=token)
+            else:
+                waite_number += 1
+                logging.debug(f"files_queue列表为空，当前尝试次数：{waite_number}，共尝试{self.waite_max}次，{self.waite_time}秒后重试")
+                time.sleep(self.waite_time)
+        logging.debug(f"{threading.current_thread().name}处理完毕")
