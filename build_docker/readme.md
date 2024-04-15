@@ -10,7 +10,9 @@
 
 ### 拉取镜像
 
+```bash
 docker pull XXXXX
+```
 
 ### 或者构建容器
 
@@ -30,7 +32,32 @@ docker run --name autofilm -d -v ./config:/app/config -v ./media:/app/media auto
 
 这个命令会将当前目录下的 config 和 media 目录挂载到容器内的相应位置，以便容器可以访问这些文件。
 
-也可以采用docker-compose的方式
+### 也可以采用 `docker-compose` 的方式
+
+```bash
+version: '3.8'
+
+services:
+  autofilm:
+    image: autofilm
+    container_name: autofilm
+    volumes:
+      # 映射本地config目录
+      - ./config:/app/config
+      # 生成的Strm文件将会保存在media目录中
+      - ./media:/app/media
+    restart: unless-stopped
+    environment:
+      # 设定主程序循环执行时间间隔
+      - INTERVAL=3600
+```
+保存为docker-compose.yaml文件储存在本地
+
+- 首次执行可以使用 `docker-compose up` 如果执行失败可尝试  `docker compose up` 
+
+- 查看日志无问题后 `CTRL+C` 中止docker运行
+
+- 再次执行 `docker-compose up -d` 转为后台运行
 
 
 ## 查看日志
