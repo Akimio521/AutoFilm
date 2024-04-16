@@ -22,9 +22,11 @@ COPY entrypoint.sh /entrypoint.sh
 # 赋予入口点脚本执行权限
 RUN chmod +x /entrypoint.sh
 
-# 设置默认的时间间隔环境变量，单位为秒
+# 设置默认的环境变量
 ENV INTERVAL=3600
 ENV TZ=Asia/Shanghai
+ENV CN_UPDATE=false
+ENV AUTO_UPDATE=false
 
 # 设置容器的默认入口点
 ENTRYPOINT ["/entrypoint.sh"]
