@@ -27,12 +27,12 @@ docker build -t autofilm .
 使用以下命令来启动一个名为 `autofilm` 的容器：
 
 ```bash
-docker run --name autofilm -d -v ./config:/app/config -v ./media:/app/media autofilm
+docker run --name autofilm -d -v ./config:/app/config -v ./media:/app/media -e INTERVAL=3600 -e AUTO_UPDATE=false -e CN_UPDATE=false autofilm
 ```
 
 这个命令会将当前目录下的 config 和 media 目录挂载到容器内的相应位置，以便容器可以访问这些文件。
 
-### 也可以采用 `docker-compose` 的方式
+### 也可以采用 `docker compose` 的方式
 
 ```bash
 version: '3.8'
@@ -48,16 +48,20 @@ services:
       - ./media:/app/media
     restart: unless-stopped
     environment:
-      # 设定主程序循环执行时间间隔
+      # 设定主程序循环执行时间间隔，为0时表示仅运行一次
       - INTERVAL=3600
+      # 设定是否需要自动更新,默认为false,开启则填true
+      - AUTO_UPDATE=false
+      # 设定是否需开启代理地址进行更新,默认为false,开启则填true
+      - CN_UPDATE=false
 ```
 保存为docker-compose.yaml文件储存在本地
 
-- 首次执行可以使用 `docker-compose up` 如果执行失败可尝试  `docker compose up` 
+- 首次执行可以使用 `docker compose up` 如果执行失败可尝试  `docker-compose up` 
 
 - 查看日志无问题后 `CTRL+C` 中止docker运行
 
-- 再次执行 `docker-compose up -d` 转为后台运行
+- 再次执行 `docker compose up -d` 转为后台运行
 
 
 ## 查看日志
