@@ -3,18 +3,19 @@
 
 # 说明文档
 详情见[AutoFilm说明文档](https://blog.akimio.top/posts/1031/)
+[Docker部署文档](https://github.com/Akimio521/AutoFilm/tree/main/docker/)
 
 # 优点
 - [x] 轻量化Emby服务器，降低Emby服务器的性能需求以及硬盘需求
 - [x] 运行稳定
 - [x] 相比直接访问Webdav，Emby、Jellyfin服务器可以提供更好的视频搜索功能以及自带刮削器，以及多设备同步播放进度
-- [x] 提高访问速度，播放速度不受Jellyfin服务器带宽限制
+- [x] ~~提高访问速度，播放速度不受Jellyfin服务器带宽限制~~(新版Jellyfin对Strm文件的播放策略有所改变，似乎已经不再不受限制，有待确认)
 
 # TODO LIST
 - [x] 从config文件中读取多个参数
 - [x] 优化程序运行效率（多线程处理）
-- [ ] 增加Docker镜像
-- [ ] Strm模式/媒体库模式
+- [x] 增加Docker镜像
+- [x] Strm模式/媒体库模式
 - [ ] 监控模式
 - [ ] 对接TMDB实现分类、重命名、刮削等功能
 
