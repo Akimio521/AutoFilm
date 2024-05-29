@@ -18,11 +18,8 @@ class AutoFilm:
         self.config_data = {}
 
         self.urls_queue = queue.Queue()
-        self.files_queue = queue.Queue()
 
         self.list_files_interval = 10
-        self.lp_interval = 10
-        self.processing_file_interval = 10
 
         self.try_max = 15
 
@@ -42,12 +39,11 @@ class AutoFilm:
         else:
             self.output_path = self.get_config_value("setting", "output_path", default_value="./media/", error_message="输出路径读取错误，默认设置为'./media/'")
             self.l_threads = self.get_config_value("setting", "l_threads", default_value=1, error_message="list线程数读取错误，默认单线程")
-            self.p_threads = self.get_config_value("setting", "p_threads", default_value=1, error_message="processing线程数读取错误，默认单线程")
             self.subtitle = self.get_config_value("setting", "subtitle", default_value=False, error_message="字幕设置数读取错误，默认不下载")
             self.img = self.get_config_value("setting", "img", default_value=False, error_message="海报图片设置数读取错误，默认不下载")
             self.nfo = self.get_config_value("setting", "nfo", default_value=False, error_message="视频信息设置读取错误，默认不下载")
             self.url_encode = self.get_config_value("setting", "url_encode", default_value=True, error_message="URL编码设置读取错误，请更新config.yaml")
-            logging.info(f"输出目录：{self.output_path}；list_files线程数：{self.l_threads}；processing_file线程数：{self.p_threads}")
+            logging.info(f"输出目录：{self.output_path}；list_files线程数：{self.l_threads}")
 
     def run(self) -> None:
         webdav_datas = self.get_config_value("webdav", default_value={}, error_message="Webdav服务器列表读取失败")
@@ -72,20 +68,10 @@ class AutoFilm:
 
                     for thread in range(self.l_threads):
                         logging.debug(f"list_files线程{thread+1}启动中")
-                        list_files_thread = threading.Thread(target=self.list_files, args=(username, password), name=f"list_files线程{thread+1}")
+                        list_files_thread = threading.Thread(target=self.list_files, args=(username, password, url, token), name=f"list_files线程{thread+1}")
                         list_files_thread.start()
                         logging.debug(f"list_files线程{thread+1}已启动，{self.list_files_interval}秒后启动下一个线程")
                         time.sleep(self.list_files_interval)
-
-                    time.sleep(self.lp_interval)
-
-                    for thread in range(self.p_threads):
-                        logging.debug(f"processing_file线程{thread+1}启动中")
-                        processing_file_thread = threading.Thread(target=self.processing_file, args=(url, token), name=f"processing_file线程{thread+1}")
-                        processing_file_thread.start()
-                        logging.debug(f"processing_file线程{thread+1}已启动，{self.processing_file_interval}秒后启动下一个线程")
-                        time.sleep(self.processing_file_interval)
-
                     round += 1
         else:
             logging.error("webdav列表加载失败")
@@ -100,7 +86,7 @@ class AutoFilm:
             config_value = default_value
         return config_value
     
-    def list_files(self, username, password) -> None:
+    def list_files(self, username, password, base_url, token) -> None:
         while not self.urls_queue.empty():
             url = self.urls_queue.get()
             logging.debug(f"{threading.current_thread().name}——正在处理:{url}，剩余{self.urls_queue.qsize()}个URL待处理")
@@ -110,6 +96,7 @@ class AutoFilm:
             while try_number <= self.try_max:
                 try:
                     items = client.list()
+                    logging.debug(f"{url}目录：{items}")
                 except Exception as e:
                     logging.warning(f"{threading.current_thread().name}遇到错误，第{try_number}尝试失败；错误信息：{str(e)}，传入URL：{url}")
                     time.sleep(try_number)
@@ -122,7 +109,7 @@ class AutoFilm:
                 if item.endswith("/"):
                     self.urls_queue.put(url + item)
                 else:
-                    self.files_queue.put(url + item)
+                    self.processing_file(url + item, base_url, token)
             logging.debug(f"{threading.current_thread().name}处理完毕")
 
     def get_file_relative_path(self, file_url: str, base_url: str, filename:str) -> str:
@@ -176,32 +163,22 @@ class AutoFilm:
         else:
             logging.debug(f"{filename}已存在，跳过下载")
 
-    def processing_file(self, base_url:str, token: str) -> None:
-        waite_number = 1
-        while waite_number <= self.waite_max:
-            if not self.files_queue.empty():
-                file_url = self.files_queue.get()
+    def processing_file(self,file_url, base_url:str, token: str) -> None:
+            logging.debug(f"正在处理:{file_url}")
 
-                logging.debug(f"{threading.current_thread().name}——正在处理:{file_url}，剩余{self.files_queue.qsize()}个文件待处理")
-
-                file_absolute_path = file_url[file_url.index("/dav") + 4:]
-                filename = os.path.basename(file_url)
-                if self.library_mode:
-                    file_relative_path = self.get_file_relative_path(file_url=file_url, base_url=base_url, filename=filename)
-                    
-                    if filename.lower().endswith(tuple(self.video_format)):
-                        self.strm_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                    elif filename.lower().endswith(tuple(self.subtitle_format)) & self.subtitle:
-                        self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                    elif filename.lower().endswith(tuple(self.img_format)) & self.img:
-                        self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                    elif filename.lower().endswith("nfo") & self.nfo:
-                        self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                else:
-                    if filename.lower().endswith(tuple(self.video_format)):
-                        self.strm_file(file_url=file_url, filename=filename, file_absolute_path=file_absolute_path, token=token)
+            file_absolute_path = file_url[file_url.index("/dav") + 4:]
+            filename = os.path.basename(file_url)
+            if self.library_mode:
+                file_relative_path = self.get_file_relative_path(file_url=file_url, base_url=base_url, filename=filename)
+                
+                if filename.lower().endswith(tuple(self.video_format)):
+                    self.strm_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
+                elif filename.lower().endswith(tuple(self.subtitle_format)) & self.subtitle:
+                    self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
+                elif filename.lower().endswith(tuple(self.img_format)) & self.img:
+                    self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
+                elif filename.lower().endswith("nfo") & self.nfo:
+                    self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
             else:
-                waite_number += 1
-                logging.debug(f"files_queue列表为空，当前尝试次数：{waite_number}，共尝试{self.waite_max}次，{self.waite_time}秒后重试")
-                time.sleep(self.waite_time)
-        logging.debug(f"{threading.current_thread().name}处理完毕")
+                if filename.lower().endswith(tuple(self.video_format)):
+                    self.strm_file(file_url=file_url, filename=filename, file_absolute_path=file_absolute_path, token=token)

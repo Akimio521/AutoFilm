@@ -1,7 +1,6 @@
 setting:
   output_path: ./media/     # 输出路径
   l_threads: 3              # list_files线程数
-  p_threads: 8              # processing_file线程数
   subtitle: True            # 是否下载字幕
   img: False                # 是否下载图片
   nfo: True                 # 是否下载视频信息文件
