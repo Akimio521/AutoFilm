@@ -66,12 +66,18 @@ class AutoFilm:
                 else:
                     self.urls_queue.put(url)
 
-                    for thread in range(self.l_threads):
-                        logging.debug(f"list_files线程{thread+1}启动中")
-                        list_files_thread = threading.Thread(target=self.list_files, args=(username, password, url, token), name=f"list_files线程{thread+1}")
+                    threads = []
+                    for thread_num in range(self.l_threads):
+                        logging.debug(f"list_files线程{thread_num+1}启动中")
+                        list_files_thread = threading.Thread(target=self.list_files, args=(username, password, url, token), name=f"list_files线程{thread_num+1}")
+                        threads.append(list_files_thread)
                         list_files_thread.start()
-                        logging.debug(f"list_files线程{thread+1}已启动，{self.list_files_interval}秒后启动下一个线程")
+                        logging.debug(f"list_files线程{thread_num+1}已启动，{self.list_files_interval}秒后启动下一个线程")
                         time.sleep(self.list_files_interval)
+
+                    for thread in threads:
+                        thread.join()
+
                     round += 1
         else:
             logging.error("webdav列表加载失败")
