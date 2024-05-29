@@ -3,7 +3,16 @@
 
 # 说明文档
 详情见[AutoFilm说明文档](https://blog.akimio.top/posts/1031/)
-[Docker部署文档](https://github.com/Akimio521/AutoFilm/tree/main/docker/)
+
+# 部署方式
+1. Python环境运行
+    ```bash
+    python main.py
+    ```
+2. Docker运行
+    ```bash
+    docker run --name autofilm -d -v ./config:/app/config -v ./media:/app/media -e INTERVAL=3600 akimio/autofilm
+    ```
 
 # 优点
 - [x] 轻量化Emby服务器，降低Emby服务器的性能需求以及硬盘需求
