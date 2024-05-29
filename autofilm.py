@@ -60,11 +60,14 @@ class AutoFilm:
                     url = value["url"]
                     username = value["username"]
                     password = value["password"]
+                    try:
+                        token = value["token"]
+                    except:
+                        logging.warning("Alist令牌token读取错误，默认关闭")
+                        token = ""
                 except Exception as e:
                     logging.error(f"Webdav服务器账号密码地址读取错误，错误信息：{str(e)}")
                 else:
-                    token = self.get_config_value("token", default_value="", error_message="Alist令牌token读取错误，默认关闭")
-
                     self.urls_queue.put(url)
 
                     for thread in range(self.l_threads):
