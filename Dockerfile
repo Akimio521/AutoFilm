@@ -8,12 +8,13 @@ WORKDIR "/app"
 COPY . .
 RUN apk update \
     && apk upgrade \
-    && apk add git curl \
+    && apk add bash \
     && pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && rm -rf \
         ./config/* \
         ./.github \
+        .git \
         ./.gitignore \
         ./Dockerfile \
         ./README.md \
@@ -21,10 +22,9 @@ RUN apk update \
         ./LICENSE \
         /tep/* \
         /var/lib/apt/lists/* \
-        /var/tmp/*
-
-# 赋予入口点脚本执行权限
-RUN chmod +x entrypoint.sh
+        /var/tmp/* \
+    && chmod +x entrypoint.sh \
+    && sed -i 's/\r//' entrypoint.sh
 
 VOLUME ["/app/config", "/app/media"]
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
