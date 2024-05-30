@@ -6,6 +6,19 @@ on:
       - main
     paths:
       - version.py
+  workflow_dispatch:
+      inputs:
+        app_version:
+          description: '版本号，用于Docker标签'
+          required: false
+        use_latest:
+          description: '是否使用"latest"标签'
+          required: false
+          default: true
+          type: boolean
+
+env:
+  use_latest: false
 
 jobs:
     Docker-build:
@@ -14,11 +27,22 @@ jobs:
       steps:
         - uses: actions/checkout@v4
     
-        - name: Release version
-          id: release_version
+        - name: Get Version from version.py
           run: |
-                app_version=$(cat version.py |sed -ne "s/APP_VERSION\s=\s'v\(.*\)'/\1/gp")
-                echo "app_version=$app_version" >> $GITHUB_ENV
+            echo "app_version=$(cat version.py | sed -ne 's/APP_VERSION\s=\s"v\(.*\)"/\1/gp')" >> $GITHUB_ENV
+
+        - name: Get Version from Input
+          if: ${{ github.event.inputs.app_version}}
+          run: | 
+            echo "使用传入版本号覆盖默认版本号"
+            echo "传入版本号：${{ github.event.inputs.app_version }}"
+            echo "app_version=${{ github.event.inputs.app_version }}" >> $GITHUB_ENV
+
+        - name: Get Latest Tag
+          if: ${{ github.event_name == 'push' }} or ${{ github.event.inputs.use_latest }}
+          run: |
+            echo "使用latest标签"
+            echo "use_latest=true" >> $GITHUB_ENV
 
         - name: Docker Meta
           id: meta
@@ -26,8 +50,8 @@ jobs:
           with:
             images: ${{ secrets.DOCKERHUB_USERNAME }}/autofilm
             tags: |
-              type=raw,value=latest
-              type=raw,value=${{ env.app_version }}
+                type=raw,value=latest,enable=${{ env.use_latest }}
+                type=raw,value=${{ env.app_version }},enable=true
 
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
@@ -51,7 +75,20 @@ jobs:
               linux/arm64/v8
               linux/s390x
             push: true
+            build-args: |
+              AUTOFILM_VERSION=${{ env.app_version }}
             tags: ${{ steps.meta.outputs.tags }}
             labels: ${{ steps.meta.outputs.labels }}
             cache-fom: type=gha, scope=${{ github.workflow }}-docker
             cache-to: type=gha, scope=${{ github.workflow }}-docker
+        
+        - name: Details Infomations
+          run: |
+            echo "现在输出详细信息"
+            echo "====================================="
+            echo "VERSION: ${{ env.app_version }}"
+            echo "Image: ${{ steps.meta.outputs.images }}"
+            echo "Tags: ${{ steps.meta.outputs.tags }}"
+            echo "Labels: ${{ steps.meta.outputs.labels }}"
+            echo "Digest: ${{ steps.meta.outputs.digests }}"
+            echo "Platform: ${{ steps.meta.outputs.platforms}}"
