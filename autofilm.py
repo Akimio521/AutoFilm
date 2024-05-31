@@ -1,5 +1,6 @@
+#! /usr/bin/env python3
 # -*- coding:utf-8 -*-
-import os
+from pathlib import Path
 import queue
 import threading
 import requests
@@ -13,13 +14,14 @@ import logging
 from webdav3.client import Client
 from typing import Union
 
+
 class AutoFilm:
     def __init__(self, config_path: str, ):
         self.config_data = {}
 
         self.urls_queue = queue.Queue()
 
-        self.list_files_interval = 10
+        self.list_files_thread_interval = 10
 
         self.try_max = 15
 
@@ -32,7 +34,7 @@ class AutoFilm:
         self.waite_time = 5
 
         try:
-            with open(config_path, "r", encoding="utf-8") as file:
+            with Path(config_path).open(mode="r", encoding="utf-8") as file:
                 self.config_data = yaml.safe_load(file)
         except Exception as e:
             logging.critical(f"配置文件{config_path}加载失败，程序即将停止，错误信息：{str(e)}")
@@ -72,8 +74,8 @@ class AutoFilm:
                         list_files_thread = threading.Thread(target=self.list_files, args=(username, password, url, token), name=f"list_files线程{thread_num+1}")
                         threads.append(list_files_thread)
                         list_files_thread.start()
-                        logging.debug(f"list_files线程{thread_num+1}已启动，{self.list_files_interval}秒后启动下一个线程")
-                        time.sleep(self.list_files_interval)
+                        logging.debug(f"list_files线程{thread_num+1}已启动，{self.list_files_thread_interval}秒后启动下一个线程")
+                        time.sleep(self.list_files_thread_interval)
 
                     for thread in threads:
                         thread.join()
@@ -135,36 +137,37 @@ class AutoFilm:
 
     def strm_file(self, file_url: str, filename: str, file_absolute_path: str, token: str) -> None:
         strm_filename = filename.rsplit(".", 1)[0] + ".strm"
-        local_path = os.path.join(self.output_path, strm_filename)
-        if not os.path.exists(local_path):
+        local_file_path = Path(self.output_path) / strm_filename
+
+        if not local_file_path.exists():
             try:
                 logging.debug(f"正在下载：{filename}")
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                with open(local_path, "wb") as file:
+                local_file_path.parent.mkdir(parents=True, exist_ok=True)
+                with local_file_path.open(mode="wb") as file:
                     url_string = file_url.replace("/dav", "/d") + self.sign(secret_key=token, data=file_absolute_path)
                     if self.url_encode:
                         url_string = urllib.parse.quote(url_string, safe='@#$&=:/,;?+\'')
                     file.write(url_string.encode())
                 logging.debug(f"{filename}处理成功")
             except Exception as e:
-                if os.path.exists(local_path):
-                    os.remove(local_path)
+                if local_file_path.exists():
+                    local_file_path.unlink()
                 logging.warning(f"{filename}处理失败，错误信息：{str(e)}")
         else:
             logging.debug(f"{filename}已存在，跳过处理")
 
     def download_file(self, file_url: str, filename: str, file_absolute_path: str, token: str) -> None:
-        local_path = os.path.join(self.output_path, filename)
-        if not os.path.exists(local_path):
+        local_file_path = Path(self.output_path) / filename
+        if not local_file_path.exists():
             try:
                 logging.debug(f"正在下载：{filename}")
-                os.makedirs(os.path.dirname(local_path), exist_ok=True) # 创建递归目录
+                local_file_path.parent.mkdir(parents=True, exist_ok=True) # 创建递归目录
                 response = requests.get(file_url.replace("/dav", "/d") + self.sign(secret_key=token, data=file_absolute_path))
-                with open(local_path, "wb") as file:
+                with local_file_path.open(mode="wb") as file:
                     file.write(response.content)
             except Exception as e:
-                if os.path.exists(local_path):
-                    os.remove(local_path)
+                if local_file_path.exists():
+                    local_file_path.unlink()
                 logging.warning(f"{filename}下载失败，错误信息：{str(e)}")
         else:
             logging.debug(f"{filename}已存在，跳过下载")
@@ -172,18 +175,18 @@ class AutoFilm:
     def processing_file(self,file_url, base_url:str, token: str) -> None:
             logging.debug(f"正在处理:{file_url}")
 
-            file_absolute_path = file_url[file_url.index("/dav") + 4:]
-            filename = os.path.basename(file_url)
+            file_absolute_path = file_url[file_url.index("/dav") + 4:] # 文件在Webdav服务器上的绝对路径
+            filename = Path(file_url).name # 文件名 + 拓展名
             if self.library_mode:
                 file_relative_path = self.get_file_relative_path(file_url=file_url, base_url=base_url, filename=filename)
                 
                 if filename.lower().endswith(tuple(self.video_format)):
                     self.strm_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                elif filename.lower().endswith(tuple(self.subtitle_format)) & self.subtitle:
+                elif filename.lower().endswith(tuple(self.subtitle_format)) and self.subtitle:
                     self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                elif filename.lower().endswith(tuple(self.img_format)) & self.img:
+                elif filename.lower().endswith(tuple(self.img_format)) and self.img:
                     self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                elif filename.lower().endswith("nfo") & self.nfo:
+                elif filename.lower().endswith("nfo") and self.nfo:
                     self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
             else:
                 if filename.lower().endswith(tuple(self.video_format)):
