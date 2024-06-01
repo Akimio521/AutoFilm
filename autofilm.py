@@ -71,7 +71,7 @@ class AutoFilm:
                     threads = []
                     for thread_num in range(self.l_threads):
                         logging.debug(f"list_files线程{thread_num+1}启动中")
-                        list_files_thread = threading.Thread(target=self.list_files, args=(username, password, url, token), name=f"list_files线程{thread_num+1}")
+                        list_files_thread = threading.Thread(target=self.list_files, daemon=True, args=(username, password, url, token), name=f"list_files线程{thread_num+1}")
                         threads.append(list_files_thread)
                         list_files_thread.start()
                         logging.debug(f"list_files线程{thread_num+1}已启动，{self.list_files_thread_interval}秒后启动下一个线程")
