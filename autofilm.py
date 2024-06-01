@@ -26,9 +26,9 @@ class AutoFilm:
         self.try_max = 15
 
         self.library_mode = True
-        self.video_format = ["mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm"]
-        self.subtitle_format = ["ass", "srt", "ssa", "sub"]
-        self.img_format = ["png", "jpg"]
+        self.video_format = ("mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm")
+        self.subtitle_format = ("ass", "srt", "ssa", "sub")
+        self.img_format = ("png", "jpg")
 
         self.waite_max = 10
         self.waite_time = 5
@@ -180,14 +180,14 @@ class AutoFilm:
             if self.library_mode:
                 file_relative_path = self.get_file_relative_path(file_url=file_url, base_url=base_url, filename=filename)
                 
-                if filename.lower().endswith(tuple(self.video_format)):
+                if filename.lower().endswith(self.video_format):
                     self.strm_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                elif filename.lower().endswith(tuple(self.subtitle_format)) and self.subtitle:
+                elif filename.lower().endswith(self.subtitle_format) and self.subtitle:
                     self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
-                elif filename.lower().endswith(tuple(self.img_format)) and self.img:
+                elif filename.lower().endswith(self.img_format) and self.img:
                     self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
                 elif filename.lower().endswith("nfo") and self.nfo:
                     self.download_file(file_url=file_url, filename=file_relative_path + filename, file_absolute_path=file_absolute_path, token=token)
             else:
-                if filename.lower().endswith(tuple(self.video_format)):
+                if filename.lower().endswith(self.video_format):
                     self.strm_file(file_url=file_url, filename=filename, file_absolute_path=file_absolute_path, token=token)
