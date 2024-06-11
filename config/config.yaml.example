@@ -1,5 +1,5 @@
 Settings:
-  output_path: media        # 输出路径
+  output_dir: media         # 输出路径
   subtitle: True            # 是否下载字幕
   img: False                # 是否下载图片
   nfo: True                 # 是否下载视频信息文件
@@ -12,14 +12,14 @@ AlistServerList:
     base_path: /ani/A/               # Alist服务器上文件夹路径 
     token:                           # AList未启用签名时，设置为空字符串
   - id: 电影A:
-  url: https://alist.example1.com
-  username: alist
-  password: alist
-  base_path: /movie/A/      
-  token:
+    url: https://alist.example1.com
+    username: alist
+    password: alist
+    base_path: /movie/A/      
+    token:
   - id: 电影A:
-  url: https://alist.example2.com
-  username: alist
-  password: adminadmin
-  base_path: /网盘/OneDrive/
-  token: alist-a1b2c3d4-12...
+    url: https://alist.example2.com
+    username: alist
+    password: adminadmin
+    base_path: /网盘/OneDrive/
+    token: alist-a1b2c3d4-12...
