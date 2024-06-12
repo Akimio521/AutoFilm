@@ -28,7 +28,6 @@ class AutoFilm:
 
         self.config_data = {}
 
-        self.library_mode = False
         self.video_ext = ("mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm")
         self.subtitle_ext = ("ass", "srt", "ssa", "sub")
         self.img_ext = ("png", "jpg")
@@ -52,6 +51,7 @@ class AutoFilm:
                 self.subtitle: bool = self.config_data["Settings"]["subtitle"]
                 self.img: bool = self.config_data["Settings"]["img"]
                 self.nfo: bool = self.config_data["Settings"]["nfo"]
+                self.library_mode = self.config_data["Settings"]["library_mode"]
             except Exception as e:
                 logging.error(f"配置文件{self.config_path}读取错误，错误信息：{str(e)}")
 

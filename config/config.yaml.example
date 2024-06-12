@@ -3,6 +3,7 @@ Settings:
   subtitle: True            # 是否下载字幕
   img: False                # 是否下载图片
   nfo: True                 # 是否下载视频信息文件
+  library_mode: False       # 媒体库模式
 
 AlistServerList:
   - id: 动漫A                        # 任意字符，用于标识Alist服务器
