@@ -1,15 +1,16 @@
 #! /usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-from pathlib import Path
-from alist import AlistFileSystem, AlistPath
-import asyncio
-from aiohttp import ClientSession
-import yaml
+import logging
 import hmac
 import hashlib
 import base64
-import logging
+import asyncio
+from aiohttp import ClientSession
+from pathlib import Path
+
+import yaml
+from alist import AlistFileSystem, AlistPath
 
 
 class AutoFilm:
