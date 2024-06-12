@@ -15,13 +15,15 @@ import logging
 class AutoFilm:
     def __init__(
         self,
-        config_path: Path,
+        config_path: str,
     ):
 
         self.base_dir: Path = Path(__file__).parent.absolute()
         config_path = Path(config_path)
         self.config_path: Path = (
-            config_path if config_path.is_absolute() else self.base_dir / config_path
+            Path(config_path)
+            if Path(config_path).is_absolute()
+            else self.base_dir / config_path
         )
 
         self.config_data = {}
@@ -41,7 +43,7 @@ class AutoFilm:
         else:
             try:
                 read_output_dir = Path(self.config_data["Settings"]["output_dir"])
-                self.output_dir: Path = (
+                self.output_dir = (
                     read_output_dir
                     if read_output_dir.is_absolute()
                     else self.base_dir / read_output_dir
@@ -91,7 +93,7 @@ class AutoFilm:
         alist_server_password: str,
         alist_server_base_path: str,
         alist_server_token: str,
-    ):
+    ) -> None:
         fs = AlistFileSystem.login(
             alist_server_url, alist_server_username, alist_server_password
         )
