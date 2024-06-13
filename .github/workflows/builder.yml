@@ -79,7 +79,7 @@ jobs:
               AUTOFILM_VERSION=${{ env.app_version }}
             tags: ${{ steps.meta.outputs.tags }}
             labels: ${{ steps.meta.outputs.labels }}
-            cache-fom: type=gha, scope=${{ github.workflow }}-docker
+            cache-from: type=gha, scope=${{ github.workflow }}-docker
             cache-to: type=gha, scope=${{ github.workflow }}-docker
         
         - name: Details Infomations
