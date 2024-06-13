@@ -49,10 +49,16 @@ class AutoFilm:
                     else self.base_dir / read_output_dir
                 )
 
-                self.subtitle: bool = self.config_data["Settings"]["subtitle"]
-                self.img: bool = self.config_data["Settings"]["img"]
-                self.nfo: bool = self.config_data["Settings"]["nfo"]
                 self.library_mode = self.config_data["Settings"]["library_mode"]
+                if self.library_mode:
+                    self.subtitle: bool = False
+                    self.img: bool = False
+                    self.nfo: bool = False
+                else:
+                    self.subtitle: bool = self.config_data["Settings"]["subtitle"]
+                    self.img: bool = self.config_data["Settings"]["img"]
+                    self.nfo: bool = self.config_data["Settings"]["nfo"]
+
             except Exception as e:
                 logging.error(f"配置文件{self.config_path}读取错误，错误信息：{str(e)}")
 
