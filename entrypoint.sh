@@ -11,7 +11,7 @@ if [[ "$INTERVAL" -eq 0 ]]; then
 else
     while true; do
         echo "正在执行主程序..."
-        python main.py
+        python /app/main.py
         echo "等待 $INTERVAL 秒后再次执行..."
         sleep $INTERVAL
     done
