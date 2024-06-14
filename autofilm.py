@@ -68,41 +68,45 @@ class AutoFilm:
 
     def run(self) -> None:
         try:
-            alist_server_list = self.config_data["AlistServerList"]
+            alist_server_list: list[dict] = self.config_data["AlistServerList"]
         except Exception as e:
             logging.error(f"Alist服务器列表读取失败，错误信息：{str(e)}")
         else:
             logging.debug("Alist服务器加载成功")
             for alist_server in alist_server_list:
-                try:
-                    alist_server_url: str = alist_server["url"]
-                    alist_server_username: str = alist_server["username"]
-                    alist_server_password: str = alist_server["password"]
-                    alist_server_base_path: Optional[str] = alist_server["base_path"]
-                    alist_server_token: Optional[str] = alist_server.get("token")
-                    if alist_server_url.endswith("/"):
-                        alist_server_url = alist_server_url.rstrip("/")
-                    if alist_server_base_path == None or alist_server_base_path == "":
-                        alist_server_base_path = "/"
-                    if not alist_server_base_path.startswith("/"):
-                        alist_server_base_path = "/" + alist_server_base_path
-                except Exception as e:
+                alist_server_url: str = alist_server.get("url")
+                alist_server_username: str = alist_server.get("username")
+                alist_server_password: str = alist_server.get("password")
+                alist_server_base_path: Optional[str] = alist_server.get("base_path")
+                alist_server_token: Optional[str] = alist_server.get("token")
+                if alist_server_url.endswith("/"):
+                    alist_server_url = alist_server_url.rstrip("/")
+                if alist_server_base_path == None or alist_server_base_path == "":
+                    alist_server_base_path = "/"
+                if not alist_server_base_path.startswith("/"):
+                    alist_server_base_path = "/" + alist_server_base_path
+
+                if not all(
+                    [alist_server_url, alist_server_username, alist_server_password]
+                ):
+
                     logging.error(
-                        f"Alist服务器{alist_server}配置错误，请检查配置文件：{self.config_path}，错误信息：{str(e)}"
+                        f"Alist服务器{alist_server}配置错误，请检查配置文件：{alist_server}"
                     )
-                else:
-                    logging.debug(
-                        f"Alist服务器URL：{alist_server_url}，用户名：{alist_server_username}，密码：{alist_server_password}，基本路径：{alist_server_base_path}，token：{alist_server_token}"
+                    return
+
+                logging.debug(
+                    f"Alist服务器URL：{alist_server_url}，用户名：{alist_server_username}，密码：{alist_server_password}，基本路径：{alist_server_base_path}，token：{alist_server_token}"
+                )
+                asyncio.run(
+                    self._processer(
+                        alist_server_url,
+                        alist_server_username,
+                        alist_server_password,
+                        alist_server_base_path,
+                        alist_server_token,
                     )
-                    asyncio.run(
-                        self._processer(
-                            alist_server_url,
-                            alist_server_username,
-                            alist_server_password,
-                            alist_server_base_path,
-                            alist_server_token,
-                        )
-                    )
+                )
 
     async def _processer(
         self,
@@ -112,10 +116,23 @@ class AutoFilm:
         alist_server_base_path: str,
         alist_server_token: str,
     ) -> None:
-        fs = AlistFileSystem.login(
-            alist_server_url, alist_server_username, alist_server_password
-        )
-        fs.chdir(alist_server_base_path)
+        try:
+            fs = AlistFileSystem.login(
+                alist_server_url, alist_server_username, alist_server_password
+            )
+        except Exception as e:
+            logging.critical(
+                f"登录失败，错误信息：{str(e)}，请检查Alist地址：{alist_server_url}，用户名：{alist_server_username}，密码：{alist_server_password}是否正确"
+            )
+            return
+        try:
+            fs.chdir(alist_server_base_path)
+        except Exception as e:
+            logging.critical(
+                f"切换目录失败，请检查Alist服务器中是否存在该目录：{alist_server_base_path}，错误信息：{str(e)}"
+            )
+            return
+
         async with ClientSession() as session:
             tasks = [
                 asyncio.create_task(
