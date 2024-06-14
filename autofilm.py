@@ -132,9 +132,6 @@ class AutoFilm:
             if self.library_mode
             else self.output_dir / str(alist_path_cls).replace(base_path, "")
         )
-        logging.debug(
-            f"正在处理:{alist_path_cls.name}，本地文件路径：{file_output_path}"
-        )
 
         file_alist_abs_path: str = alist_path_cls.url[
             alist_path_cls.url.index("/d/") + 2 :
@@ -144,30 +141,45 @@ class AutoFilm:
             secret_key=token, data=file_alist_abs_path
         )
 
+        logging.debug(
+            f"正在处理:{alist_path_cls.name}，本地文件目录：{file_output_path}，文件远程路径：{file_alist_abs_path}，下载URL：{file_download_url}"
+        )
+
         if alist_path_cls.name.lower().endswith(self.video_ext):
             file_output_path.parent.mkdir(parents=True, exist_ok=True)
             file_output_path = file_output_path.with_suffix(".strm")
             with file_output_path.open(mode="w", encoding="utf-8") as f:
                 f.write(file_download_url)
-
+                logging.debug(
+                    f"{file_output_path.name}创建成功，文件本地目录：{file_output_path.parent}"
+                )
         elif alist_path_cls.name.lower().endswith(self.img_ext) and self.img:
             file_output_path.parent.mkdir(parents=True, exist_ok=True)
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
                     with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
+                    logging.debug(
+                        f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
+                    )
         elif alist_path_cls.name.lower().endswith(self.subtitle_ext) and self.subtitle:
             file_output_path.parent.mkdir(parents=True, exist_ok=True)
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
                     with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
+                    logging.debug(
+                        f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
+                    )
         elif alist_path_cls.name.lower().endswith("nfo") and self.nfo:
             file_output_path.parent.mkdir(parents=True, exist_ok=True)
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
                     with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
+                    logging.debug(
+                        f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
+                    )
 
     def _sign(self, secret_key: str, data: str) -> str:
         if secret_key == "":
