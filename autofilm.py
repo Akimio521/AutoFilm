@@ -130,7 +130,7 @@ class AutoFilm:
         file_output_path: Path = (
             self.output_dir / alist_path_cls.name
             if self.library_mode
-            else self.output_dir / str(alist_path_cls).replace(base_path, "")
+            else self.output_dir / str(alist_path_cls).lstrip("/").replace(base_path, "")
         )
 
         file_alist_abs_path: str = alist_path_cls.url[
