@@ -6,7 +6,7 @@ fi
 
 if [[ "$INTERVAL" -eq 0 ]]; then
     echo "正在执行主程序..."
-    python main.py
+    python /app/main.py
     echo "执行完成，容器即将退出。"
 else
     while true; do
