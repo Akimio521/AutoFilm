@@ -8,6 +8,7 @@ import base64
 import asyncio
 from aiohttp import ClientSession
 from pathlib import Path
+from typing import Optional
 
 import yaml
 from alist import AlistFileSystem, AlistPath
@@ -77,13 +78,22 @@ class AutoFilm:
                     alist_server_url: str = alist_server["url"]
                     alist_server_username: str = alist_server["username"]
                     alist_server_password: str = alist_server["password"]
-                    alist_server_base_path: str = alist_server["base_path"]
-                    alist_server_token: str = str(alist_server.get("token", ""))
+                    alist_server_base_path: Optional[str] = alist_server["base_path"]
+                    alist_server_token: Optional[str] = alist_server.get("token")
+                    if alist_server_url.endswith("/"):
+                        alist_server_url = alist_server_url.rstrip("/")
+                    if alist_server_base_path == None or alist_server_base_path == "":
+                        alist_server_base_path = "/"
+                    if not alist_server_base_path.startswith("/"):
+                        alist_server_base_path = "/" + alist_server_base_path
                 except Exception as e:
                     logging.error(
                         f"Alist服务器{alist_server}配置错误，请检查配置文件：{self.config_path}，错误信息：{str(e)}"
                     )
                 else:
+                    logging.debug(
+                        f"Alist服务器URL：{alist_server_url}，用户名：{alist_server_username}，密码：{alist_server_password}，基本路径：{alist_server_base_path}，token：{alist_server_token}"
+                    )
                     asyncio.run(
                         self._processer(
                             alist_server_url,
@@ -130,7 +140,7 @@ class AutoFilm:
         file_output_path: Path = (
             self.output_dir / alist_path_cls.name
             if self.library_mode
-            else self.output_dir / str(alist_path_cls).lstrip("/").replace(base_path, "")
+            else self.output_dir / str(alist_path_cls).replace(base_path, "")
         )
 
         file_alist_abs_path: str = alist_path_cls.url[
@@ -181,8 +191,8 @@ class AutoFilm:
                         f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
                     )
 
-    def _sign(self, secret_key: str, data: str) -> str:
-        if secret_key == "":
+    def _sign(self, secret_key: Optional[str], data: str) -> str:
+        if secret_key == "" or secret_key == None:
             return ""
         h = hmac.new(secret_key.encode(), digestmod=hashlib.sha256)
         expire_time_stamp = str(0)
