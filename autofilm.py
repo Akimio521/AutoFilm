@@ -32,6 +32,7 @@ class AutoFilm:
         self.video_ext = ("mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm")
         self.subtitle_ext = ("ass", "srt", "ssa", "sub")
         self.img_ext = ("png", "jpg")
+        self.all_ext = (*self.video_ext, *self.subtitle_ext, *self.img_ext, "nfo")
 
         try:
             with self.config_path.open(mode="r", encoding="utf-8") as f:
@@ -123,14 +124,17 @@ class AutoFilm:
         base_path: Path,
         token: str,
     ) -> None:
-        logging.debug(f"正在处理:{alist_path_cls.name}")
+        if not alist_path_cls.name.lower().endswith(self.all_ext):
+            return
+
         file_output_path: Path = (
             self.output_dir / alist_path_cls.name
             if self.library_mode
             else self.output_dir / str(alist_path_cls).replace(base_path, "")
         )
-
-        file_output_path.parent.mkdir(parents=True, exist_ok=True)
+        logging.debug(
+            f"正在处理:{alist_path_cls.name}，本地文件路径：{file_output_path}"
+        )
 
         file_alist_abs_path: str = alist_path_cls.url[
             alist_path_cls.url.index("/d/") + 2 :
@@ -141,21 +145,25 @@ class AutoFilm:
         )
 
         if alist_path_cls.name.lower().endswith(self.video_ext):
+            file_output_path.parent.mkdir(parents=True, exist_ok=True)
             file_output_path = file_output_path.with_suffix(".strm")
             with file_output_path.open(mode="w", encoding="utf-8") as f:
                 f.write(file_download_url)
 
         elif alist_path_cls.name.lower().endswith(self.img_ext) and self.img:
+            file_output_path.parent.mkdir(parents=True, exist_ok=True)
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
                     with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
         elif alist_path_cls.name.lower().endswith(self.subtitle_ext) and self.subtitle:
+            file_output_path.parent.mkdir(parents=True, exist_ok=True)
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
                     with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
         elif alist_path_cls.name.lower().endswith("nfo") and self.nfo:
+            file_output_path.parent.mkdir(parents=True, exist_ok=True)
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
                     with file_output_path.open(mode="wb") as f:
