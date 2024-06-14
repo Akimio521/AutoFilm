@@ -12,13 +12,13 @@ AlistServerList:
     password: adminadmin             # Alist密码
     base_path: /ani/A/               # Alist服务器上文件夹路径 
     token:                           # AList未启用签名时，设置为空字符串
-  - id: 电影A:
+  - id: 电影A
     url: https://alist.example1.com
     username: alist
     password: alist
     base_path: /movie/A/      
     token:
-  - id: 电影A:
+  - id: OneDrive
     url: https://alist.example2.com
     username: alist
     password: adminadmin
