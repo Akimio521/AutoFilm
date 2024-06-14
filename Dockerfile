@@ -1,7 +1,9 @@
 FROM python:3.11-alpine
 
-ENV INTERVAL=3600 \
-    TZ=Asia/Shanghai
+ENV TZ=Asia/Shanghai \
+    CONFIG_PATH=/app/config/config.yaml \
+    LOG_LEVEL=INFO\
+    INTERVAL=3600
 
 COPY entrypoint.sh entrypoint.sh
 
