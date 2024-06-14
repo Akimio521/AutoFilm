@@ -124,13 +124,13 @@ class AutoFilm:
         token: str,
     ) -> None:
         logging.debug(f"正在处理:{alist_path_cls.name}")
-        file_output_dir: Path = (
+        file_output_path: Path = (
             self.output_dir / alist_path_cls.name
             if self.library_mode
             else self.output_dir / str(alist_path_cls).replace(base_path, "")
         )
 
-        file_output_dir.parent.mkdir(parents=True, exist_ok=True)
+        file_output_path.parent.mkdir(parents=True, exist_ok=True)
 
         file_alist_abs_path: str = alist_path_cls.url[
             alist_path_cls.url.index("/d/") + 2 :
@@ -141,24 +141,24 @@ class AutoFilm:
         )
 
         if alist_path_cls.name.lower().endswith(self.video_ext):
-            file_output_dir = file_output_dir.with_suffix(".strm")
-            with file_output_dir.open(mode="w", encoding="utf-8") as f:
+            file_output_path = file_output_path.with_suffix(".strm")
+            with file_output_path.open(mode="w", encoding="utf-8") as f:
                 f.write(file_download_url)
 
         elif alist_path_cls.name.lower().endswith(self.img_ext) and self.img:
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
-                    with file_output_dir.open(mode="wb") as f:
+                    with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
         elif alist_path_cls.name.lower().endswith(self.subtitle_ext) and self.subtitle:
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
-                    with file_output_dir.open(mode="wb") as f:
+                    with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
         elif alist_path_cls.name.lower().endswith("nfo") and self.nfo:
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
-                    with file_output_dir.open(mode="wb") as f:
+                    with file_output_path.open(mode="wb") as f:
                         f.write(await resp.read())
 
     def _sign(self, secret_key: str, data: str) -> str:
