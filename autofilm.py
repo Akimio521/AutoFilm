@@ -79,8 +79,8 @@ class AutoFilm:
                 alist_server_password: str = alist_server.get("password")
                 alist_server_base_path: Optional[str] = alist_server.get("base_path")
                 alist_server_token: Optional[str] = alist_server.get("token")
-                if alist_server_url.endswith("/"):
-                    alist_server_url = alist_server_url.rstrip("/")
+                
+                alist_server_url = alist_server_url.rstrip("/")
                 if alist_server_base_path == None or alist_server_base_path == "":
                     alist_server_base_path = "/"
                 alist_server_base_path = "/" + alist_server_base_path.strip("/") + "/"
