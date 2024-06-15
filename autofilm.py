@@ -83,8 +83,7 @@ class AutoFilm:
                     alist_server_url = alist_server_url.rstrip("/")
                 if alist_server_base_path == None or alist_server_base_path == "":
                     alist_server_base_path = "/"
-                if not alist_server_base_path.startswith("/"):
-                    alist_server_base_path = "/" + alist_server_base_path
+                alist_server_base_path = "/" + alist_server_base_path.strip("/") + "/"
 
                 if not all(
                     [alist_server_url, alist_server_username, alist_server_password]
