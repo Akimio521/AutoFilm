@@ -79,7 +79,7 @@ class AutoFilm:
                 alist_server_password: str = alist_server.get("password")
                 alist_server_base_path: Optional[str] = alist_server.get("base_path")
                 alist_server_token: Optional[str] = alist_server.get("token")
-                
+
                 alist_server_url = alist_server_url.rstrip("/")
                 if alist_server_base_path == None or alist_server_base_path == "":
                     alist_server_base_path = "/"
@@ -179,25 +179,18 @@ class AutoFilm:
                 logging.debug(
                     f"{file_output_path.name}创建成功，文件本地目录：{file_output_path.parent}"
                 )
-        elif alist_path_cls.name.lower().endswith(self.img_ext) and self.img:
-            file_output_path.parent.mkdir(parents=True, exist_ok=True)
-            async with session.get(file_download_url) as resp:
-                if resp.status == 200:
-                    with file_output_path.open(mode="wb") as f:
-                        f.write(await resp.read())
-                    logging.debug(
-                        f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
-                    )
-        elif alist_path_cls.name.lower().endswith(self.subtitle_ext) and self.subtitle:
-            file_output_path.parent.mkdir(parents=True, exist_ok=True)
-            async with session.get(file_download_url) as resp:
-                if resp.status == 200:
-                    with file_output_path.open(mode="wb") as f:
-                        f.write(await resp.read())
-                    logging.debug(
-                        f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
-                    )
-        elif alist_path_cls.name.lower().endswith("nfo") and self.nfo:
+            return
+
+        if alist_path_cls.name.lower().endswith(self.img_ext) and not self.img:
+            return
+        elif (
+            alist_path_cls.name.lower().endswith(self.subtitle_ext)
+            and not self.subtitle
+        ):
+            return
+        elif alist_path_cls.name.lower().endswith("nfo") and not self.nfo:
+            return
+        else:
             file_output_path.parent.mkdir(parents=True, exist_ok=True)
             async with session.get(file_download_url) as resp:
                 if resp.status == 200:
