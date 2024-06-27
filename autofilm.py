@@ -72,5 +72,6 @@ class AutoFilm:
                     self.img,
                     self.nfo,
                     self.library_mode,
+                    alist_server.get("async_mode"),
                 )
                 alist2strm.run()

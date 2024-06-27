@@ -3,7 +3,8 @@ import hmac
 import hashlib
 import base64
 import asyncio
-from aiohttp import ClientSession
+from requests import Session
+from aiohttp import ClientSession as AsyncSession
 from pathlib import Path
 from typing import Optional
 
@@ -28,6 +29,7 @@ class Alist2Strm:
         img: bool = False,
         nfo: bool = False,
         library_mode: bool = True,
+        async_mode: bool = False,
     ) -> None:
         self.alist_server_url = alist_server_url.rstrip("/")
         self.alist_server_username = alist_server_username
@@ -42,6 +44,7 @@ class Alist2Strm:
         self.img = img
         self.nfo = nfo
         self.library_mode = library_mode
+        self.async_mode = async_mode
 
         logging.debug(
             f"Alist2Strm配置".center(50, "=") + "\n"
@@ -54,7 +57,8 @@ class Alist2Strm:
             f"是否下载字幕：{self.subtitle}\n"
             f"是否下载图片：{self.img}\n"
             f"是否下载NFO：{self.nfo}\n"
-            f"是否为库模式：{self.library_mode}"
+            f"是否为库模式：{self.library_mode}\n"
+            f"是否为启用异步下载：{self.async_mode}"
         )
 
     def run(self) -> None:
@@ -87,16 +91,24 @@ class Alist2Strm:
             )
             return
 
-        async with ClientSession() as session:
-            tasks = [
-                asyncio.create_task(self._file_processer(alist_path_cls, session))
-                for alist_path_cls in fs.rglob("*.*")
-            ]
-            await asyncio.gather(*tasks)
+        if self.async_mode:
+            self.session = AsyncSession()
+        else:
+            self.session = Session()
 
-    async def _file_processer(
-        self, alist_path_cls: AlistPath, session: ClientSession
-    ) -> None:
+        tasks = [
+            asyncio.create_task(self._file_processer(alist_path_cls))
+            for alist_path_cls in fs.rglob("*.*")
+        ]
+        await asyncio.gather(*tasks)
+
+        if self.session:
+            if self.async_mode:
+                await self.session.close()
+            else:
+                self.session.close()
+
+    async def _file_processer(self, alist_path_cls: AlistPath) -> None:
         if not alist_path_cls.name.lower().endswith(ALL_EXT):
             return
 
@@ -140,13 +152,20 @@ class Alist2Strm:
             return
         else:
             file_output_path.parent.mkdir(parents=True, exist_ok=True)
-            async with session.get(file_download_url) as resp:
-                if resp.status == 200:
-                    with file_output_path.open(mode="wb") as f:
-                        f.write(await resp.read())
-                    logging.debug(
-                        f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
-                    )
+
+            if self.async_mode:
+                resp = await self.session.get(file_download_url)
+            else:
+                resp = self.session.get(file_download_url)
+
+            with file_output_path.open(mode="wb") as f:
+                if self.async_mode:
+                    f.write(await resp.read())
+                else:
+                    f.write(resp.content)
+            logging.debug(
+                f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
+            )
 
     def _sign(self, secret_key: Optional[str], data: str) -> str:
         if secret_key == "" or secret_key == None:

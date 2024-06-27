@@ -12,15 +12,18 @@ AlistServerList:
     password: adminadmin             # Alist密码
     base_path: /ani/A/               # Alist服务器上文件夹路径 
     token:                           # AList未启用签名时，设置为空字符串
+    async_mode: False                # 设置 subtitle,img,nfo 等二进制文件是否启用异步下载
   - id: 电影A
     url: https://alist.example1.com
     username: alist
     password: alist
     base_path: /movie/A/      
     token:
+    async_mode: True
   - id: OneDrive
     url: https://alist.example2.com
     username: alist
     password: adminadmin
     base_path: /网盘/OneDrive/
     token: alist-a1b2c3d4-12...
+    async_mode: False
