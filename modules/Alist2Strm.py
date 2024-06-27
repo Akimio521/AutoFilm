@@ -44,7 +44,17 @@ class Alist2Strm:
         self.library_mode = library_mode
 
         logging.debug(
-            f"Alist2Strm配置：Alist地址：{self.alist_server_url}，Alist用户名：{self.alist_server_username}，Alist密码：{self.alist_server_password}，Alist基本路径：{self.alist_server_base_dir}，Alist签名Token：{self.token}，输出目录：{self.output_dir}，是否下载字幕：{self.subtitle}，是否下载图片：{self.img}，是否下载NFO：{self.nfo}，是否为库模式：{self.library_mode}"
+            f"Alist2Strm配置".center(50, "=") + "\n"
+            f"Alist地址：{self.alist_server_url}\n"
+            f"Alist用户名：{self.alist_server_username}\n"
+            f"Alist密码：{self.alist_server_password}\n"
+            f"Alist基本路径：{self.alist_server_base_dir}\n"
+            f"Alist签名Token：{self.token}\n"
+            f"输出目录：{self.output_dir}\n"
+            f"是否下载字幕：{self.subtitle}\n"
+            f"是否下载图片：{self.img}\n"
+            f"是否下载NFO：{self.nfo}\n"
+            f"是否为库模式：{self.library_mode}"
         )
 
     def run(self) -> None:
@@ -59,18 +69,24 @@ class Alist2Strm:
             )
         except Exception as e:
             logging.critical(
-                f"登录失败，错误信息：{str(e)}，请检查Alist地址：{self.alist_server_url}，用户名：{self.alist_server_username}，密码：{self.alist_server_password}是否正确"
+                "登录失败".center(50, "=") + "\n"
+                f"错误信息：{str(e)}\n"
+                f"请检查Alist地址：{self.alist_server_url}\n"
+                f"用户名：{self.alist_server_username}\n"
+                f"密码：{self.alist_server_password}是否正确"
             )
             return
-        
+
         try:
             fs.chdir(self.alist_server_base_dir)
         except Exception as e:
             logging.critical(
-                f"切换目录失败，错误信息：{str(e)}，请检查Alist服务器中是否存在该目录：{self.alist_server_base_dir}"
+                "切换目录失败".center(50, "=") + "\n"
+                f"错误信息：{str(e)}\n"
+                f"请检查Alist服务器中是否存在该目录：{self.alist_server_base_dir}"
             )
             return
-        
+
         async with ClientSession() as session:
             tasks = [
                 asyncio.create_task(self._file_processer(alist_path_cls, session))
@@ -100,7 +116,10 @@ class Alist2Strm:
         )
 
         logging.debug(
-            f"正在处理:{alist_path_cls.name}，本地文件目录：{file_output_path}，文件远程路径：{file_alist_abs_path}，下载URL：{file_download_url}"
+            f"正在处理:{alist_path_cls.name}\n"
+            f"本地文件目录：{file_output_path}\n"
+            f"文件远程路径：{file_alist_abs_path}\n"
+            f"下载URL：{file_download_url}"
         )
 
         if alist_path_cls.name.lower().endswith(VIDEO_EXT):
