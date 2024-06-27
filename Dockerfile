@@ -11,8 +11,8 @@ RUN sed -i 's/\r//' entrypoint.sh \
     && chmod +x entrypoint.sh
 
 RUN apk update \
-    && apk upgrade \
-    && apk add bash \
+    apk upgrade \
+    apk add bash \
     && rm -rf \
         /tep \
         /var/lib/apt/lists \
@@ -27,6 +27,7 @@ RUN pip install --upgrade pip \
 WORKDIR "/app"
 
 COPY main.py autofilm.py version.py /app/
+COPY modules /app/modules
 
 VOLUME ["/app/config", "/app/media"]
 ENTRYPOINT ["/entrypoint.sh"]

@@ -26,4 +26,4 @@ if __name__ == "__main__":
     logging.info(f"配置文件路径：{args.config_path}")
 
     my_autofilm = autofilm.AutoFilm(config_path=args.config_path)
-    my_autofilm.run()
+    my_autofilm.run_Alist2Strm()

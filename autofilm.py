@@ -1,17 +1,9 @@
-#! /usr/bin/env python3
-# -*- coding:utf-8 -*-
-
 import logging
-import hmac
-import hashlib
-import base64
-import asyncio
-from aiohttp import ClientSession
 from pathlib import Path
-from typing import Optional
 
 import yaml
-from alist import AlistFileSystem, AlistPath
+
+from modules import Alist2Strm
 
 
 class AutoFilm:
@@ -29,11 +21,6 @@ class AutoFilm:
         )
 
         self.config_data = {}
-
-        self.video_ext = ("mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm")
-        self.subtitle_ext = ("ass", "srt", "ssa", "sub")
-        self.img_ext = ("png", "jpg")
-        self.all_ext = (*self.video_ext, *self.subtitle_ext, *self.img_ext, "nfo")
 
         try:
             with self.config_path.open(mode="r", encoding="utf-8") as f:
@@ -66,7 +53,7 @@ class AutoFilm:
 
             logging.info(f"输出目录：{self.output_dir}".center(50, "="))
 
-    def run(self) -> None:
+    def run_Alist2Strm(self) -> None:
         try:
             alist_server_list: list[dict] = self.config_data["AlistServerList"]
         except Exception as e:
@@ -74,136 +61,16 @@ class AutoFilm:
         else:
             logging.debug("Alist服务器加载成功")
             for alist_server in alist_server_list:
-                alist_server_url: str = alist_server.get("url")
-                alist_server_username: str = alist_server.get("username")
-                alist_server_password: str = alist_server.get("password")
-                alist_server_base_path: Optional[str] = alist_server.get("base_path")
-                alist_server_token: Optional[str] = alist_server.get("token")
-
-                alist_server_url = alist_server_url.rstrip("/")
-                if alist_server_base_path == None or alist_server_base_path == "":
-                    alist_server_base_path = "/"
-                alist_server_base_path = "/" + alist_server_base_path.strip("/") + "/"
-
-                if not all(
-                    [alist_server_url, alist_server_username, alist_server_password]
-                ):
-
-                    logging.error(
-                        f"Alist服务器{alist_server}配置错误，请检查配置文件：{alist_server}"
-                    )
-                    return
-
-                logging.debug(
-                    f"Alist服务器URL：{alist_server_url}，用户名：{alist_server_username}，密码：{alist_server_password}，基本路径：{alist_server_base_path}，token：{alist_server_token}"
+                alist2strm = Alist2Strm(
+                    alist_server.get("url"),
+                    alist_server.get("username"),
+                    alist_server.get("password"),
+                    alist_server.get("base_path"),
+                    alist_server.get("token"),
+                    self.output_dir,
+                    self.subtitle,
+                    self.img,
+                    self.nfo,
+                    self.library_mode,
                 )
-                asyncio.run(
-                    self._processer(
-                        alist_server_url,
-                        alist_server_username,
-                        alist_server_password,
-                        alist_server_base_path,
-                        alist_server_token,
-                    )
-                )
-
-    async def _processer(
-        self,
-        alist_server_url: str,
-        alist_server_username: str,
-        alist_server_password: str,
-        alist_server_base_path: str,
-        alist_server_token: str,
-    ) -> None:
-        try:
-            fs = AlistFileSystem.login(
-                alist_server_url, alist_server_username, alist_server_password
-            )
-        except Exception as e:
-            logging.critical(
-                f"登录失败，错误信息：{str(e)}，请检查Alist地址：{alist_server_url}，用户名：{alist_server_username}，密码：{alist_server_password}是否正确"
-            )
-            return
-        try:
-            fs.chdir(alist_server_base_path)
-        except Exception as e:
-            logging.critical(
-                f"切换目录失败，请检查Alist服务器中是否存在该目录：{alist_server_base_path}，错误信息：{str(e)}"
-            )
-            return
-
-        async with ClientSession() as session:
-            tasks = [
-                asyncio.create_task(
-                    self._file_process(
-                        path, session, alist_server_base_path, alist_server_token
-                    )
-                )
-                for path in fs.rglob("*.*")
-            ]
-            await asyncio.gather(*tasks)
-
-    async def _file_process(
-        self,
-        alist_path_cls: AlistPath,
-        session: ClientSession,
-        base_path: Path,
-        token: str,
-    ) -> None:
-        if not alist_path_cls.name.lower().endswith(self.all_ext):
-            return
-
-        file_output_path: Path = (
-            self.output_dir / alist_path_cls.name
-            if self.library_mode
-            else self.output_dir / str(alist_path_cls).replace(base_path, "")
-        )
-
-        file_alist_abs_path: str = alist_path_cls.url[
-            alist_path_cls.url.index("/d/") + 2 :
-        ]
-
-        file_download_url: str = alist_path_cls.url + self._sign(
-            secret_key=token, data=file_alist_abs_path
-        )
-
-        logging.debug(
-            f"正在处理:{alist_path_cls.name}，本地文件目录：{file_output_path}，文件远程路径：{file_alist_abs_path}，下载URL：{file_download_url}"
-        )
-
-        if alist_path_cls.name.lower().endswith(self.video_ext):
-            file_output_path.parent.mkdir(parents=True, exist_ok=True)
-            file_output_path = file_output_path.with_suffix(".strm")
-            with file_output_path.open(mode="w", encoding="utf-8") as f:
-                f.write(file_download_url)
-                logging.debug(
-                    f"{file_output_path.name}创建成功，文件本地目录：{file_output_path.parent}"
-                )
-            return
-
-        if alist_path_cls.name.lower().endswith(self.img_ext) and not self.img:
-            return
-        elif (
-            alist_path_cls.name.lower().endswith(self.subtitle_ext)
-            and not self.subtitle
-        ):
-            return
-        elif alist_path_cls.name.lower().endswith("nfo") and not self.nfo:
-            return
-        else:
-            file_output_path.parent.mkdir(parents=True, exist_ok=True)
-            async with session.get(file_download_url) as resp:
-                if resp.status == 200:
-                    with file_output_path.open(mode="wb") as f:
-                        f.write(await resp.read())
-                    logging.debug(
-                        f"{file_output_path.name}下载成功，文件本地目录：{file_output_path.parent}"
-                    )
-
-    def _sign(self, secret_key: Optional[str], data: str) -> str:
-        if secret_key == "" or secret_key == None:
-            return ""
-        h = hmac.new(secret_key.encode(), digestmod=hashlib.sha256)
-        expire_time_stamp = str(0)
-        h.update((data + ":" + expire_time_stamp).encode())
-        return f"?sign={base64.urlsafe_b64encode(h.digest()).decode()}:0"
+                alist2strm.run()
