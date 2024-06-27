@@ -4,21 +4,22 @@ on:
   push:
     branches:
       - main
-    paths:
-      - version.py
   workflow_dispatch:
       inputs:
-        app_version:
-          description: '版本号，用于Docker标签'
+        APP_VERSION:
+          description: '版本号，用于 Docker 标签'
           required: false
-        use_latest:
+        IS_USE_LATEST_TAG:
           description: '是否使用"latest"标签'
           required: false
           default: true
           type: boolean
 
 env:
-  use_latest: false
+  IS_USE_LATEST_TAG: false
+  IS_APP_VERSION_CHANGE: false
+  APP_VERSION: $(cat version.py | sed -ne 's/APP_VERSION\s=\s"v\(.*\)"/\1/gp')
+  DEV_TAG: Dev-$(date +"%Y%m%d")
 
 jobs:
     Docker-build:
@@ -27,22 +28,26 @@ jobs:
       steps:
         - uses: actions/checkout@v4
     
-        - name: Get Version from version.py
+        - name: Check Version Change
           run: |
-            echo "app_version=$(cat version.py | sed -ne 's/APP_VERSION\s=\s"v\(.*\)"/\1/gp')" >> $GITHUB_ENV
+            if git diff --name-only ${{ github.sha }} | grep 'version.py'; then
+              echo "IS_APP_VERSION_CHANGE=true" >> $GITHUB_ENV
+              echo "IS_USE_LATEST_TAG=true" >> $GITHUB_ENV
+            fi
 
         - name: Get Version from Input
-          if: ${{ github.event.inputs.app_version}}
+          if: ${{ github.event.inputs.APP_VERSION}}
           run: | 
             echo "使用传入版本号覆盖默认版本号"
-            echo "传入版本号：${{ github.event.inputs.app_version }}"
-            echo "app_version=${{ github.event.inputs.app_version }}" >> $GITHUB_ENV
+            echo "传入版本号：${{ github.event.inputs.APP_VERSION }}"
+            echo "APP_VERSION=${{ github.event.inputs.APP_VERSION }}" >> $GITHUB_ENV
+            echo "IS_APP_VERSION_CHANGE=true" >> $GITHUB_ENV
 
-        - name: Get Latest Tag
-          if: ${{ github.event_name == 'push' }} or ${{ github.event.inputs.use_latest }}
+        - name: Use Latest Tag
+          if: ${{ github.event.inputs.IS_USE_LATEST_TAG }}
           run: |
             echo "使用latest标签"
-            echo "use_latest=true" >> $GITHUB_ENV
+            echo "IS_USE_LATEST_TAG=true" >> $GITHUB_ENV
 
         - name: Docker Meta
           id: meta
@@ -50,8 +55,9 @@ jobs:
           with:
             images: ${{ secrets.DOCKERHUB_USERNAME }}/autofilm
             tags: |
-                type=raw,value=latest,enable=${{ env.use_latest }}
-                type=raw,value=${{ env.app_version }},enable=true
+                type=raw,value=latest,enable=${{ env.IS_USE_LATEST_TAG }}
+                type=raw,value=${{ env.APP_VERSION }},enable=${{ env.IS_APP_VERSION_CHANGE }}
+                type=raw,value=${{ env.DEV_TAG }},enable=true
 
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
@@ -75,7 +81,7 @@ jobs:
               linux/arm64/v8
             push: true
             build-args: |
-              AUTOFILM_VERSION=${{ env.app_version }}
+              AUTOFILM_VERSION=${{ env.APP_VERSION }}
             tags: ${{ steps.meta.outputs.tags }}
             labels: ${{ steps.meta.outputs.labels }}
             cache-from: type=gha, scope=${{ github.workflow }}-docker
@@ -85,7 +91,7 @@ jobs:
           run: |
             echo "现在输出详细信息"
             echo "====================================="
-            echo "VERSION: ${{ env.app_version }}"
+            echo "VERSION: ${{ env.APP_VERSION }}"
             echo "Image: ${{ steps.meta.outputs.images }}"
             echo "Tags: ${{ steps.meta.outputs.tags }}"
             echo "Labels: ${{ steps.meta.outputs.labels }}"
