@@ -1,4 +1,4 @@
-FROM python:3.11-alpine
+FROM python:3.12.4-alpine
 
 ENV TZ=Asia/Shanghai \
     CONFIG_PATH=/app/config/config.yaml \
