@@ -31,6 +31,22 @@ class Alist2Strm:
         library_mode: bool = True,
         async_mode: bool = False,
     ) -> None:
+        """
+        实例化 Alist2Strm 对象
+
+        :param alist_server_url: Alist 服务器地址
+        :param alist_server_username: Alist 用户名
+        :param alist_server_username: Alist 密码
+        :param alist_server_base_dir: 底层目录，默认为 "/"
+        :param token: Alist 签名 Token
+        :param output_dir: Strm 文件输出目录
+        :param subtitle: 是否下载字幕文件，默认 "False"
+        :param img: 是否下载图片文件，默认 "False"
+        :param nfo: 是否下载NFO文件，默认 "False"
+        :param library_mode: 是否启用媒体库模式，默认 "True"
+        :param async_mode: 是否启用异步下载文件，默认 "False"
+        """
+
         self.alist_server_url = alist_server_url.rstrip("/")
         self.alist_server_username = alist_server_username
         self.alist_server_password = alist_server_password
@@ -62,9 +78,16 @@ class Alist2Strm:
         )
 
     def run(self) -> None:
+        """
+        异步启动程序
+        """
+
         asyncio.run(self._processer())
 
-    async def _processer(self):
+    async def _processer(self) -> None:
+        """
+        程序处理主体
+        """
         try:
             fs = AlistFileSystem.login(
                 self.alist_server_url,
@@ -109,6 +132,12 @@ class Alist2Strm:
                 self.session.close()
 
     async def _file_processer(self, alist_path_cls: AlistPath) -> None:
+        """
+        保存文件至本地
+
+        :param alist_path_cls: AlistPath 对象
+        """
+
         if not alist_path_cls.name.lower().endswith(ALL_EXT):
             return
 
@@ -168,6 +197,13 @@ class Alist2Strm:
             )
 
     def _sign(self, secret_key: Optional[str], data: str) -> str:
+        """
+        Alist 签名 Token 处理
+
+        :param secret_key: Alist 签名 Token
+        :param data: 待签名数据 （Alist 文件绝对路径）
+        """
+        
         if secret_key == "" or secret_key == None:
             return ""
 

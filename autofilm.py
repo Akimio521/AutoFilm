@@ -11,8 +11,14 @@ class AutoFilm:
         self,
         config_path: str,
     ):
+        """
+        实例化 AutoFilm 对象
+
+        :param config_path: 配置文件路径
+        """
 
         self.base_dir: Path = Path(__file__).parent.absolute()
+
         config_path = Path(config_path)
         self.config_path: Path = (
             Path(config_path)
@@ -54,6 +60,10 @@ class AutoFilm:
             logging.info(f"输出目录：{self.output_dir}".center(50, "="))
 
     def run_Alist2Strm(self) -> None:
+        """
+        运行 Alist2Strm 模块
+        """
+
         try:
             alist_server_list: list[dict] = self.config_data["AlistServerList"]
         except Exception as e:
