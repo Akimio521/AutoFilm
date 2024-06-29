@@ -30,6 +30,7 @@ class Alist2Strm:
         nfo: bool = False,
         library_mode: bool = True,
         async_mode: bool = False,
+        overwrite: bool = False,
     ) -> None:
         """
         实例化 Alist2Strm 对象
@@ -45,6 +46,7 @@ class Alist2Strm:
         :param nfo: 是否下载NFO文件，默认 "False"
         :param library_mode: 是否启用媒体库模式，默认 "True"
         :param async_mode: 是否启用异步下载文件，默认 "False"
+        :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认 "False"
         """
 
         self.alist_server_url = alist_server_url.rstrip("/")
@@ -61,6 +63,7 @@ class Alist2Strm:
         self.nfo = nfo
         self.library_mode = library_mode
         self.async_mode = async_mode
+        self.overwrite = overwrite
 
         logging.debug(
             f"Alist2Strm配置".center(50, "=") + "\n"
@@ -148,6 +151,12 @@ class Alist2Strm:
             / str(alist_path_cls).replace(self.alist_server_base_dir, "")
         )
 
+        if self.overwrite == False and file_output_path.exists():
+            logging.debug(
+                f"{file_output_path.name}已存在，跳过下载，文件本地目录：{file_output_path.parent}"
+            )
+            return
+
         file_alist_abs_path: str = alist_path_cls.url[
             alist_path_cls.url.index("/d/") + 2 :
         ]
@@ -203,7 +212,7 @@ class Alist2Strm:
         :param secret_key: Alist 签名 Token
         :param data: 待签名数据 （Alist 文件绝对路径）
         """
-        
+
         if secret_key == "" or secret_key == None:
             return ""
 

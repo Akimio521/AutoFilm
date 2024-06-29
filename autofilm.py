@@ -83,5 +83,6 @@ class AutoFilm:
                     self.nfo,
                     self.library_mode,
                     alist_server.get("async_mode"),
+                    alist_server.get("overwrite"),
                 )
                 alist2strm.run()
