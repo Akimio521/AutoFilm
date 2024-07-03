@@ -11,8 +11,8 @@ RUN sed -i 's/\r//' entrypoint.sh \
     && chmod +x entrypoint.sh
 
 RUN apk update \
-    apk upgrade \
-    apk add bash \
+    && apk upgrade \
+    && apk add bash \
     && rm -rf \
         /tep \
         /var/lib/apt/lists \
