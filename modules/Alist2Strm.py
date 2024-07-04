@@ -3,6 +3,7 @@ import hmac
 import hashlib
 import base64
 import asyncio
+from urllib.parse import unquote
 from requests import Session
 from aiohttp import ClientSession as AsyncSession
 from pathlib import Path
@@ -124,7 +125,7 @@ class Alist2Strm:
 
         async with asyncio.TaskGroup() as tg:
             for alist_path_cls in fs.rglob("*.*"):
-                await tg.create_task(self._file_processer(alist_path_cls))
+                tg.create_task(self._file_processer(alist_path_cls))
 
         if self.session:
             if self.async_mode:
@@ -214,6 +215,7 @@ class Alist2Strm:
         if secret_key == "" or secret_key == None:
             return ""
 
+        data = unquote(data)
         h = hmac.new(secret_key.encode(), digestmod=hashlib.sha256)
         expire_time_stamp = str(0)
         h.update((data + ":" + expire_time_stamp).encode())
