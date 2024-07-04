@@ -122,11 +122,9 @@ class Alist2Strm:
         else:
             self.session = Session()
 
-        tasks = [
-            asyncio.create_task(self._file_processer(alist_path_cls))
-            for alist_path_cls in fs.rglob("*.*")
-        ]
-        await asyncio.gather(*tasks)
+        async with asyncio.TaskGroup() as tg:
+            for alist_path_cls in fs.rglob("*.*"):
+                await tg.create_task(self._file_processer(alist_path_cls))
 
         if self.session:
             if self.async_mode:
