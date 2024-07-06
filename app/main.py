@@ -8,7 +8,7 @@ from version import APP_VERSION
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Autofilm参数配置")
     parser.add_argument(
-        "--config_path", type=str, help="配置文件路径", default="config/config.yaml"
+        "--config_path", type=str, help="配置文件路径", default="../config/config.yaml"
     )
     parser.add_argument(
         "--log_level",

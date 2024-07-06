@@ -1,5 +1,5 @@
 Settings:
-  output_dir: media         # 输出路径
+  output_dir: /media        # 输出路径
   subtitle: True            # 是否下载字幕
   img: False                # 是否下载图片
   nfo: True                 # 是否下载视频信息文件

@@ -7,11 +7,11 @@
 # 部署方式
 1. Python环境运行
     ```bash
-    python main.py
+    python app/main.py
     ```
 2. Docker运行
     ```bash
-    docker run -d --name autofilm  -v ./config:/app/config -v ./media:/app/media -e INTERVAL=3600 akimio/autofilm
+    docker run -d --name autofilm  -v ./config:/config -v ./media:/media akimio/autofilm
     ```
 
 # 优点

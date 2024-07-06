@@ -28,7 +28,7 @@ jobs:
     
         - name: Setup
           run: |
-            echo "APP_VERSION=$(cat version.py | sed -ne 's/APP_VERSION\s=\s"v\(.*\)"/\1/gp')" >> $GITHUB_ENV
+            echo "APP_VERSION=$(cat app/version.py | sed -ne 's/APP_VERSION\s=\s"v\(.*\)"/\1/gp')" >> $GITHUB_ENV
             echo "DEV_TAG=Dev-$(date +"%Y%m%d")" >> $GITHUB_ENV
 
 

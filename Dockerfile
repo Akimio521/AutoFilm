@@ -1,7 +1,7 @@
 FROM python:3.12.4-alpine
 
 ENV TZ=Asia/Shanghai \
-    CONFIG_PATH=/app/config/config.yaml \
+    CONFIG_PATH=/config/config.yaml \
     LOG_LEVEL=INFO\
     INTERVAL=3600
 
@@ -24,10 +24,7 @@ RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && rm -rf requirements.txt
 
-WORKDIR "/app"
+COPY app /app
 
-COPY main.py autofilm.py version.py /app/
-COPY modules /app/modules
-
-VOLUME ["/app/config", "/app/media"]
+VOLUME ["/config", "/media"]
 ENTRYPOINT ["/entrypoint.sh"]

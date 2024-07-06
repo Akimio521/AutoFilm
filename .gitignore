@@ -4,4 +4,5 @@ media/*
 __pycache__/*
 
 *bak
-test-*
+*test*
+*pyc*
