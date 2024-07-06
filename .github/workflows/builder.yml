@@ -10,14 +10,17 @@ on:
           description: '版本号，用于 Docker 标签'
           required: false
         IS_USE_LATEST_TAG:
-          description: '是否使用"latest"标签'
-          required: false
+          description: '是否使用latest标签'
+          default: true
+          type: boolean
+        IS_USE_VERSION_TAG:
+          description: '是否使用版本标签'
           default: true
           type: boolean
 
 env:
   IS_USE_LATEST_TAG: false
-  IS_APP_VERSION_CHANGE: false
+  IS_USE_VERSION_TAG: false
 
 jobs:
     Docker-build:
@@ -31,27 +34,24 @@ jobs:
             echo "APP_VERSION=$(cat app/version.py | sed -ne 's/APP_VERSION\s=\s"v\(.*\)"/\1/gp')" >> $GITHUB_ENV
             echo "DEV_TAG=Dev-$(date +"%Y%m%d")" >> $GITHUB_ENV
 
-
         - name: Check Version Change
           run: |
-            if git diff --name-only ${{ github.sha }} | grep 'version.py'; then
-              echo "IS_APP_VERSION_CHANGE=true" >> $GITHUB_ENV
+            if git diff --name-only ${{ github.sha }} | grep 'app/version.py'; then
               echo "IS_USE_LATEST_TAG=true" >> $GITHUB_ENV
+              echo "IS_USE_VERSION_TAG=true" >> $GITHUB_ENV
             fi
-
-        - name: Get Version from Input
-          if: ${{ github.event.inputs.APP_VERSION}}
-          run: | 
-            echo "使用传入版本号覆盖默认版本号"
-            echo "传入版本号：${{ github.event.inputs.APP_VERSION }}"
-            echo "APP_VERSION=${{ github.event.inputs.APP_VERSION }}" >> $GITHUB_ENV
-            echo "IS_APP_VERSION_CHANGE=true" >> $GITHUB_ENV
 
         - name: Use Latest Tag
           if: ${{ github.event.inputs.IS_USE_LATEST_TAG }}
           run: |
             echo "使用latest标签"
             echo "IS_USE_LATEST_TAG=true" >> $GITHUB_ENV
+
+        - name: Use Version Tag
+          if: ${{ github.event.inputs.IS_USE_VERSION_TAG }}
+          run: |
+            echo "使用版本标签"
+            echo "IS_USE_VERSION_TAG=true" >> $GITHUB_ENV
 
         - name: Docker Meta
           id: meta
@@ -60,7 +60,7 @@ jobs:
             images: ${{ secrets.DOCKERHUB_USERNAME }}/autofilm
             tags: |
                 type=raw,value=latest,enable=${{ env.IS_USE_LATEST_TAG }}
-                type=raw,value=${{ env.APP_VERSION }},enable=${{ env.IS_APP_VERSION_CHANGE }}
+                type=raw,value=${{ env.APP_VERSION }},enable=${{ env.IS_USE_VERSION_TAG }}
                 type=raw,value=${{ env.DEV_TAG }},enable=true
 
         - name: Set up QEMU
