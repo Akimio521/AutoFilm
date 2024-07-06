@@ -3,6 +3,7 @@ strm/*
 media/*
 __pycache__/*
 
+.DS_Store
 *bak
 *test*
 *pyc*

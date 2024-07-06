@@ -1,2 +1,3 @@
+aiofile == 3.8.8
 PyYAML == 6.0.1
-python-alist == 0.0.12.2
+python-alist == 0.0.13.0.2
