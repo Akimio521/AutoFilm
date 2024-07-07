@@ -32,7 +32,6 @@ jobs:
         - name: Setup
           run: |
             echo "APP_VERSION=$(cat app/version.py | sed -ne 's/APP_VERSION\s=\s"v\(.*\)"/\1/gp')" >> $GITHUB_ENV
-            echo "DEV_TAG=Dev-$(date +"%Y%m%d")" >> $GITHUB_ENV
 
         - name: Check Version Change
           run: |
@@ -61,7 +60,7 @@ jobs:
             tags: |
                 type=raw,value=latest,enable=${{ env.IS_USE_LATEST_TAG }}
                 type=raw,value=${{ env.APP_VERSION }},enable=${{ env.IS_USE_VERSION_TAG }}
-                type=raw,value=${{ env.DEV_TAG }},enable=true
+                type=raw,value=DEV,enable=true
 
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
