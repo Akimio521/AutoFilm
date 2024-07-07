@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 import logging
-from asyncio import run, to_thread, Semaphore, TaskGroup
+from asyncio import to_thread, Semaphore, TaskGroup
 from contextlib import aclosing
 from os import PathLike
 from pathlib import Path
@@ -96,15 +96,9 @@ Alist 目录：  {self.source_dir!r}
 最大并发数：  {max_workers}"""
         )
 
-    def run(self) -> None:
+    async def run(self, /):
         """
-        异步启动程序
-        """
-        run(self._processer_async())
-
-    async def _processer_async(self, /):
-        """
-        程序处理主体（异步）
+        处理主体
         """
         async with TaskGroup() as tg:
             create_task = tg.create_task
@@ -114,9 +108,9 @@ Alist 目录：  {self.source_dir!r}
                 predicate=lambda path: path.is_file(),
                 async_=True,
             ):
-                create_task(self._file_processer(path))
+                create_task(self.__file_processer(path))
 
-    async def _file_processer(self, /, path: AlistPath):
+    async def __file_processer(self, /, path: AlistPath):
         """
         异步保存文件至本地
 
