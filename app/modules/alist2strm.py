@@ -59,7 +59,11 @@ class Alist2Strm:
         self.token = token
         self.source_dir = client.fs.abspath(source_dir)
         self.target_dir = fsdecode(target_dir)
+
         self.flatten_mode = flatten_mode
+        if flatten_mode:
+            subtitle = image = nfo = False
+
         download_exts: set[str] = set()
         if subtitle:
             download_exts |= SUBTITLE_EXTS
@@ -68,6 +72,7 @@ class Alist2Strm:
         if nfo:
             download_exts |= NFO_EXTS
         self.download_exts = download_exts
+
         self.overwrite = overwrite
         self._async_semaphore = Semaphore(max_workers)
 
@@ -75,14 +80,14 @@ class Alist2Strm:
 Alist 地址：  {origin!r}
 Alist 用户名：{username!r}
 Alist 密码：  {password!r}
-Alist token： {token!r}
-Alist 目录：  {source_dir!r}
-输出目录：    {target_dir!r}
-平铺模式：  {flatten_mode}
+Alist token： {self.token!r}
+Alist 目录：  {self.source_dir!r}
+输出目录：    {self.target_dir!r}
+平铺模式：  {self.flatten_mode}
 下载字幕：    {subtitle}
 下载图片：    {image}
 下载 NFO：    {nfo}
-覆盖：        {overwrite}
+覆盖：        {self.overwrite}
 最大并发数：  {max_workers}""")
 
     def run(self) -> None:
