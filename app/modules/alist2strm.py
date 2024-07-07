@@ -2,12 +2,10 @@
 # encoding: utf-8
 
 import logging
-
 from asyncio import run, to_thread, Semaphore, TaskGroup
-from contextlib import closing, aclosing
+from contextlib import aclosing
 from os import fsdecode, makedirs, PathLike
 from os.path import dirname, exists, join as joinpath, normpath, splitext
-from concurrent.futures import ThreadPoolExecutor
 from typing import Final
 
 from aiofile import async_open
@@ -35,7 +33,6 @@ class Alist2Strm:
         image: bool = False, 
         nfo: bool = False, 
         overwrite: bool = False, 
-        async_mode: bool = False, 
         max_workers: int = 5, 
     ) -> None:
         """实例化 Alist2Strm 对象
@@ -51,7 +48,6 @@ class Alist2Strm:
         :param image: 是否下载图片文件，默认为 False
         :param nfo: 是否下载 .nfo 文件，默认为 False
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
-        :param async_mode: 是否用异步模式，默认为 True
         :param max_worders: 最大并发数
         """
         client = self.client = AlistClient(
@@ -72,8 +68,6 @@ class Alist2Strm:
             download_exts |= NFO_EXTS
         self.download_exts = download_exts
         self.overwrite = overwrite
-        self.async_mode = async_mode
-        self.max_workers = max_workers
         self._async_semaphore = Semaphore(max_workers)
 
         logging.debug("Alist2Strm配置".center(50, "=") + f"""\
@@ -87,33 +81,18 @@ Alist 目录：  {base_dir!r}
 下载字幕：    {subtitle}
 下载图片：    {image}
 下载 NFO：    {nfo}
-异步模式：    {async_mode}
 覆盖：        {overwrite}
 最大并发数：  {max_workers}""")
 
     def run(self) -> None:
         """
-        启动程序
+        异步启动程序
         """
-        if self.async_mode:
-            run(self._processer_async())
-        else:
-            self._processer()
-
-    def _processer(self, /):
-        """程序处理主体（多线程）
-        """
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            submit = executor.submit
-            for path in self.client.fs.iter(
-                self.base_dir, 
-                max_depth=-1, 
-                predicate=lambda path: path.is_file(), 
-            ):
-                submit(self._file_processer, path)
+        run(self._processer_async())
 
     async def _processer_async(self, /):
-        """程序处理主体（异步）
+        """
+        程序处理主体（异步）
         """
         async with TaskGroup() as tg:
             create_task = tg.create_task
@@ -123,50 +102,11 @@ Alist 目录：  {base_dir!r}
                 predicate=lambda path: path.is_file(), 
                 async_=True, 
             ):
-                create_task(self._file_processer_async(path))
+                create_task(self._file_processer(path))
 
-    def _file_processer(self, /, path: AlistPath):
-        """保存文件至本地（多线程）
-
-        :param path: AlistPath 对象
+    async def _file_processer(self, /, path: AlistPath):
         """
-        suffix = path.suffix.lower()
-        if not (suffix in VIDEO_EXTS or suffix in self.download_exts):
-            return
-
-        if self.library_mode:
-            local_path = joinpath(self.output_dir, path.name)
-        else:
-            local_path = joinpath(self.output_dir, normpath(path.relative_to(self.base_dir)))
-
-        try:
-            if exists(local_path) and not self.overwrite:
-                logging.debug(f"跳过文件：{local_path!r}")
-                return
-
-            url = path.get_url(token=self.token)
-            if dir_ := dirname(local_path):
-                makedirs(dir_, exist_ok=True)
-
-            if suffix in VIDEO_EXTS:
-                local_path = splitext(local_path)[0] + ".strm"
-                open(local_path, mode="w", encoding="utf-8").write(url)
-                logging.debug(f"创建文件：{local_path!r}")
-            else:
-                with (
-                    closing(self.client.request(url, "GET", parse=None)) as resp, 
-                    open(local_path, mode="wb") as file, 
-                ):
-                    write = file.write
-                    for chunk in resp.iter_bytes(1 << 16):
-                        write(chunk)
-                logging.debug(f"下载文件：{local_path!r}")
-        except:
-            logging.exception(f"下载失败: {local_path!r}")
-            raise
-
-    async def _file_processer_async(self, /, path: AlistPath):
-        """保存文件至本地（异步）
+        异步保存文件至本地
 
         :param path: AlistPath 对象
         """
