@@ -4,15 +4,17 @@
 import logging
 from asyncio import run, to_thread, Semaphore, TaskGroup
 from contextlib import aclosing
-from os import fsdecode, makedirs, PathLike
-from os.path import dirname, exists, join as joinpath, normpath, splitext
+from os import PathLike
+from pathlib import Path
 from typing import Final
 
 from aiofile import async_open
 from alist import AlistClient, AlistPath
 
 
-VIDEO_EXTS: Final = frozenset((".mp4", ".mkv", ".flv", ".avi", ".wmv", ".ts", ".rmvb", ".webm"))
+VIDEO_EXTS: Final = frozenset(
+    (".mp4", ".mkv", ".flv", ".avi", ".wmv", ".ts", ".rmvb", ".webm")
+)
 SUBTITLE_EXTS: Final = frozenset((".ass", ".srt", ".ssa", ".sub"))
 IMAGE_EXTS: Final = frozenset((".png", ".jpg"))
 NFO_EXTS: Final = frozenset((".nfo",))
@@ -21,19 +23,19 @@ NFO_EXTS: Final = frozenset((".nfo",))
 class Alist2Strm:
 
     def __init__(
-        self, 
-        origin: str = "http://localhost:5244", 
-        username: str = "", 
-        password: str = "", 
-        token: str = "", 
-        source_dir: str = "/", 
-        target_dir: bytes | str | PathLike = "", 
-        flatten_mode: bool = False, 
-        subtitle: bool = False, 
-        image: bool = False, 
-        nfo: bool = False, 
-        overwrite: bool = False, 
-        max_workers: int = 5, 
+        self,
+        origin: str = "http://localhost:5244",
+        username: str = "",
+        password: str = "",
+        token: str = "",
+        source_dir: str = "/",
+        target_dir: str | PathLike = "",
+        flatten_mode: bool = False,
+        subtitle: bool = False,
+        image: bool = False,
+        nfo: bool = False,
+        overwrite: bool = False,
+        max_workers: int = 5,
     ) -> None:
         """
         实例化 Alist2Strm 对象
@@ -52,13 +54,13 @@ class Alist2Strm:
         :param max_worders: 最大并发数
         """
         client = self.client = AlistClient(
-            origin=origin, 
-            username=username, 
-            password=password, 
+            origin=origin,
+            username=username,
+            password=password,
         )
         self.token = token
         self.source_dir = client.fs.abspath(source_dir)
-        self.target_dir = fsdecode(target_dir)
+        self.target_dir = Path(target_dir)
 
         self.flatten_mode = flatten_mode
         if flatten_mode:
@@ -76,7 +78,9 @@ class Alist2Strm:
         self.overwrite = overwrite
         self._async_semaphore = Semaphore(max_workers)
 
-        logging.debug("Alist2Strm配置".center(50, "=") + f"""\
+        logging.debug(
+            "Alist2Strm配置".center(50, "=")
+            + f"""\
 Alist 地址：  {origin!r}
 Alist 用户名：{username!r}
 Alist 密码：  {password!r}
@@ -88,7 +92,8 @@ Alist 目录：  {self.source_dir!r}
 下载图片：    {image}
 下载 NFO：    {nfo}
 覆盖：        {self.overwrite}
-最大并发数：  {max_workers}""")
+最大并发数：  {max_workers}"""
+        )
 
     def run(self) -> None:
         """
@@ -103,10 +108,10 @@ Alist 目录：  {self.source_dir!r}
         async with TaskGroup() as tg:
             create_task = tg.create_task
             async for path in self.client.fs.iter(
-                self.source_dir, 
-                max_depth=-1, 
-                predicate=lambda path: path.is_file(), 
-                async_=True, 
+                self.source_dir,
+                max_depth=-1,
+                predicate=lambda path: path.is_file(),
+                async_=True,
             ):
                 create_task(self._file_processer(path))
 
@@ -121,35 +126,44 @@ Alist 目录：  {self.source_dir!r}
             return
 
         if self.flatten_mode:
-            local_path = joinpath(self.target_dir, path.name)
+            local_path = self.target_dir / path.name
         else:
-            local_path = joinpath(self.target_dir, normpath(path.relative_to(self.source_dir)))
+            local_path = self.target_dir / path.path.replace(
+                self.source_dir, "", 1
+            ).lstrip("/")
 
         async with self._async_semaphore:
             try:
-                if exists(local_path) and not self.overwrite:
-                    logging.debug(f"跳过文件：{local_path!r}")
+                if local_path.exists() and not self.overwrite:
+                    logging.debug(f"跳过文件：{local_path.name!r}")
                     return
 
-                url = path.get_url(token=self.token)
-                if dir_ := dirname(local_path):
-                    await to_thread(makedirs, dir_, exist_ok=True)
+                download_url = path.get_url(token=self.token)
+
+                _parent = local_path.parent
+                if not _parent.exists():
+                    await to_thread(_parent.mkdir, parents=True, exist_ok=True)
 
                 if suffix in VIDEO_EXTS:
-                    local_path = splitext(local_path)[0] + ".strm"
-                    async with async_open(local_path, mode="w", encoding="utf-8") as file:
-                        await file.write(url)
+                    local_path = local_path.with_suffix(".strm")
+                    async with async_open(
+                        local_path.as_posix(), mode="w", encoding="utf-8"
+                    ) as file:
+                        await file.write(download_url)
                     logging.debug(f"创建文件：{local_path!r}")
                 else:
                     async with (
-                        aclosing(await self.client.request(url, "GET", parse=None, async_=True)) as resp, 
-                        async_open(local_path, mode="wb") as file, 
+                        aclosing(
+                            await self.client.request(
+                                download_url, "GET", parse=None, async_=True
+                            )
+                        ) as resp,
+                        async_open(local_path.as_posix(), mode="wb") as file,
                     ):
-                        write = file.write
+                        _write = file.write
                         async for chunk in resp.aiter_bytes(1 << 16):
-                            await write(chunk)
+                            await _write(chunk)
                     logging.debug(f"下载文件：{local_path!r}")
             except:
                 logging.exception(f"下载失败: {local_path!r}")
                 raise
-
