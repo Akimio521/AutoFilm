@@ -24,7 +24,7 @@ class Alist2Strm:
 
     def __init__(
         self,
-        origin: str = "http://localhost:5244",
+        url: str = "http://localhost:5244",
         username: str = "",
         password: str = "",
         token: str = "",
@@ -55,7 +55,7 @@ class Alist2Strm:
         :param max_worders: 最大并发数
         """
         client = self.client = AlistClient(
-            origin=origin,
+            origin=url,
             username=username,
             password=password,
         )
@@ -82,7 +82,7 @@ class Alist2Strm:
         logging.debug(
             "Alist2Strm配置".center(50, "=")
             + f"""\
-Alist 地址：  {origin!r}
+Alist 地址：  {url!r}
 Alist 用户名：{username!r}
 Alist 密码：  {password!r}
 Alist token： {self.token!r}
