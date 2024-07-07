@@ -26,24 +26,25 @@ class Alist2Strm:
         username: str = "", 
         password: str = "", 
         token: str = "", 
-        base_dir: str = "/", 
-        output_dir: bytes | str | PathLike = "", 
-        library_mode: bool = False, 
+        source_dir: str = "/", 
+        target_dir: bytes | str | PathLike = "", 
+        flatten_mode: bool = False, 
         subtitle: bool = False, 
         image: bool = False, 
         nfo: bool = False, 
         overwrite: bool = False, 
         max_workers: int = 5, 
     ) -> None:
-        """实例化 Alist2Strm 对象
+        """
+        实例化 Alist2Strm 对象
 
         :param origin: Alist 服务器地址，默认为 "http://localhost:5244"
         :param username: Alist 用户名，默认为空
         :param password: Alist 密码，默认为空
         :param token: Alist 签名 token，默认为空
-        :param base_dir: 需要同步的 Alist 的目录，默认为 "/"
-        :param output_dir: strm 文件输出目录，默认为当前工作目录
-        :param library_mode: 是否启用媒体库模式，所有文件下载到同一个目录，默认为 False
+        :param source_dir: 需要同步的 Alist 的目录，默认为 "/"
+        :param target_dir: strm 文件输出目录，默认为当前工作目录
+        :param flatten_mode: 平铺模式，将所有 Strm 文件保存至同一级目录，默认为 False
         :param subtitle: 是否下载字幕文件，默认为 False
         :param image: 是否下载图片文件，默认为 False
         :param nfo: 是否下载 .nfo 文件，默认为 False
@@ -56,9 +57,9 @@ class Alist2Strm:
             password=password, 
         )
         self.token = token
-        self.base_dir = client.fs.abspath(base_dir)
-        self.output_dir = fsdecode(output_dir)
-        self.library_mode = library_mode
+        self.source_dir = client.fs.abspath(source_dir)
+        self.target_dir = fsdecode(target_dir)
+        self.flatten_mode = flatten_mode
         download_exts: set[str] = set()
         if subtitle:
             download_exts |= SUBTITLE_EXTS
@@ -75,9 +76,9 @@ Alist 地址：  {origin!r}
 Alist 用户名：{username!r}
 Alist 密码：  {password!r}
 Alist token： {token!r}
-Alist 目录：  {base_dir!r}
-输出目录：    {output_dir!r}
-媒体库模式：  {library_mode}
+Alist 目录：  {source_dir!r}
+输出目录：    {target_dir!r}
+平铺模式：  {flatten_mode}
 下载字幕：    {subtitle}
 下载图片：    {image}
 下载 NFO：    {nfo}
@@ -97,7 +98,7 @@ Alist 目录：  {base_dir!r}
         async with TaskGroup() as tg:
             create_task = tg.create_task
             async for path in self.client.fs.iter(
-                self.base_dir, 
+                self.source_dir, 
                 max_depth=-1, 
                 predicate=lambda path: path.is_file(), 
                 async_=True, 
@@ -114,10 +115,10 @@ Alist 目录：  {base_dir!r}
         if not (suffix in VIDEO_EXTS or suffix in self.download_exts):
             return
 
-        if self.library_mode:
-            local_path = joinpath(self.output_dir, path.name)
+        if self.flatten_mode:
+            local_path = joinpath(self.target_dir, path.name)
         else:
-            local_path = joinpath(self.output_dir, normpath(path.relative_to(self.base_dir)))
+            local_path = joinpath(self.target_dir, normpath(path.relative_to(self.source_dir)))
 
         async with self._async_semaphore:
             try:
