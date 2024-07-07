@@ -36,6 +36,7 @@ class Alist2Strm:
         nfo: bool = False,
         overwrite: bool = False,
         max_workers: int = 5,
+        **_,
     ) -> None:
         """
         实例化 Alist2Strm 对象
