@@ -36,7 +36,7 @@ class Alist2Strm:
         nfo: bool = False, 
         overwrite: bool = False, 
         async_mode: bool = False, 
-        max_worders: int = 5, 
+        max_workers: int = 5, 
     ) -> None:
         """实例化 Alist2Strm 对象
 
@@ -73,8 +73,8 @@ class Alist2Strm:
         self.download_exts = download_exts
         self.overwrite = overwrite
         self.async_mode = async_mode
-        self.max_worders = max_worders
-        self._async_semaphore = Semaphore(max_worders)
+        self.max_workers = max_workers
+        self._async_semaphore = Semaphore(max_workers)
 
         logging.debug("Alist2Strm配置".center(50, "=") + f"""\
 Alist 地址：  {origin!r}
@@ -89,7 +89,7 @@ Alist 目录：  {base_dir!r}
 下载 NFO：    {nfo}
 异步模式：    {async_mode}
 覆盖：        {overwrite}
-最大并发数：  {max_worders}""")
+最大并发数：  {max_workers}""")
 
     def run(self) -> None:
         """
@@ -103,7 +103,7 @@ Alist 目录：  {base_dir!r}
     def _processer(self, /):
         """程序处理主体（多线程）
         """
-        with ThreadPoolExecutor(max_workers=self.max_worders) as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             submit = executor.submit
             for path in self.client.fs.iter(
                 self.base_dir, 
