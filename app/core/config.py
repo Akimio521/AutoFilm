@@ -48,14 +48,23 @@ class SettingManager:
 
     @property
     def BASE_DIR(self) -> Path:
+        """
+        后端程序基础路径 AutoFilm/app
+        """
         return Path(__file__).parents[2]
 
     @property
     def CONFIG_DIR(self) -> Path:
+        """
+        配置文件路径
+        """
         return self.BASE_DIR / "config"
 
     @property
     def CONFIG(self) -> Path:
+        """
+        配置文件
+        """
         return self.CONFIG_DIR / "config.yaml"
 
     @property
