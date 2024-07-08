@@ -1,13 +1,14 @@
 Settings:
-  log_level: DEBUG                    # 日志输出等级(可选，默认 INFO)
+  DEV: True                           # 开发者模式(可选，默认 False)
 
 AlistServerList:
-  - cron: 0 20 * * *                  # 后台定时任务 Crontable 表达式
+  - id: 动漫
+    cron: 0 20 * * *                  # 后台定时任务 Crontable 表达式
     url: https://alist.akimio.top     # Alist 服务器地址
     username: admin                   # Alist 账号
     password: adminadmin              # Alist 密码
     token:                            # AList 未启用签名时，设置为空字符串
-    source_dir: /ani/A                # Alist 服务器上文件夹路径
+    source_dir: /ani/                 # Alist 服务器上文件夹路径
     target_dir: D:\media\             # 输出路径
     flatten_mode: False               # 平铺模式，开启后 subtitle、image、nfo 强制关闭(可选，默认 False)
     subtitle: False                   # 是否下载字幕文件(可选，默认 False)
@@ -15,13 +16,14 @@ AlistServerList:
     nfo: False                        # 是否下载 .nfo 文件(可选，默认 False)
     overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件(可选，默认 False)
     max_workers: 5                    # 下载文件最大并发数(可选，默认 5)
-  - cron: 0 0 7 * *
+  - id: 电影
+    cron: 0 0 7 * *
     url: http://alist.example2.com:5244
     username: alist
     password: alist 
     token: alist-a1b2c3d4-12...
-    source_dir: /ani/A
-    target_dir: ~/media/my_video 
+    source_dir: /网盘/115/电影
+    target_dir: /media/my_video 
     flatten_mode: False 
     subtitle: False
     image: False
