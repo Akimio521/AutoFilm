@@ -2,7 +2,6 @@
 # encoding: utf-8
 
 
-import logging
 from pathlib import Path
 from datetime import datetime
 from yaml import safe_load
