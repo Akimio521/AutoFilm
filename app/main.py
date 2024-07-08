@@ -13,7 +13,7 @@ from core import settings, logger
 from modules import Alist2Strm
 
 if __name__ == "__main__":
-    logger.info(f"AutoFilm启动中，当前的APP版本是：{settings.APP_VERSION}")
+    logger.info(f"AutoFilm 启动中，当前的APP版本是：{settings.APP_VERSION}")
 
     scheduler = AsyncIOScheduler()
     
@@ -30,4 +30,4 @@ if __name__ == "__main__":
     try:
         asyncio.get_event_loop().run_forever()
     except (KeyboardInterrupt, SystemExit):
-        print("AutoFilm程序退出！")
+        print("AutoFilm 程序退出！")

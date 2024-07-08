@@ -9,7 +9,7 @@ from .config import settings
 
 class LoggerManager:
     """
-    日志管理
+    日志管理器
     """
 
     def __init__(self) -> None:
@@ -18,6 +18,7 @@ class LoggerManager:
         """
         self.__logger = logging.getLogger(__name__)
         self.__logger.setLevel(logging.DEBUG)
+        __formatter = logging.Formatter(fmt="[%(levelname)s]%(asctime)s - %(message)s")
 
         if settings.DEBUG:
             ch_level = logging.DEBUG
@@ -28,6 +29,8 @@ class LoggerManager:
 
         __console_handler = logging.StreamHandler()
         __console_handler.setLevel(ch_level)
+        self.__logger.addHandler(__console_handler)
+        __console_handler.setFormatter(__formatter)
 
         __file_handler = RotatingFileHandler(
             filename=settings.LOG,
@@ -37,14 +40,8 @@ class LoggerManager:
             encoding="utf-8",
         )
         __file_handler.setLevel(logging.INFO)
-
-        __formatter = logging.Formatter(fmt="[%(levelname)s]%(asctime)s - %(message)s")
-
-        __console_handler.setFormatter(__formatter)
-        __file_handler.setFormatter(__formatter)
-
-        self.__logger.addHandler(__console_handler)
         self.__logger.addHandler(__file_handler)
+        __file_handler.setFormatter(__formatter)
 
     def __log(self, method: str, msg: str, *args, **kwargs) -> None:
         """
