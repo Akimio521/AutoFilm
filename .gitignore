@@ -1,4 +1,5 @@
 config/config.yaml
+logs/*.log
 strm/*
 media/*
 __pycache__/*

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-import logging
 import asyncio
 from sys import path
 from os.path import dirname
@@ -10,11 +9,11 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 path.append(dirname(__file__))
-from core import settings
+from core import settings, logger
 from modules import Alist2Strm
 
 if __name__ == "__main__":
-    logging.info(f"当前的APP版本是：{settings.APP_VERSION}")
+    logger.info(f"AutoFilm启动中，当前的APP版本是：{settings.APP_VERSION}")
 
     scheduler = AsyncIOScheduler()
     
@@ -22,9 +21,9 @@ if __name__ == "__main__":
         cron = server.get("cron")
         if cron:
             scheduler.add_job(Alist2Strm(**server).run,trigger=CronTrigger.from_crontab(cron))
-            logging.info(f"{server["id"]}已被添加至后台任务")
+            logger.info(f"{server["id"]}已被添加至后台任务")
         else:
-            logging.warning(f"{server["id"]}未设置Cron")
+            logger.warning(f"{server["id"]}未设置Cron")
 
     scheduler.start()
 

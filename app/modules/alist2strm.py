@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-import logging
 from asyncio import to_thread, Semaphore, TaskGroup
 from contextlib import aclosing
 from os import PathLike
@@ -10,6 +9,8 @@ from typing import Final
 
 from aiofile import async_open
 from alist import AlistClient, AlistPath
+
+from core import logger
 
 
 VIDEO_EXTS: Final = frozenset(
@@ -79,23 +80,6 @@ class Alist2Strm:
         self.overwrite = overwrite
         self._async_semaphore = Semaphore(max_workers)
 
-        logging.debug(
-            "Alist2Strm配置".center(50, "=")
-            + f"""\
-Alist 地址：  {url!r}
-Alist 用户名：{username!r}
-Alist 密码：  {password!r}
-Alist token： {self.token!r}
-Alist 目录：  {self.source_dir!r}
-输出目录：    {self.target_dir!r}
-平铺模式：  {self.flatten_mode}
-下载字幕：    {subtitle}
-下载图片：    {image}
-下载 NFO：    {nfo}
-覆盖：        {self.overwrite}
-最大并发数：  {max_workers}"""
-        )
-
     async def run(self, /):
         """
         处理主体
@@ -130,7 +114,7 @@ Alist 目录：  {self.source_dir!r}
         async with self._async_semaphore:
             try:
                 if local_path.exists() and not self.overwrite:
-                    logging.debug(f"跳过文件：{local_path.name!r}")
+                    logger.debug(f"跳过文件：{local_path.name!r}")
                     return
 
                 download_url = path.get_url(token=self.token)
@@ -145,7 +129,7 @@ Alist 目录：  {self.source_dir!r}
                         local_path.as_posix(), mode="w", encoding="utf-8"
                     ) as file:
                         await file.write(download_url)
-                    logging.debug(f"创建文件：{local_path!r}")
+                    logger.debug(f"创建文件：{local_path!r}")
                 else:
                     async with (
                         aclosing(
@@ -158,7 +142,7 @@ Alist 目录：  {self.source_dir!r}
                         _write = file.write
                         async for chunk in resp.aiter_bytes(1 << 16):
                             await _write(chunk)
-                    logging.debug(f"下载文件：{local_path!r}")
+                    logger.debug(f"下载文件：{local_path!r}")
             except:
-                logging.exception(f"下载失败: {local_path!r}")
+                logger.warning(f"下载失败: {local_path!r}")
                 raise

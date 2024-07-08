@@ -4,6 +4,7 @@
 
 import logging
 from pathlib import Path
+from datetime import datetime
 from yaml import safe_load
 
 from version import APP_VERSION
@@ -20,13 +21,15 @@ class SettingManager:
     APP_VERSION: int = APP_VERSION
     # 时区
     TZ: str = "Asia/Shanghai"
+    # 开发者模式
+    DEBUG: bool = False
 
     def __init__(self) -> None:
         """
         初始化 SettingManager 对象
         """
         self.__mkdir()
-        self.__init_logging()
+        self.__load_mode()
 
     def __mkdir(self) -> None:
         """
@@ -36,15 +39,18 @@ class SettingManager:
             if not dir_path.exists():
                 dir_path.mkdir(parents=True, exist_ok=True)
 
-    def __init_logging(self):
+        with self.LOG_DIR as dir_path:
+            if not dir_path.exists():
+                dir_path.mkdir(parents=True, exist_ok=True)
+
+    def __load_mode(self) -> None:
         """
-        初始化 loggging 日志模块内容
+        加载模式
         """
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
-            log_level = safe_load(file).get("Settings").get("log_level") or "INFO"
-
-        formatter = "[%(levelname)s]%(asctime)s - %(message)s"
-        logging.basicConfig(format=formatter, level=getattr(logging, log_level))
+            is_dev = safe_load(file).get("Settings").get("DEV")
+        if is_dev:
+            self.DEBUG = is_dev
 
     @property
     def BASE_DIR(self) -> Path:
@@ -61,11 +67,29 @@ class SettingManager:
         return self.BASE_DIR / "config"
 
     @property
+    def LOG_DIR(self) -> Path:
+        """
+        日志文件路径
+        """
+        return self.BASE_DIR / "logs"
+
+    @property
     def CONFIG(self) -> Path:
         """
         配置文件
         """
         return self.CONFIG_DIR / "config.yaml"
+    
+    @property
+    def LOG(self) -> Path:
+        """
+        日志文件
+        """
+        if self.DEBUG:
+            return self.LOG_DIR / "dev.log"
+        else:
+            return self.LOG_DIR / f"{datetime.now().strftime("%Y%m%d")}.log"
+            
 
     @property
     def AlistServerList(self) -> list[dict[str, any]]:
