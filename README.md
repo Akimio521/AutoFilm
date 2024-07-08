@@ -11,7 +11,7 @@
     ```
 2. Docker运行
     ```bash
-    docker run -d --name autofilm  -v ./config:/config -v ./media:/media akimio/autofilm
+    docker run -d --name autofilm  -v ./config:/config -v ./media:/media -v ./logs:/logs akimio/autofilm
     ```
 
 # 优点
@@ -29,6 +29,7 @@
 - [ ] 对接TMDB实现分类、重命名、刮削等功能
 
 # 更新日志
+- 2025.7.8：v1.2.0，修改程序运行逻辑，使用 AsyncIOScheduler 实现后台定时任务
 - 2024.6.3：v1.1.0，使用 alist 官方 api 替代 webdav 实现“扫库”，采用异步并发提高运行效率，配置文件有改动，支持非基础路径 Alist 用户以及无 Webdav 权限用户
 - 2024.5.29：v1.0.2，优化运行逻辑，Docker 部署，自动打包 Docker 镜像
 - 2024.2.1：v1.0.0，完全重构 AutoFilm ，不再兼容 v0.1 ，实现多线程，大幅度提升任务处理速度
