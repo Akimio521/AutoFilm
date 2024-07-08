@@ -1,29 +1,34 @@
-# -*- coding:utf-8 -*-
-import argparse
-import logging
+#!/usr/bin/env python3
+# encoding: utf-8
 
-import autofilm
-from version import APP_VERSION
+import logging
+import asyncio
+from sys import path
+from os.path import dirname
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+path.append(dirname(__file__))
+from core import settings
+from modules import Alist2Strm
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Autofilm参数配置")
-    parser.add_argument(
-        "--config_path", type=str, help="配置文件路径", default="../config/config.yaml"
-    )
-    parser.add_argument(
-        "--log_level",
-        type=str,
-        help="日志级别",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-    )
-    args = parser.parse_args()
+    logging.info(f"当前的APP版本是：{settings.APP_VERSION}")
 
-    formatter = "[%(asctime)s][%(levelname)s]%(funcName)s:%(message)s"
-    logging.basicConfig(format=formatter, level=getattr(logging, args.log_level))
+    scheduler = AsyncIOScheduler()
+    
+    for server in settings.AlistServerList:
+        cron = server.get("cron")
+        if cron:
+            scheduler.add_job(Alist2Strm(**server).run,trigger=CronTrigger.from_crontab(cron))
+            logging.info(f"{server["id"]}已被添加至后台任务")
+        else:
+            logging.warning(f"{server["id"]}未设置Cron")
 
-    logging.info(f"当前的APP版本是：{APP_VERSION}")
-    logging.info(f"配置文件路径：{args.config_path}")
+    scheduler.start()
 
-    my_autofilm = autofilm.AutoFilm(config_path=args.config_path)
-    my_autofilm.run_Alist2Strm()
+    try:
+        asyncio.get_event_loop().run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        print("AutoFilm程序退出！")

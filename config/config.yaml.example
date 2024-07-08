@@ -1,34 +1,31 @@
 Settings:
-  output_dir: /media        # 输出路径
-  subtitle: True            # 是否下载字幕
-  img: False                # 是否下载图片
-  nfo: True                 # 是否下载视频信息文件
-  library_mode: False       # 媒体库模式
+  log_level: DEBUG                    # 日志输出等级(可选，默认 INFO)
 
 AlistServerList:
-  - id: 动漫A                        # 任意字符，用于标识Alist服务器
-    url: https://alist.example.com   # Alist服务器URL
-    username: alist                  # Alist账号
-    password: adminadmin             # Alist密码
-    base_path: /ani/A/               # Alist服务器上文件夹路径 
-    token:                           # AList未启用签名时，设置为空字符串
-    async_mode: False                # 设置 subtitle,img,nfo 等二进制文件是否启用异步下载
-    overwrite: False                 # 本地路径存在同名文件时是否重新生成/下载该文件
-
-  - id: 电影A
-    url: https://alist.example1.com
+  - cron: 0 20 * * *                  # 后台定时任务 Crontable 表达式
+    url: https://alist.akimio.top     # Alist 服务器地址
+    username: admin                   # Alist 账号
+    password: adminadmin              # Alist 密码
+    token:                            # AList 未启用签名时，设置为空字符串
+    source_dir: /ani/A                # Alist 服务器上文件夹路径
+    target_dir: D:\media\             # 输出路径
+    flatten_mode: False               # 平铺模式，开启后 subtitle、image、nfo 强制关闭(可选，默认 False)
+    subtitle: False                   # 是否下载字幕文件(可选，默认 False)
+    image: False                      # 是否下载图片文件(可选，默认 False)
+    nfo: False                        # 是否下载 .nfo 文件(可选，默认 False)
+    overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件(可选，默认 False)
+    max_workers: 5                    # 下载文件最大并发数(可选，默认 5)
+  - cron: 0 0 7 * *
+    url: http://alist.example2.com:5244
     username: alist
-    password: alist
-    base_path: /movie/A/      
-    token:
-    async_mode: True
-    overwrite: False
-
-  - id: OneDrive
-    url: https://alist.example2.com
-    username: alist
-    password: adminadmin
-    base_path: /网盘/OneDrive/
+    password: alist 
     token: alist-a1b2c3d4-12...
-    async_mode: False
-    overwrite: True
+    source_dir: /ani/A
+    target_dir: ~/media/my_video 
+    flatten_mode: False 
+    subtitle: False
+    image: False
+    nfo: False
+    overwrite: False
+    max_workers: 5
+    
