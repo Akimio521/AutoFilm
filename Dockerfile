@@ -1,12 +1,6 @@
 FROM python:3.12.4-alpine
 
-ENV TZ=Asia/Shanghai \
-    CONFIG_PATH=/config/config.yaml
-
-COPY entrypoint.sh entrypoint.sh
-
-RUN sed -i 's/\r//' entrypoint.sh \
-    && chmod +x entrypoint.sh
+ENV TZ=Asia/Shanghai
 
 RUN apk update \
     && apk upgrade \
@@ -24,5 +18,5 @@ RUN pip install --upgrade pip \
 
 COPY app /app
 
-VOLUME ["/config", "/media"]
-ENTRYPOINT ["/entrypoint.sh"]
+VOLUME ["/config", "/logs", "/media"]
+ENTRYPOINT ["python","/app/main.py"]
