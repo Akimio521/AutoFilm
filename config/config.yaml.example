@@ -1,7 +1,7 @@
 Settings:
   DEV: True                           # 开发者模式(可选，默认 False)
 
-AlistServerList:
+Alist2StrmList:
   - id: 动漫
     cron: 0 20 * * *                  # 后台定时任务 Crontable 表达式
     url: https://alist.akimio.top     # Alist 服务器地址
