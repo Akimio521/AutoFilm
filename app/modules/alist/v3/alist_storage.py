@@ -11,36 +11,36 @@ class AlistStorage:
 
     def __init__(
         self,
-        id: int,
-        mount_path: str,
-        order: int,
-        driver: str,
-        cache_expiration: int,
-        status: str,
-        addition: str,
-        remark: str,
-        modified: str,
-        disabled: bool,
-        enable_sign: bool,
-        order_by: str,
-        order_direction: str,
-        extract_folder: str,
-        web_proxy: bool,
-        webdav_policy: str,
-        down_proxy_url: str,
+        id: int = 0,
+        status: str = "",
+        remark: str = "",
+        modified: str = "",
+        disabled: bool = False,
+        mount_path: str = "",
+        order: int = 0,
+        driver: str = "Local",
+        cache_expiration: int = 30,
+        addition: str = "{}",
+        enable_sign: bool = False,
+        order_by: str = "name",
+        order_direction: str = "asc",
+        extract_folder: str = "front",
+        web_proxy: bool = False,
+        webdav_policy: str = "native_proxy",
+        down_proxy_url: str = "",
         **_,
     ) -> None:
         """
         :param id: 存储器 ID
+        :param status: 状态
+        :param remark: 备注
+        :param modified: 修改时间
+        :param disabled: 是否禁用
         :param mount_path: 挂载路径
         :param order: 排序
         :param driver: 驱动
         :param cache_expiration: 缓存过期时间
-        :param status: 状态
         :param addition: 附加信息
-        :param remark: 备注
-        :param modified: 修改时间
-        :param disabled: 是否禁用
         :param enable_sign: 是否启用
         :param order_by: 排序方式
         :param order_direction: 排序方向
