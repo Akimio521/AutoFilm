@@ -1,5 +1,5 @@
 Settings:
-  DEV: True                           # 开发者模式(可选，默认 False)
+  DEV: False                          # 开发者模式(可选，默认 False)
 
 Alist2StrmList:
   - id: 动漫
