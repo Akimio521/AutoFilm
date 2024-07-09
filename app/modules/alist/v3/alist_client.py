@@ -5,8 +5,8 @@ from json import dumps
 from typing import AsyncGenerator
 from aiohttp import ClientSession
 
-from alist_path import AlistPath
-from alist_storage import AlistStorage
+from modules.alist.v3.alist_path import AlistPath
+from modules.alist.v3.alist_storage import AlistStorage
 from core import logger
 
 class AlistClient:
@@ -78,8 +78,7 @@ class AlistClient:
                 self.id: int = result["data"]["id"]
             else:
                 logger.error(f"登录失败，错误信息：{result["message"]}")
-                
-            
+                     
     async def async_api_fs_list(self, dir_path: str | None = None) -> list[AlistPath]:
         """
         获取文件列表
@@ -163,6 +162,37 @@ class AlistClient:
         else:
             logger.warning(f"获取存储器列表失败，错误信息：{result["message"]}")
             return []
+        
+    async def async_api_admin_storage_create(self, storage: AlistStorage) -> None:
+        """
+        创建存储 需要管理员用户权限
+
+        :param storage: AlistStorage 对象
+        """
+        api_url = self.url + "/api/admin/storage/create"
+        payload = dumps({
+            "mount_path": storage.mount_path,
+            "order": storage.order,
+            "remark": storage.remark,
+            "cache_expiration": storage.cache_expiration,
+            "web_proxy": storage.web_proxy,
+            "webdav_policy": storage.webdav_policy,
+            "down_proxy_url": storage.down_proxy_url,
+            "enable_sign": storage.enable_sign,
+            "driver": storage.driver,
+            "order_by": storage.order_by,
+            "order_direction": storage.order_direction,
+            "addition": storage.raw_addition,
+        })
+        async with self.__session.post(api_url,data=payload) as resp:
+            result = await resp.json()
+
+        if result["code"] == 200:
+            logger.debug("创建存储成功")
+            return
+        else:
+            logger.warning(f"创建存储失败，错误信息：{result["message"]}")
+            return
     
     async def sync_api_admin_storage_update(self, storage: AlistStorage) -> None:
         """
