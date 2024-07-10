@@ -22,6 +22,9 @@ NFO_EXTS: Final = frozenset((".nfo",))
 
 
 class Alist2Strm:
+    """
+    将挂载到 Alist 服务器上的视频生成本地 Strm 文件
+    """
 
     def __init__(
         self,
@@ -42,7 +45,7 @@ class Alist2Strm:
         """
         实例化 Alist2Strm 对象
 
-        :param origin: Alist 服务器地址，默认为 "http://localhost:5244"
+        :param url: Alist 服务器地址，默认为 "http://localhost:5244"
         :param username: Alist 用户名，默认为空
         :param password: Alist 密码，默认为空
         :param token: Alist 签名 token，默认为空
