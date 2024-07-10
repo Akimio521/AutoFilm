@@ -228,12 +228,12 @@ class AlistClient:
         else:
             logger.warning(f"更新存储器失败，错误信息：{result["message"]}")
 
-    async def iter_files(self, dir_path:  str | None = None) -> AsyncGenerator[AlistPath,None]:
+    async def iter_path(self, dir_path:  str | None = None) -> AsyncGenerator[AlistPath,None]:
         """
-        异步文件列表生成器
-        返回目录及其子目录的所有文件
+        异步路径列表生成器
+        返回目录及其子目录的所有文件和目录的 AlistPath 对象
 
-        :param dir_path: 文件路径（默认为 self.pwd）
+        :param dir_path: 目录路径（默认为 self.pwd）
         :return: AlistPath 对象生成器
         """
         if isinstance(dir_path,str):
@@ -246,8 +246,9 @@ class AlistClient:
  
         for path in await self.async_api_fs_list(dir_path):
             if path.is_dir:
-                async for next_path in self.iter_files(path.path):
-                    yield next_path
+                async for child_path in self.iter_path(path.path):
+                    yield child_path
+
             else:
                 yield await self.async_api_fs_get(path)
 
