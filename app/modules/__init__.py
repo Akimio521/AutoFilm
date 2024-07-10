@@ -1,1 +1,1 @@
-from .alist2strm import Alist2Strm
+from modules.alist2strm import Alist2Strm

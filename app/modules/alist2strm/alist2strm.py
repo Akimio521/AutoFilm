@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Final
 
 from aiofile import async_open
-from alist import AlistClient, AlistPath
+from alist.component import AlistClient, AlistPath
 
 from core import logger
 
