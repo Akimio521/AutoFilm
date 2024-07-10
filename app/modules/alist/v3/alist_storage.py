@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-from json import loads,dumps
+from json import loads, dumps
 
 
 class AlistStorage:

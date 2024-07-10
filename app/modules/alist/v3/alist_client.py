@@ -3,11 +3,13 @@
 
 from json import dumps
 from typing import Callable, AsyncGenerator
+
 from aiohttp import ClientSession
 
-from modules.alist.v3.alist_path import AlistPath
-from modules.alist.v3.alist_storage import AlistStorage
-from core import logger
+from app.core import logger
+from app.modules.alist.v3.alist_path import AlistPath
+from app.modules.alist.v3.alist_storage import AlistStorage
+
 
 class AlistClient:
     """

@@ -4,7 +4,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from .config import settings
+from app.core.config import settings
 
 
 class LoggerManager:

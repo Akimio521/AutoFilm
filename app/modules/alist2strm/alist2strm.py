@@ -10,7 +10,7 @@ from typing import Final
 from aiofile import async_open
 from alist.component import AlistClient, AlistPath
 
-from core import logger
+from app.core import logger
 
 
 VIDEO_EXTS: Final = frozenset(

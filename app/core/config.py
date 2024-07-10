@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from yaml import safe_load
 
-from version import APP_VERSION
+from app.version import APP_VERSION
 
 
 class SettingManager:
