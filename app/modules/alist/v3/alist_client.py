@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 from json import dumps
-from typing import AsyncGenerator
+from typing import Callable, AsyncGenerator
 from aiohttp import ClientSession
 
 from .alist_path import AlistPath
@@ -228,12 +228,13 @@ class AlistClient:
         else:
             logger.warning(f"更新存储器失败，错误信息：{result["message"]}")
 
-    async def iter_path(self, dir_path:  str | None = None) -> AsyncGenerator[AlistPath,None]:
+    async def iter_path(self, dir_path:  str | None = None, filter: Callable[[AlistPath], bool] = lambda x: True) -> AsyncGenerator[AlistPath,None]:
         """
         异步路径列表生成器
         返回目录及其子目录的所有文件和目录的 AlistPath 对象
 
         :param dir_path: 目录路径（默认为 self.pwd）
+        :param filter: 匿名函数过滤器（默认不启用）
         :return: AlistPath 对象生成器
         """
         if isinstance(dir_path,str):
@@ -249,7 +250,7 @@ class AlistClient:
                 async for child_path in self.iter_path(path.path):
                     yield child_path
 
-            else:
+            if filter(path):
                 yield await self.async_api_fs_get(path)
 
     def chdir(self, dir_path: str) -> None:
