@@ -5,8 +5,8 @@ from json import dumps
 from typing import Callable, AsyncGenerator
 from aiohttp import ClientSession
 
-from .alist_path import AlistPath
-from .alist_storage import AlistStorage
+from modules.alist.v3.alist_path import AlistPath
+from modules.alist.v3.alist_storage import AlistStorage
 from core import logger
 
 class AlistClient:
@@ -251,7 +251,10 @@ class AlistClient:
                     yield child_path
 
             if filter(path):
-                yield await self.async_api_fs_get(path)
+                # yield await self.async_api_fs_get(path)
+                detailed_path = await self.async_api_fs_get(path)
+                if detailed_path:  # 确保获取详细信息成功
+                    yield detailed_path
 
     def chdir(self, dir_path: str) -> None:
         """
