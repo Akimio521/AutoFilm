@@ -58,13 +58,11 @@ class Alist2Strm:
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
         :param max_worders: 最大并发数
         """
-        client = self.client = AlistClient(
-            origin=url,
-            username=username,
-            password=password,
-        )
+        self.url = url
+        self.username = username
+        self.password = password
         self.token = token
-        self.source_dir = client.fs.abspath(source_dir)
+        self.source_dir = source_dir
         self.target_dir = Path(target_dir)
 
         self.flatten_mode = flatten_mode
@@ -87,10 +85,15 @@ class Alist2Strm:
         """
         处理主体
         """
+        self.client = AlistClient(
+            origin=self.url,
+            username=self.username,
+            password=self.password,
+        )
         async with TaskGroup() as tg:
             create_task = tg.create_task
             async for path in self.client.fs.iter(
-                self.source_dir,
+                self.client.fs.abspath(self.source_dir),
                 max_depth=-1,
                 predicate=lambda path: path.is_file(),
                 async_=True,
