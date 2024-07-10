@@ -120,7 +120,7 @@ class Alist2Strm:
         async with self._async_semaphore:
             try:
                 if local_path.exists() and not self.overwrite:
-                    logger.debug(f"跳过文件：{local_path.name!r}")
+                    logger.debug(f"跳过文件：{local_path.name}")
                     return
 
                 download_url = path.get_url(token=self.token)
@@ -135,7 +135,7 @@ class Alist2Strm:
                         local_path.as_posix(), mode="w", encoding="utf-8"
                     ) as file:
                         await file.write(download_url)
-                    logger.debug(f"创建文件：{local_path!r}")
+                    logger.debug(f"创建文件：{local_path}")
                 else:
                     async with (
                         aclosing(
@@ -148,7 +148,7 @@ class Alist2Strm:
                         _write = file.write
                         async for chunk in resp.aiter_bytes(1 << 16):
                             await _write(chunk)
-                    logger.debug(f"下载文件：{local_path!r}")
+                    logger.debug(f"下载文件：{local_path.name}")
             except:
-                logger.warning(f"下载失败: {local_path!r}")
+                logger.warning(f"下载失败: {local_path.name}")
                 raise
