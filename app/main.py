@@ -3,13 +3,14 @@
 
 import asyncio
 from sys import path
+from os.path import dirname
+path.append(dirname(dirname(__file__)))
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 
-from core import settings, logger
-path.append(str(settings.BASE_DIR))
+from app.core import settings, logger
 from modules import Alist2Strm
 
 if __name__ == "__main__":
