@@ -249,14 +249,11 @@ class AlistClient:
  
         for path in await self.async_api_fs_list(dir_path):
             if path.is_dir:
-                async for child_path in self.iter_path(path.path):
+                async for child_path in self.iter_path(dir_path=path.path, filter=filter):
                     yield child_path
 
             if filter(path):
-                # yield await self.async_api_fs_get(path)
-                detailed_path = await self.async_api_fs_get(path)
-                if detailed_path:  # 确保获取详细信息成功
-                    yield detailed_path
+                yield await self.async_api_fs_get(path)
 
     def chdir(self, dir_path: str) -> None:
         """
