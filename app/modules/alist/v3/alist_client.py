@@ -81,22 +81,27 @@ class AlistClient:
             else:
                 logger.error(f"登录失败，错误信息：{result["message"]}")
                      
-    async def async_api_fs_list(self, dir_path: str | None = None) -> list[AlistPath]:
+    async def async_api_fs_list(self, path: AlistPath | str | None = None) -> list[AlistPath]:
         """
         获取文件列表
 
         :param dir_path: 文件路径（默认为当前目录 self.pwd）
         :return: AlistPath 对象列表
         """
-        if not dir_path:
-            dir_path = self.pwd
+        if isinstance(path,AlistPath):
+            if path.is_dir:
+                dir_path_str = path.path
+            else:
+                dir_path_str = self.pwd
+        elif isinstance(path,str):
+            dir_path_str = path.rstrip("/") + "/"
         else:
-            dir_path = dir_path.rstrip("/") + "/"
-        logger.debug(f"获取目录 {dir_path} 下的文件列表")
+            dir_path_str = self.pwd
+        logger.debug(f"获取目录 {dir_path_str} 下的文件列表")
 
         api_url = self.url + "/api/fs/list"
         payload = dumps({
-            "path": dir_path,
+            "path": dir_path_str,
             "password": "",
             "page": 1,
             "per_page": 0,
@@ -105,10 +110,9 @@ class AlistClient:
 
         async with self.__session.post(api_url, data=payload) as resp:
             result =  await resp.json()
-        
         if result["code"] == 200:
             logger.debug("获取文件列表成功")
-            return [AlistPath(server_url=self.url,base_path=self.base_path,path=dir_path+path["name"],**path) for path in result["data"]["content"]]
+            return [AlistPath(server_url=self.url, base_path=self.base_path, path=dir_path_str+path["name"], **path) for path in result["data"]["content"]]
         else:
             logger.warning(f"获取文件列表失败，错误信息：{result["message"]}")
             return []
