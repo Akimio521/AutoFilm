@@ -5,8 +5,8 @@ from json import dumps
 from typing import AsyncGenerator
 from aiohttp import ClientSession
 
-from modules.alist.v3.alist_path import AlistPath
-from modules.alist.v3.alist_storage import AlistStorage
+from .alist_path import AlistPath
+from .alist_storage import AlistStorage
 from core import logger
 
 class AlistClient:
@@ -108,7 +108,7 @@ class AlistClient:
             logger.debug("获取文件列表成功")
             return [AlistPath(server_url=self.url,base_path=self.base_path,path=dir_path+path["name"],**path) for path in result["data"]["content"]]
         else:
-            logger.warning(f"更新存储器失败，错误信息：{result["message"]}")
+            logger.warning(f"获取文件列表失败，错误信息：{result["message"]}")
             return []
 
     async def async_api_fs_get(self,path: AlistPath | str | None = None) -> AlistPath | None:
@@ -143,7 +143,7 @@ class AlistClient:
             logger.debug(f"获取{path}详细信息成功")
             return AlistPath(server_url=self.url,base_path=self.base_path,path=path,**result["data"])
         else:
-            logger.warning(f"更新存储器失败，错误信息：{result["message"]}")
+            logger.warning(f"获取{path}详细信息失败，错误信息：{result["message"]}")
             return None
     
     async def async_api_admin_storage_list(self) -> list[AlistStorage]:
