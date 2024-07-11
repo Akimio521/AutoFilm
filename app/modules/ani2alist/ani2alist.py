@@ -38,6 +38,7 @@ class Ani2Alist:
         year: int | None = None,
         month: int | None = None,
         src_domain: str = "aniopen.an-i.workers.dev",
+        key_word: str | None = None,
         **_,
     ) -> None:
         """
@@ -56,10 +57,14 @@ class Ani2Alist:
         self.__password = password
         self.__target_dir = "/" + target_dir.strip("/")
 
-        if self.__is_valid(year, month):
-            logger.debug(f"传入时间{year}-{month}")
+        if self.__is_valid(year, month, key_word):
+            if key_word:
+                logger.debug(f"传入关键字{key_word}")
+            else:
+                logger.debug(f"传入时间{year}-{month}")
             self.__year = year
             self.__month = month
+            self.__key_word = key_word
         else:
             if year is None and month is None:
                 logger.debug("未传入时间，将使用当前时间")
@@ -67,6 +72,7 @@ class Ani2Alist:
                 logger.warning(f"传入时间{year}-{month}不合理，将使用当前时间")
             self.__year = None
             self.__month = None
+            self.__key_word = None
 
         self.__src_domain = src_domain.strip()
 
@@ -128,7 +134,7 @@ class Ani2Alist:
             else:
                 logger.error(f"创建存储器后未找到存储器：{self.__target_dir}")
 
-    def __is_valid(self, year: int | None, month: int | None) -> bool:
+    def __is_valid(self, year: int | None, month: int | None, key_word: str | None) -> bool:
         """
         判断传入的年月是否比当前时间更早
 
@@ -136,24 +142,30 @@ class Ani2Alist:
         :param month: 传入的月份
         :return: 如果传入的年月比当前时间更早，则返回 True；否则返回 False
         """
-        current_date = datetime.now()
-
-        if year is None or month is None:
-            return False
-        elif (year, month) < (2020, 4):
-            logger.warning("ANI Open项目仅支持2020年4月及其之后的数据")
-            return False
-        elif (year, month) > (current_date.year, current_date.month):
-            logger.warning("传入的年月晚于当前时间")
-            return False
-        else:
+        if key_word:
             return True
+        else:
+            current_date = datetime.now()
+
+            if year is None or month is None:
+                return False
+            elif (year, month) < (2020, 4):
+                logger.warning("ANI Open项目仅支持2020年4月及其之后的数据")
+                return False
+            elif (year, month) > (current_date.year, current_date.month):
+                logger.warning("传入的年月晚于当前时间")
+                return False
+            else:
+                return True
 
     @property
     def __get_ani_season(self) -> str:
         """
-        根据 self.__year 和 self.__month 判断更新的季度
+        根据 self.__year 和 self.__month 以及关键字 self.__key_word 判断更新的季度
         """
+        if self.__key_word:
+            return self.__key_word
+        
         current_date = datetime.now()
         if isinstance(self.__year, int) and isinstance(self.__month, int):
             year = self.__year
