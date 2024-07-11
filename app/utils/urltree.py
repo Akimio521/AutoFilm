@@ -56,5 +56,10 @@ def dict_to_structure(dictionary:dict) -> str:
             elif isinstance(value, dict):
                 result_str += " " * indent + f"{key}:\n"
                 result_str += parse_dict(value, indent + 2)
+            
+            if indent == 0 and result_str.startswith(":"):
+                result_str = result_str.lstrip(":").strip()
+
         return result_str
+    
     return parse_dict(dictionary)
