@@ -6,6 +6,7 @@ from datetime import datetime
 
 from json import loads
 from aiohttp import ClientSession
+from itertools import zip_longest
 
 from app.core import logger
 from app.utils import structure_to_dict, dict_to_structure, retry
@@ -70,9 +71,19 @@ class Ani2Alist:
         self.__src_domain = src_domain.strip()
 
     async def run(self) -> None:
+        def merge_dicts(target_dict: dict, source_dict: dict) -> dict:
+            for key, value in source_dict.items():
+                if key not in target_dict:
+                    target_dict[key] = value
+                elif isinstance(target_dict[key], dict) and isinstance(value, dict):
+                    merge_dicts(target_dict[key], value)
+                else:
+                    target_dict[key] = value
+            return target_dict
+
         current_season = self.__get_ani_season
         logger.info(f"开始更新ANI Open{current_season}季度番剧")
-        anime_list = await self.get_season_anime_list
+        anime_dict = await self.get_season_anime_list
         async with AlistClient(self.__url, self.__username, self.__password) as client:
             storages = await client.async_api_admin_storage_list()
             storage: AlistStorage = next(
@@ -106,8 +117,9 @@ class Ani2Alist:
                 if url_dict.get(current_season) is None:
                     url_dict[current_season] = {}
 
-                for name, siez, link in anime_list:
-                    url_dict[current_season][name] = [siez, link]
+                url_dict[current_season] = merge_dicts(
+                    url_dict[current_season], anime_dict
+                )
 
                 addition_dict["url_structure"] = dict_to_structure(url_dict)
                 storage.change_addition(addition_dict)
@@ -156,8 +168,7 @@ class Ani2Alist:
                 return f"{year}-{_month}"
 
     @property
-    @retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret=[])
-    async def get_season_anime_list(self) -> list[tuple[str, int, str]]:
+    async def get_season_anime_list(self) -> dict:
         """
         获取指定季度的动画列表
         """
@@ -166,24 +177,35 @@ class Ani2Alist:
         url = f"https://{self.__src_domain}/{current_season}/"
 
         async with ClientSession() as session:
-            async with session.post(url, json={}) as resp:
-                if resp.status != 200:
-                    raise Exception(f"请求发送失败，状态码：{resp.status}")
 
-                result = loads(await resp.text())
+            @retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret={})
+            async def parse_data(_url: str = url) -> dict:
+                logger.debug(f"请求地址：{_url}")
+                async with session.post(_url, json={}) as _resp:
+                    if _resp.status != 200:
+                        raise Exception(f"请求发送失败，状态码：{_resp.status}")
+                    _result = loads(await _resp.text())
 
-        name_siez_link_list = []
-        for file in result["files"]:
-            name = file["name"]
-            size = file["size"]
-            logger.debug(f"获取：{name}，文件大小：{size}")
-            name_siez_link_list.append(
-                (
-                    name,
-                    size,
-                    f"https://{self.__src_domain}/{self.__get_ani_season}/{name}?d=true",
-                )
-            )
+                    _anime_dict = {}
+                    for file in _result["files"]:
+                        mimeType = file["mimeType"]
+                        name = file["name"]
+                        if mimeType in ("video/mp4", "application/octet-stream"):
+                            size = file["size"]
+                            logger.debug(f"获取文件：{name}，文件大小：{size}")
+                            _anime_dict[name] = [
+                                size,
+                                f"https://{self.__src_domain}/{self.__get_ani_season}/{name}?d=true",
+                            ]
+                        elif mimeType == "application/vnd.google-apps.folder":
+                            logger.debug(f"获取目录：{name}")
+                            __url = url + name + "/"
+                            _anime_dict[name] = await parse_data(__url)
+                        else:
+                            raise RuntimeError(
+                                f"无法识别类型：{mimeType}，文件详情：\n{file}"
+                            )
+                    return _anime_dict
 
-        logger.debug(f"获取ANI Open{current_season}季度动画列表成功")
-        return name_siez_link_list
+            logger.debug(f"获取ANI Open{current_season}季度动画列表成功")
+            return await parse_data()
