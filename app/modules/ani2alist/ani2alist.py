@@ -136,7 +136,9 @@ class Ani2Alist:
             else:
                 logger.error(f"创建存储器后未找到存储器：{self.__target_dir}")
 
-    def __is_valid(self, year: int | None, month: int | None, key_word: str | None) -> bool:
+    def __is_valid(
+        self, year: int | None, month: int | None, key_word: str | None
+    ) -> bool:
         """
         判断传入的年月是否比当前时间更早
 
@@ -167,7 +169,7 @@ class Ani2Alist:
         """
         if self.__key_word:
             return self.__key_word
-        
+
         current_date = datetime.now()
         if isinstance(self.__year, int) and isinstance(self.__month, int):
             year = self.__year
@@ -201,11 +203,11 @@ class Ani2Alist:
 
                     _anime_dict = {}
                     for file in _result["files"]:
-                        mimeType = file["mimeType"]
-                        name = file["name"]
+                        mimeType: str = file["mimeType"]
+                        name: str = file["name"]
 
                         if mimeType in FILE_MINETYPE:
-                            size = file["size"]
+                            size: int = file["size"]
                             logger.debug(f"获取文件：{name}，文件大小：{size}")
                             _anime_dict[name] = [
                                 size,
