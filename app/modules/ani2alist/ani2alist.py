@@ -11,6 +11,9 @@ from app.core import logger
 from app.utils import structure_to_dict, dict_to_structure, retry
 from app.modules.alist import AlistClient, AlistStorage
 
+VIDEO_MINETYPE: Final = frozenset(("video/mp4", "video/x-matroska"))
+SUBTITLE_MINETYPE: Final = frozenset(("application/octet-stream",))
+FILE_MINETYPE: Final = VIDEO_MINETYPE | SUBTITLE_MINETYPE
 
 ANI_SEASION: Final = frozenset((1, 4, 7, 10))
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"
@@ -201,7 +204,7 @@ class Ani2Alist:
                         mimeType = file["mimeType"]
                         name = file["name"]
 
-                        if mimeType in ("video/mp4", "application/octet-stream"):
+                        if mimeType in FILE_MINETYPE:
                             size = file["size"]
                             logger.debug(f"获取文件：{name}，文件大小：{size}")
                             _anime_dict[name] = [
