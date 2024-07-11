@@ -213,7 +213,7 @@ class Ani2Alist:
                             ]
                         elif mimeType == "application/vnd.google-apps.folder":
                             logger.debug(f"获取目录：{name}")
-                            __url = url + name + "/"
+                            __url = _url + name + "/"
                             _anime_dict[name] = await parse_data(__url)
                         else:
                             raise RuntimeError(
