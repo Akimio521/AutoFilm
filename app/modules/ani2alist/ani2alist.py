@@ -71,7 +71,7 @@ class Ani2Alist:
 
     async def run(self) -> None:
         current_season = self.__get_ani_season
-        logger.info(f"开始更新 ANI Open {current_season} 季度")
+        logger.info(f"开始更新ANI Open{current_season}季度番剧")
         anime_list = await self.get_season_anime_list
         async with AlistClient(self.__url, self.__username, self.__password) as client:
             storages = await client.async_api_admin_storage_list()
@@ -85,7 +85,7 @@ class Ani2Alist:
             )
             if not storage:
                 logger.debug(
-                    f"在 Alist 服务器上未找到存储器{self.__target_dir}，开始创建存储器"
+                    f"在Alist服务器上未找到存储器{self.__target_dir}，开始创建存储器"
                 )
                 storage = AlistStorage(driver="UrlTree", mount_path=self.__target_dir)
                 await client.async_api_admin_storage_create(storage)
@@ -99,6 +99,7 @@ class Ani2Alist:
                 )
 
             if storage:
+                logger.debug(f"发现存储器{self.__target_dir}，开始更新番剧")
                 addition_dict = storage.addition
                 url_dict = structure_to_dict(addition_dict.get("url_structure", {}))
 
@@ -112,7 +113,7 @@ class Ani2Alist:
                 storage.change_addition(addition_dict)
 
                 await client.sync_api_admin_storage_update(storage)
-                logger.info(f"ANI Open {current_season} 季度更新完成")
+                logger.info(f"ANI Open{current_season}季度更新完成")
             else:
                 logger.error(f"创建存储器后未找到存储器：{self.__target_dir}")
 
@@ -129,7 +130,7 @@ class Ani2Alist:
         if year is None or month is None:
             return False
         elif (year, month) < (2020, 4):
-            logger.warning("ANI Open 项目仅支持 2020 年 4 月及其之后的数据")
+            logger.warning("ANI Open项目仅支持2020年4月及其之后的数据")
             return False
         elif (year, month) > (current_date.year, current_date.month):
             logger.warning("传入的年月晚于当前时间")
@@ -161,20 +162,21 @@ class Ani2Alist:
         获取指定季度的动画列表
         """
         current_season = self.__get_ani_season
-        logger.debug(f"开始获取 ANI Open {current_season} 季度动画列表")
+        logger.debug(f"开始获取ANI Open{current_season}季度动画列表")
         url = f"https://{self.__src_domain}/{current_season}/"
 
         async with ClientSession() as session:
             async with session.post(url, json={}) as resp:
                 if resp.status != 200:
                     raise Exception(f"请求发送失败，状态码：{resp.status}")
-                
+
                 result = loads(await resp.text())
 
         name_siez_link_list = []
         for file in result["files"]:
             name = file["name"]
             size = file["size"]
+            logger.debug(f"获取：{name}，文件大小：{size}")
             name_siez_link_list.append(
                 (
                     name,
@@ -183,5 +185,5 @@ class Ani2Alist:
                 )
             )
 
-        logger.debug(f"获取 ANI Open {current_season} 季度动画列表成功")
+        logger.debug(f"获取ANI Open{current_season}季度动画列表成功")
         return name_siez_link_list
