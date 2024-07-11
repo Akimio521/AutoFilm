@@ -85,12 +85,11 @@ class Ani2Alist:
         logger.info(f"开始更新ANI Open{current_season}季度番剧")
         anime_dict = await self.get_season_anime_list
         async with AlistClient(self.__url, self.__username, self.__password) as client:
-            storages = await client.async_api_admin_storage_list()
-            storage: AlistStorage = next(
+            storage: AlistStorage | None = next(
                 (
                     s
-                    for s in storages
-                    if s.mount_path == self.__target_dir and s.driver == "UrlTree"
+                    for s in await client.async_api_admin_storage_list()
+                    if s.mount_path == self.__target_dir
                 ),
                 None,
             )
@@ -100,7 +99,7 @@ class Ani2Alist:
                 )
                 storage = AlistStorage(driver="UrlTree", mount_path=self.__target_dir)
                 await client.async_api_admin_storage_create(storage)
-                storage: AlistStorage = next(
+                storage: AlistStorage | None = next(
                     (
                         s
                         for s in await client.async_api_admin_storage_list()
