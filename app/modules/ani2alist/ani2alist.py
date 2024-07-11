@@ -8,8 +8,8 @@ from json import loads
 from aiohttp import ClientSession
 
 from app.core import logger
+from app.utils import structure_to_dict, dict_to_structure, retry
 from app.modules.alist import AlistClient, AlistStorage
-from app.utils import structure_to_dict, dict_to_structure
 
 
 ANI_SEASION: Final = frozenset((1, 4, 7, 10))
@@ -155,6 +155,7 @@ class Ani2Alist:
                 return f"{year}-{_month}"
 
     @property
+    @retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret=[])
     async def get_season_anime_list(self) -> list[tuple[str, int, str]]:
         """
         获取指定季度的动画列表
@@ -166,8 +167,8 @@ class Ani2Alist:
         async with ClientSession() as session:
             async with session.post(url, json={}) as resp:
                 if resp.status != 200:
-                    logger.error(f"请求发送失败，状态码：{resp.status}")
-                    return []
+                    raise Exception(f"请求发送失败，状态码：{resp.status}")
+                
                 result = loads(await resp.text())
 
         name_siez_link_list = []
