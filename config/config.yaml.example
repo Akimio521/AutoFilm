@@ -30,4 +30,12 @@ Alist2StrmList:
     nfo: False
     overwrite: False
     max_workers: 5
+
+Ani2AlistList:
+  - id: 新番追更
+    cron: 20 12 * * *
+    url: https://127.0.0.1：5244
+    username: admin
+    password: myalist
+    target_dir: /视频/动漫/新番
     

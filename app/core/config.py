@@ -95,6 +95,12 @@ class SettingManager:
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
             alist_server_list = safe_load(file).get("Alist2StrmList", [])
         return alist_server_list
+    
+    @property
+    def Ani2AlistList(self) -> list[dict[str, any]]:
+        with self.CONFIG.open(mode="r", encoding="utf-8") as file:
+            ani2alist_list = safe_load(file).get("Ani2AlistList", [])
+        return ani2alist_list
 
 
 settings = SettingManager()
