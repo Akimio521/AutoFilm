@@ -7,7 +7,6 @@ Alist2StrmList:
     url: https://alist.akimio.top     # Alist 服务器地址
     username: admin                   # Alist 用户名
     password: adminadmin              # Alist 密码
-    token:                            # AList 未启用签名时，设置为空字符串
     source_dir: /ani/                 # Alist 服务器上文件夹路径
     target_dir: D:\media\             # 输出路径
     flatten_mode: False               # 平铺模式，开启后 subtitle、image、nfo 强制关闭(可选，默认 False)
@@ -21,8 +20,7 @@ Alist2StrmList:
     cron: 0 0 7 * *
     url: http://alist.example2.com:5244
     username: alist
-    password: alist 
-    token: alist-a1b2c3d4-12...
+    password: alist
     source_dir: /网盘/115/电影
     target_dir: /media/my_video 
     flatten_mode: False 
