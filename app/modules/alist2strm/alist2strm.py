@@ -2,36 +2,30 @@
 # encoding: utf-8
 
 from asyncio import to_thread, Semaphore, TaskGroup
-from contextlib import aclosing
 from os import PathLike
 from pathlib import Path
 from typing import Final
 
 from aiofile import async_open
-from alist.component import AlistClient, AlistPath
+from aiohttp import ClientSession
 
 from app.core import logger
+from app.modules.alist import AlistClient, AlistPath
 
 
-VIDEO_EXTS: Final = frozenset(
-    (".mp4", ".mkv", ".flv", ".avi", ".wmv", ".ts", ".rmvb", ".webm")
-)
-SUBTITLE_EXTS: Final = frozenset((".ass", ".srt", ".ssa", ".sub"))
-IMAGE_EXTS: Final = frozenset((".png", ".jpg"))
-NFO_EXTS: Final = frozenset((".nfo",))
+VIDEO_EXTS: Final = frozenset(("mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm"))
+SUBTITLE_EXTS: Final = frozenset(("ass", "srt", "ssa", "sub"))
+IMAGE_EXTS: Final = frozenset(("png", "jpg"))
+NFO_EXTS: Final = frozenset(("nfo",))
 
 
 class Alist2Strm:
-    """
-    将挂载到 Alist 服务器上的视频生成本地 Strm 文件
-    """
 
     def __init__(
         self,
         url: str = "http://localhost:5244",
         username: str = "",
         password: str = "",
-        token: str = "",
         source_dir: str = "/",
         target_dir: str | PathLike = "",
         flatten_mode: bool = False,
@@ -48,7 +42,6 @@ class Alist2Strm:
         :param url: Alist 服务器地址，默认为 "http://localhost:5244"
         :param username: Alist 用户名，默认为空
         :param password: Alist 密码，默认为空
-        :param token: Alist 签名 token，默认为空
         :param source_dir: 需要同步的 Alist 的目录，默认为 "/"
         :param target_dir: strm 文件输出目录，默认为当前工作目录
         :param flatten_mode: 平铺模式，将所有 Strm 文件保存至同一级目录，默认为 False
@@ -61,7 +54,7 @@ class Alist2Strm:
         self.url = url
         self.username = username
         self.password = password
-        self.token = token
+
         self.source_dir = source_dir
         self.target_dir = Path(target_dir)
 
@@ -85,20 +78,18 @@ class Alist2Strm:
         """
         处理主体
         """
-        self.client = AlistClient(
-            origin=self.url,
-            username=self.username,
-            password=self.password,
-        )
-        async with TaskGroup() as tg:
-            create_task = tg.create_task
-            async for path in self.client.fs.iter(
-                self.client.fs.abspath(self.source_dir),
-                max_depth=-1,
-                predicate=lambda path: path.is_file() and (path.suffix.lower() in self.download_exts or path.suffix.lower() in VIDEO_EXTS),
-                async_=True,
-            ):
-                create_task(self.__file_processer(path))
+        async with ClientSession() as session:
+            self.session = session
+            async with TaskGroup() as tg:
+                _create_task = tg.create_task
+                async with AlistClient(
+                    self.url, self.username, self.password
+                ) as client:
+                    async for path in client.iter_path(
+                        dir_path=self.source_dir,
+                        filter=lambda path: path.suffix in VIDEO_EXTS | self.download_exts,
+                    ):
+                        _create_task(self.__file_processer(path))
 
     async def __file_processer(self, /, path: AlistPath):
         """
@@ -119,31 +110,23 @@ class Alist2Strm:
                     logger.debug(f"跳过文件：{local_path.name}")
                     return
 
-                download_url = path.get_url(token=self.token)
-
                 _parent = local_path.parent
                 if not _parent.exists():
                     await to_thread(_parent.mkdir, parents=True, exist_ok=True)
 
-                if path.suffix.lower() in VIDEO_EXTS:
+                if path.suffix in VIDEO_EXTS:
                     local_path = local_path.with_suffix(".strm")
                     async with async_open(
-                        local_path.as_posix(), mode="w", encoding="utf-8"
+                        local_path, mode="w", encoding="utf-8"
                     ) as file:
-                        await file.write(download_url)
+                        await file.write(path.download_url)
                     logger.debug(f"创建文件：{local_path}")
                 else:
-                    async with (
-                        aclosing(
-                            await self.client.request(
-                                download_url, "GET", parse=None, async_=True
-                            )
-                        ) as resp,
-                        async_open(local_path.as_posix(), mode="wb") as file,
-                    ):
+                    async with async_open(local_path, mode="wb") as file:
                         _write = file.write
-                        async for chunk in resp.aiter_bytes(1 << 16):
-                            await _write(chunk)
+                        async with self.session.get(path.download_url) as resp:
+                            async for chunk in resp.content.iter_chunked(1024):
+                                await _write(chunk)
                     logger.debug(f"下载文件：{local_path.name}")
             except:
                 logger.warning(f"下载失败: {local_path.name}")
