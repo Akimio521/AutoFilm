@@ -153,8 +153,11 @@ class Ani2Alist:
 
             if year is None or month is None:
                 return False
-            elif (year, month) < (2020, 4):
-                logger.warning("ANI Open项目仅支持2020年4月及其之后的数据")
+            if (year, month) < (2019, 4):
+                logger.warning("2019-4季度暂无数据")
+                return False
+            elif (year, month) < (2019, 1):
+                logger.warning("ANI Open项目仅支持2019年1月及其之后的数据")
                 return False
             elif (year, month) > (current_date.year, current_date.month):
                 logger.warning("传入的年月晚于当前时间")
