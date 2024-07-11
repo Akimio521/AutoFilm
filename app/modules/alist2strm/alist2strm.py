@@ -10,6 +10,7 @@ from aiofile import async_open
 from aiohttp import ClientSession
 
 from app.core import logger
+from app.utils import retry
 from app.modules.alist import AlistClient, AlistPath
 
 
@@ -87,10 +88,12 @@ class Alist2Strm:
                 ) as client:
                     async for path in client.iter_path(
                         dir_path=self.source_dir,
-                        filter=lambda path: path.suffix in VIDEO_EXTS | self.download_exts,
+                        filter=lambda path: path.suffix
+                        in VIDEO_EXTS | self.download_exts,
                     ):
                         _create_task(self.__file_processer(path))
 
+    @retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
     async def __file_processer(self, /, path: AlistPath):
         """
         异步保存文件至本地
@@ -129,5 +132,4 @@ class Alist2Strm:
                                 await _write(chunk)
                     logger.debug(f"下载文件：{local_path.name}")
             except:
-                logger.warning(f"下载失败: {local_path.name}")
-                raise
+                raise RuntimeError(f"下载失败: {local_path.name}")
