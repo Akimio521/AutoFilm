@@ -201,12 +201,13 @@ class Ani2Alist:
                     for file in _result["files"]:
                         mimeType = file["mimeType"]
                         name = file["name"]
+                        
                         if mimeType in ("video/mp4", "application/octet-stream"):
                             size = file["size"]
                             logger.debug(f"获取文件：{name}，文件大小：{size}")
                             _anime_dict[name] = [
                                 size,
-                                f"https://{self.__src_domain}/{self.__get_ani_season}/{name}?d=true",
+                                f"{_url}{name}?d=true",
                             ]
                         elif mimeType == "application/vnd.google-apps.folder":
                             logger.debug(f"获取目录：{name}")
