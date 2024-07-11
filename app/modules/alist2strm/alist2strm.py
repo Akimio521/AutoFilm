@@ -95,7 +95,7 @@ class Alist2Strm:
             async for path in self.client.fs.iter(
                 self.client.fs.abspath(self.source_dir),
                 max_depth=-1,
-                predicate=lambda path: path.is_file(),
+                predicate=lambda path: path.is_file() and (path.suffix.lower() in self.download_exts or path.suffix.lower() in VIDEO_EXTS),
                 async_=True,
             ):
                 create_task(self.__file_processer(path))
@@ -106,10 +106,6 @@ class Alist2Strm:
 
         :param path: AlistPath 对象
         """
-        suffix = path.suffix.lower()
-        if not (suffix in VIDEO_EXTS or suffix in self.download_exts):
-            return
-
         if self.flatten_mode:
             local_path = self.target_dir / path.name
         else:
@@ -129,7 +125,7 @@ class Alist2Strm:
                 if not _parent.exists():
                     await to_thread(_parent.mkdir, parents=True, exist_ok=True)
 
-                if suffix in VIDEO_EXTS:
+                if path.suffix.lower() in VIDEO_EXTS:
                     local_path = local_path.with_suffix(".strm")
                     async with async_open(
                         local_path.as_posix(), mode="w", encoding="utf-8"
