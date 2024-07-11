@@ -6,7 +6,6 @@ from datetime import datetime
 
 from json import loads
 from aiohttp import ClientSession
-from itertools import zip_longest
 
 from app.core import logger
 from app.utils import structure_to_dict, dict_to_structure, retry
@@ -201,7 +200,7 @@ class Ani2Alist:
                     for file in _result["files"]:
                         mimeType = file["mimeType"]
                         name = file["name"]
-                        
+
                         if mimeType in ("video/mp4", "application/octet-stream"):
                             size = file["size"]
                             logger.debug(f"获取文件：{name}，文件大小：{size}")
