@@ -60,7 +60,7 @@ class Ani2Alist:
             self.__year = year
             self.__month = month
         else:
-            if year is  None and month is None:
+            if year is None and month is None:
                 logger.debug("未传入时间，将使用当前时间")
             else:
                 logger.warning(f"传入时间{year}-{month}不合理，将使用当前时间")
@@ -72,27 +72,41 @@ class Ani2Alist:
     async def run(self) -> None:
         current_season = self.__get_ani_season
         logger.info(f"开始更新 ANI Open {current_season} 季度")
+        anime_list = await self.get_season_anime_list
         async with AlistClient(self.__url, self.__username, self.__password) as client:
-            season_anime_list = await self.get_season_anime_list
-
             storages = await client.async_api_admin_storage_list()
-            storage = next((s for s in storages if s.mount_path == self.__target_dir and s.driver == "UrlTree"), None)
+            storage: AlistStorage = next(
+                (
+                    s
+                    for s in storages
+                    if s.mount_path == self.__target_dir and s.driver == "UrlTree"
+                ),
+                None,
+            )
             if not storage:
-                logger.debug(f"在 Alist 服务器上未找到存储器{self.__target_dir}，开始创建存储器")
+                logger.debug(
+                    f"在 Alist 服务器上未找到存储器{self.__target_dir}，开始创建存储器"
+                )
                 storage = AlistStorage(driver="UrlTree", mount_path=self.__target_dir)
                 await client.async_api_admin_storage_create(storage)
-                storage = next((s for s in await client.async_api_admin_storage_list() if s.mount_path == self.__target_dir), None)
-            
+                storage: AlistStorage = next(
+                    (
+                        s
+                        for s in await client.async_api_admin_storage_list()
+                        if s.mount_path == self.__target_dir
+                    ),
+                    None,
+                )
+
             if storage:
                 addition_dict = storage.addition
                 url_dict = structure_to_dict(addition_dict.get("url_structure", {}))
-                
 
                 if url_dict.get(current_season) is None:
                     url_dict[current_season] = {}
 
-                for name, link in season_anime_list:
-                    url_dict[current_season][name] = link
+                for name, siez, link in anime_list:
+                    url_dict[current_season][name] = [siez, link]
 
                 addition_dict["url_structure"] = dict_to_structure(url_dict)
                 storage.change_addition(addition_dict)
@@ -101,7 +115,6 @@ class Ani2Alist:
                 logger.info(f"ANI Open {current_season} 季度更新完成")
             else:
                 logger.error(f"创建存储器后未找到存储器：{self.__target_dir}")
-                
 
     def __is_valid(self, year: int | None, month: int | None) -> bool:
         """
@@ -142,7 +155,7 @@ class Ani2Alist:
                 return f"{year}-{_month}"
 
     @property
-    async def get_season_anime_list(self) -> list[tuple[str, str]]:
+    async def get_season_anime_list(self) -> list[tuple[str, int, str]]:
         """
         获取指定季度的动画列表
         """
@@ -157,10 +170,17 @@ class Ani2Alist:
                     return []
                 result = loads(await resp.text())
 
-        name_link_list = []
+        name_siez_link_list = []
         for file in result["files"]:
             name = file["name"]
-            name_link_list.append((name,f"https://{self.__src_domain}/{self.__get_ani_season}/{name}?d=true"))
+            size = file["size"]
+            name_siez_link_list.append(
+                (
+                    name,
+                    size,
+                    f"https://{self.__src_domain}/{self.__get_ani_season}/{name}?d=true",
+                )
+            )
 
         logger.debug(f"获取 ANI Open {current_season} 季度动画列表成功")
-        return name_link_list
+        return name_siez_link_list
