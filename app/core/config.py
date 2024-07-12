@@ -47,7 +47,7 @@ class SettingManager:
         加载模式
         """
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
-            is_dev = safe_load(file).get("Settings").get("DEV")
+            is_dev = safe_load(file).get("Settings",{}).get("DEV")
         if is_dev:
             self.DEBUG = is_dev
 
