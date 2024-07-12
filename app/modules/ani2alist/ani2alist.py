@@ -60,7 +60,7 @@ class Ani2Alist:
             """
             current_date = datetime.now()
             if (year, month) == (2019, 4):
-                logger.warning("2019-4季度暂无数据")
+                logger.warning("2019-4 季度暂无数据")
                 return False
             elif (year, month) < (2019, 1):
                 logger.warning("ANI Open项目仅支持2019年1月及其之后的数据")
