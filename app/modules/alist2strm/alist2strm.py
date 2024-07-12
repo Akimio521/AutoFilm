@@ -33,6 +33,7 @@ class Alist2Strm:
         subtitle: bool = False,
         image: bool = False,
         nfo: bool = False,
+        raw_url: bool = False,
         overwrite: bool = False,
         max_workers: int = 5,
         **_,
@@ -49,12 +50,14 @@ class Alist2Strm:
         :param subtitle: 是否下载字幕文件，默认为 False
         :param image: 是否下载图片文件，默认为 False
         :param nfo: 是否下载 .nfo 文件，默认为 False
+        :param raw_url: 是否使用原始地址，默认为 False
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
         :param max_worders: 最大并发数
         """
         self.url = url
         self.username = username
         self.password = password
+        self.raw_url = raw_url
 
         self.source_dir = source_dir
         self.target_dir = Path(target_dir)
@@ -107,6 +110,8 @@ class Alist2Strm:
                 self.source_dir, "", 1
             ).lstrip("/")
 
+        url = path.raw_url if self.raw_url else path.download_url
+
         async with self._async_semaphore:
             try:
                 if local_path.exists() and not self.overwrite:
@@ -122,12 +127,12 @@ class Alist2Strm:
                     async with async_open(
                         local_path, mode="w", encoding="utf-8"
                     ) as file:
-                        await file.write(path.download_url)
+                        await file.write(url)
                     logger.debug(f"创建文件：{local_path}")
                 else:
                     async with async_open(local_path, mode="wb") as file:
                         _write = file.write
-                        async with self.session.get(path.download_url) as resp:
+                        async with self.session.get(url) as resp:
                             async for chunk in resp.content.iter_chunked(1024):
                                 await _write(chunk)
                     logger.debug(f"下载文件：{local_path.name}")

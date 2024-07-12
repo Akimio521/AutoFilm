@@ -13,6 +13,7 @@ Alist2StrmList:
     subtitle: False                   # 是否下载字幕文件(可选，默认 False)
     image: False                      # 是否下载图片文件(可选，默认 False)
     nfo: False                        # 是否下载 .nfo 文件(可选，默认 False)
+    raw_url: False                    # 是否使用原始地址替换 Alist 服务器下载地址(可选，默认 False)
     overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件(可选，默认 False)
     max_workers: 5                    # 下载文件最大并发数(可选，默认 5)
     
@@ -27,6 +28,7 @@ Alist2StrmList:
     subtitle: False
     image: False
     nfo: False
+    raw_url: True
     overwrite: False
     max_workers: 5
 
