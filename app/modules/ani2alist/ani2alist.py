@@ -54,7 +54,7 @@ class Ani2Alist:
         :param key_word: 自定义关键字，默认为空
         """
 
-        def is_time_valid(self, year: int, month: int) -> bool:
+        def is_time_valid(year: int, month: int) -> bool:
             """
             判断时间是否合理
             """
@@ -110,8 +110,8 @@ class Ani2Alist:
                     target_dict[key] = value
             return target_dict
 
-        current_season = self.__get_ani_season
-        logger.info(f"开始更新ANI Open{current_season}季度番剧")
+        folder = self.__get_folder
+        logger.info(f"开始更新ANI Open {folder} 番剧")
 
         if self.__rss_update:
             anime_dict = await self.get_rss_anime_dict
@@ -147,25 +147,25 @@ class Ani2Alist:
                 addition_dict = storage.addition
                 url_dict = structure_to_dict(addition_dict.get("url_structure", {}))
 
-                if url_dict.get(current_season) is None:
-                    url_dict[current_season] = {}
+                if url_dict.get(folder) is None:
+                    url_dict[folder] = {}
 
-                url_dict[current_season] = merge_dicts(
-                    url_dict[current_season], anime_dict
+                url_dict[folder] = merge_dicts(
+                    url_dict[folder], anime_dict
                 )
 
                 addition_dict["url_structure"] = dict_to_structure(url_dict)
                 storage.change_addition(addition_dict)
 
                 await client.sync_api_admin_storage_update(storage)
-                logger.info(f"ANI Open{current_season}季度更新完成")
+                logger.info(f"ANI Open {folder} 更新完成")
             else:
                 logger.error(f"创建存储器后未找到存储器：{self.__target_dir}")
 
     @property
-    def __get_ani_season(self) -> str:
+    def __get_folder(self) -> str:
         """
-        根据 self.__year 和 self.__month 以及关键字 self.__key_word 返回更新的季度
+        根据 self.__year 和 self.__month 以及关键字 self.__key_word 返回文件夹名
         """
         if self.__key_word:
             return self.__key_word
@@ -187,9 +187,9 @@ class Ani2Alist:
         """
         获取指定季度的动画列表
         """
-        current_season = self.__get_ani_season
-        logger.debug(f"开始获取ANI Open{current_season}季度动画列表")
-        url = f"https://{self.__src_domain}/{current_season}/"
+        folder = self.__get_folder
+        logger.debug(f"开始获取ANI Open {folder} 动画列表")
+        url = f"https://{self.__src_domain}/{folder}/"
 
         async with ClientSession() as session:
 
@@ -223,7 +223,7 @@ class Ani2Alist:
                             )
                     return _anime_dict
 
-            logger.debug(f"获取ANI Open{current_season}季度动画列表成功")
+            logger.debug(f"获取ANI Open {folder} 动画列表成功")
             return await parse_data()
 
     @property
