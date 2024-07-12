@@ -18,14 +18,6 @@ ZIP_MINETYPE: Final = frozenset(("application/zip",))
 FILE_MINETYPE: Final = VIDEO_MINETYPE | SUBTITLE_MINETYPE | ZIP_MINETYPE
 
 ANI_SEASION: Final = frozenset((1, 4, 7, 10))
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"
-content_type = "application/json; charset=UTF-8"
-HEADERS = {
-    "User-Agent": UA,
-    "Content-Type": content_type,
-    "Accept": None,
-    "referer": None,
-}
 
 
 class Ani2Alist:
@@ -275,6 +267,8 @@ class Ani2Alist:
                     size: int = convert_size_to_bytes(
                         item.find("anime:size").text.strip()
                     )
-                    link: str = item.link.text.strip().replace("resources.ani.rip", self.__src_domain)
+                    link: str = item.link.text.strip().replace(
+                        "resources.ani.rip", self.__src_domain
+                    )
                     rss_anime_dict[name] = [size, link]
         return rss_anime_dict
