@@ -67,27 +67,24 @@ class Ani2Alist:
         self.__target_dir = "/" + target_dir.strip("/")
         self.__latest = latest
 
+        self.__year = None
+        self.__month = None
+        self.__key_word = None
+
         if self.__latest:
             if self.__is_valid(year, month, key_word):
-                if key_word:
-                    logger.debug(f"传入关键字{key_word}")
-                else:
-                    logger.debug(f"传入时间{year}-{month}")
                 self.__year = year
                 self.__month = month
                 self.__key_word = key_word
+                if key_word is None:
+                    logger.debug(f"传入时间{year}-{month}")
+                else:
+                    logger.debug(f"传入关键字{key_word}")
             else:
                 if year is None and month is None:
                     logger.debug("未传入时间，将使用当前时间")
                 else:
                     logger.warning(f"传入时间{year}-{month}不合理，将使用当前时间")
-                self.__year = None
-                self.__month = None
-                self.__key_word = None
-        else:
-            self.__year = None
-            self.__month = None
-            self.__key_word = None
 
         self.__src_domain = src_domain.strip()
         self.__rss_domain = rss_domain.strip()
