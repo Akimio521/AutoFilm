@@ -6,7 +6,7 @@ from datetime import datetime
 
 from json import loads
 from aiohttp import ClientSession
-from bs4 import BeautifulSoup
+from feedparser import parse
 
 from app.core import logger
 from app.utils import structure_to_dict, dict_to_structure, retry
@@ -253,22 +253,20 @@ class Ani2Alist:
             return int(float(number) * units[unit])
 
         logger.debug(f"开始获取ANI Open RSS动画列表")
-        url = f"https://{self.__rss_domain}/ani-download.xml/"
-
+        url = f"https://{self.__rss_domain}/ani-download.xml"
         rss_anime_dict = {}
+
         async with ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status != 200:
                     raise Exception(f"请求发送失败，状态码：{resp.status}")
-                soup = BeautifulSoup(await resp.text(), "lxml-xml")
+                feeds = parse(await resp.text())
+                
+        for item in feeds.entries:
+            rss_anime_dict[item.title] = [
+                convert_size_to_bytes(item.anime_size),
+                item.link,
+            ]
 
-                for item in soup.find_all("item"):
-                    name: str = item.title.text.strip()
-                    size: int = convert_size_to_bytes(
-                        item.find("anime:size").text.strip()
-                    )
-                    link: str = item.link.text.strip().replace(
-                        "resources.ani.rip", self.__src_domain
-                    )
-                    rss_anime_dict[name] = [size, link]
+        logger.debug(f"获取RSS动画列表成功")
         return rss_anime_dict
