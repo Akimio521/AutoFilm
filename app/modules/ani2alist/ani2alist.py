@@ -6,6 +6,7 @@ from datetime import datetime
 
 from json import loads
 from aiohttp import ClientSession
+from bs4 import BeautifulSoup
 
 from app.core import logger
 from app.utils import structure_to_dict, dict_to_structure, retry
@@ -38,9 +39,11 @@ class Ani2Alist:
         username: str = "",
         password: str = "",
         target_dir: str = "/Anime",
+        latest: bool = True,
         year: int | None = None,
         month: int | None = None,
         src_domain: str = "aniopen.an-i.workers.dev",
+        rss_domain: str = "api.ani.rip",
         key_word: str | None = None,
         **_,
     ) -> None:
@@ -51,34 +54,43 @@ class Ani2Alist:
         :param username: Alist 用户名，默认为空
         :param password: Alist 密码，默认为空
         :param target_dir: 挂载到 Alist 服务器上目录，默认为 "/"
+        :param latest: 使用RSS追更最新番剧，默认为 True
         :param year: 动画年份，默认为空
         :param month: 动画季度，默认为空
         :param src_domain: ANI Open 项目地址，默认为 "aniopen.an-i.workers.dev"，可自行反代
+        :param rss_domain ANI Open 项目 RSS 地址，默认为 "api.ani.rip"，可自行反代
         :param key_word: 自定义关键字，默认为空
         """
         self.__url = url
         self.__username = username
         self.__password = password
         self.__target_dir = "/" + target_dir.strip("/")
+        self.__latest = latest
 
-        if self.__is_valid(year, month, key_word):
-            if key_word:
-                logger.debug(f"传入关键字{key_word}")
+        if self.__latest:
+            if self.__is_valid(year, month, key_word):
+                if key_word:
+                    logger.debug(f"传入关键字{key_word}")
+                else:
+                    logger.debug(f"传入时间{year}-{month}")
+                self.__year = year
+                self.__month = month
+                self.__key_word = key_word
             else:
-                logger.debug(f"传入时间{year}-{month}")
-            self.__year = year
-            self.__month = month
-            self.__key_word = key_word
+                if year is None and month is None:
+                    logger.debug("未传入时间，将使用当前时间")
+                else:
+                    logger.warning(f"传入时间{year}-{month}不合理，将使用当前时间")
+                self.__year = None
+                self.__month = None
+                self.__key_word = None
         else:
-            if year is None and month is None:
-                logger.debug("未传入时间，将使用当前时间")
-            else:
-                logger.warning(f"传入时间{year}-{month}不合理，将使用当前时间")
             self.__year = None
             self.__month = None
             self.__key_word = None
 
         self.__src_domain = src_domain.strip()
+        self.__rss_domain = rss_domain.strip()
 
     async def run(self) -> None:
         def merge_dicts(target_dict: dict, source_dict: dict) -> dict:
@@ -93,7 +105,12 @@ class Ani2Alist:
 
         current_season = self.__get_ani_season
         logger.info(f"开始更新ANI Open{current_season}季度番剧")
-        anime_dict = await self.get_season_anime_list
+
+        if self.__latest:
+            anime_dict = await self.get_rss_anime_dict
+        else:
+            anime_dict = await self.get_season_anime_list
+
         async with AlistClient(self.__url, self.__username, self.__password) as client:
             storage: AlistStorage | None = next(
                 (
@@ -230,3 +247,37 @@ class Ani2Alist:
 
             logger.debug(f"获取ANI Open{current_season}季度动画列表成功")
             return await parse_data()
+
+    @property
+    @retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret={})
+    async def get_rss_anime_dict(self) -> dict:
+        """
+        获取 RSS 动画列表
+        """
+
+        def convert_size_to_bytes(size_str: str) -> int:
+            """
+            将带单位的大小转换为字节
+            """
+            units = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3, "TB": 1024**4}
+            number, unit = [string.strip() for string in size_str.split()]
+            return int(float(number) * units[unit])
+
+        logger.debug(f"开始获取ANI Open RSS动画列表")
+        url = f"https://{self.__rss_domain}/ani-download.xml/"
+
+        rss_anime_dict = {}
+        async with ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    raise Exception(f"请求发送失败，状态码：{resp.status}")
+                soup = BeautifulSoup(await resp.text(), "lxml-xml")
+
+                for item in soup.find_all("item"):
+                    name: str = item.title.text.strip()
+                    size: int = convert_size_to_bytes(
+                        item.find("anime:size").text.strip()
+                    )
+                    link: str = item.link.text.strip().replace("resources.ani.rip", self.__src_domain)
+                    rss_anime_dict[name] = [size, link]
+        return rss_anime_dict
