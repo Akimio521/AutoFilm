@@ -37,7 +37,8 @@ Ani2AlistList:
     username: admin                       # Alist 用户名（需管理员权限）
     password: myalist                     # Alist 密码
     target_dir: /视频/动漫/新番            # Alist 地址树存储器路径，若存储器不存在将自动创建（可选，默认/Anime）
+    rss_update: False                     # 使用 RSS 订阅更新最新番剧，启用后忽视传入的 year 和 month（可选，默认为 True）
     year: 2024                            # 动漫季度-年份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
     month: 7                              # 动漫季度-月份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
-    src_domain: aniopen.an-i.workers.dev  # ANI Open 项目地址（可选，默认为 aniopen.an-i.workers.dev）
-    
+    src_domain: aniopen.an-i.workers.dev  # ANI Open 项目域名（可选，默认为 aniopen.an-i.workers.dev）
+    src_domain: api.ani.rip               # ANI Open 项目 RSS 订阅域名（可选，默认为 api.ani.rip） 
