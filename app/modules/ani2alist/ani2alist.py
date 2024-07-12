@@ -54,6 +54,7 @@ class Ani2Alist:
         :param year: 动画年份，默认为空
         :param month: 动画季度，默认为空
         :param src_domain: ANI Open 项目地址，默认为 "aniopen.an-i.workers.dev"，可自行反代
+        :param key_word: 自定义关键字，默认为空
         """
         self.__url = url
         self.__username = username
