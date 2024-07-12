@@ -169,7 +169,7 @@ class Ani2Alist:
 
             if year is None or month is None:
                 return False
-            if (year, month) < (2019, 4):
+            if (year, month) == (2019, 4):
                 logger.warning("2019-4季度暂无数据")
                 return False
             elif (year, month) < (2019, 1):
