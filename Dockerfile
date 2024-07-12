@@ -19,4 +19,4 @@ RUN pip install --upgrade pip \
 COPY app /app
 
 VOLUME ["/config", "/logs", "/media"]
-ENTRYPOINT ["python","/app/main.py"]
+CMD python /app/main.py
