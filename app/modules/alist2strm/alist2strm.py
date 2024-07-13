@@ -35,6 +35,7 @@ class Alist2Strm:
         nfo: bool = False,
         raw_url: bool = False,
         overwrite: bool = False,
+        other_ext: str | None = None,
         max_workers: int = 5,
         **_,
     ) -> None:
@@ -52,6 +53,7 @@ class Alist2Strm:
         :param nfo: 是否下载 .nfo 文件，默认为 False
         :param raw_url: 是否使用原始地址，默认为 False
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
+        :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_worders: 最大并发数
         """
         self.url = url
@@ -74,6 +76,9 @@ class Alist2Strm:
         if nfo:
             download_exts |= NFO_EXTS
         self.download_exts = download_exts
+
+        if other_ext:
+            download_exts |= frozenset(other_ext.split(","))
 
         self.overwrite = overwrite
         self._async_semaphore = Semaphore(max_workers)
