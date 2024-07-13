@@ -10,12 +10,13 @@ Alist2StrmList:
     source_dir: /ani/                 # Alist 服务器上文件夹路径
     target_dir: D:\media\             # 输出路径
     flatten_mode: False               # 平铺模式，开启后 subtitle、image、nfo 强制关闭(可选，默认 False)
-    subtitle: False                   # 是否下载字幕文件(可选，默认 False)
-    image: False                      # 是否下载图片文件(可选，默认 False)
-    nfo: False                        # 是否下载 .nfo 文件(可选，默认 False)
-    raw_url: False                    # 是否使用原始地址替换 Alist 服务器下载地址(可选，默认 False)
-    overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件(可选，默认 False)
-    max_workers: 5                    # 下载文件最大并发数(可选，默认 5)
+    subtitle: False                   # 是否下载字幕文件（可选，默认 False）
+    image: False                      # 是否下载图片文件（可选，默认 False）
+    nfo: False                        # 是否下载 .nfo 文件（可选，默认 False）
+    raw_url: False                    # 是否使用原始地址替换 Alist 服务器下载地址（可选，默认 False）
+    overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件（可选，默认 False）
+    other_ext:                        # 自定义下载后缀，使用西文半角逗号进行分割，（可选，默认为空）
+    max_workers: 5                    # 下载文件最大并发数（可选，默认 5）
     
   - id: 电影
     cron: 0 0 7 * *
@@ -30,6 +31,7 @@ Alist2StrmList:
     nfo: False
     raw_url: True
     overwrite: False
+    other_ext: zip,md
     max_workers: 5
 
 Ani2AlistList:
