@@ -45,4 +45,4 @@ Ani2AlistList:
     year: 2024                            # 动漫季度-年份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
     month: 7                              # 动漫季度-月份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
     src_domain: aniopen.an-i.workers.dev  # ANI Open 项目域名（可选，默认为 aniopen.an-i.workers.dev）
-    src_domain: api.ani.rip               # ANI Open 项目 RSS 订阅域名（可选，默认为 api.ani.rip） 
+    rss_domain: api.ani.rip               # ANI Open 项目 RSS 订阅域名（可选，默认为 api.ani.rip） 
