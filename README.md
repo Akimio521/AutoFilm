@@ -5,13 +5,13 @@
 详情见[AutoFilm说明文档](https://blog.akimio.top/posts/1031/)
 
 # 部署方式
-1. Python环境运行
-    ```bash
-    python app/main.py
-    ```
-2. Docker运行
+1. Docker运行
     ```bash
     docker run -d --name autofilm  -v ./config:/config -v ./media:/media -v ./logs:/logs akimio/autofilm
+    ```
+2. Python环境运行（Python3.12）
+    ```bash
+    python app/main.py
     ```
 
 # 优点
