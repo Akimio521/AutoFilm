@@ -102,7 +102,7 @@ class AlistClient:
             dir_path_str = path.rstrip("/") + "/"
         else:
             dir_path_str = self.pwd
-        logger.debug(f"获取目录 {dir_path_str} 下的文件列表")
+        logger.debug(f"获取目录{dir_path_str}下的文件列表")
 
         api_url = self.url + "/api/fs/list"
         payload = dumps({
@@ -115,18 +115,18 @@ class AlistClient:
 
         async with self.__session.post(api_url, data=payload) as resp:
             if resp.status != 200:
-                raise RuntimeError(f"获取文件列表请求发送失败，状态码：{resp.status}")
+                raise RuntimeError(f"获取目录{dir_path_str}的文件列表请求发送失败，状态码：{resp.status}")
             
             result =  await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"获取文件列表失败，错误信息：{result["message"]}")
+            raise RuntimeError(f"获取目录{dir_path_str}的文件列表失败，错误信息：{result["message"]}")
         
-        logger.debug("获取文件列表成功")
+        logger.debug("获取目录{dir_path_str}的文件列表成功")
         try:
             return [AlistPath(server_url=self.url, base_path=self.base_path, path=dir_path_str+path["name"], **path) for path in result["data"]["content"]]
         except Exception as e:
-            raise RuntimeError(f"返回AlistPath对象列表失败，错误信息：{e}")
+            raise RuntimeError(f"返回目录{dir_path_str}的AlistPath对象列表失败，错误信息：{e}")
 
     @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None)
     async def async_api_fs_get(self, path: AlistPath | str | None = None) -> AlistPath | None:
@@ -156,18 +156,18 @@ class AlistClient:
         })
         async with self.__session.post(api_url, data=payload) as resp:
             if resp.status != 200:
-                raise RuntimeError(f"获取{path_str}详细信息请求发送失败，状态码：{resp.status}")
+                raise RuntimeError(f"获取路径{path_str}详细信息请求发送失败，状态码：{resp.status}")
 
             result = await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"获取{path_str}详细信息失败，错误信息：{result["message"]}")
+            raise RuntimeError(f"获取路径{path_str}详细信息失败，错误信息：{result["message"]}")
         
-        logger.debug(f"获取{path_str}详细信息成功")
+        logger.debug(f"获取路径{path_str}详细信息成功")
         try:
             return AlistPath(server_url=self.url, base_path=self.base_path, path=path_str, **result["data"])
         except Exception as e:
-            raise RuntimeError(f"返回AlistPath对象失败，错误信息：{e}")
+            raise RuntimeError(f"返回路径{path_str}的AlistPath对象失败，错误信息：{e}")
     
     @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
     async def async_api_admin_storage_list(self) -> list[AlistStorage]:
