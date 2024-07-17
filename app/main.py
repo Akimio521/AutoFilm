@@ -11,7 +11,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 
 from app.core import settings, logger
-from modules import Alist2Strm, Ani2Alist
+from app.modules import Alist2Strm, Ani2Alist
 
 if __name__ == "__main__":
     logger.info(f"AutoFilm 启动中，当前的APP版本是：{settings.APP_VERSION}")
