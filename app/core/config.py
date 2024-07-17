@@ -3,7 +3,6 @@
 
 
 from pathlib import Path
-from datetime import datetime
 from yaml import safe_load
 
 from app.version import APP_VERSION
@@ -87,7 +86,7 @@ class SettingManager:
         if self.DEBUG:
             return self.LOG_DIR / "dev.log"
         else:
-            return self.LOG_DIR / f"{datetime.now().strftime("%Y%m%d")}.log"
+            return self.LOG_DIR / "AutoFilm.log"
             
 
     @property
