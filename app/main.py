@@ -14,12 +14,12 @@ from app.core import settings, logger
 from app.modules import Alist2Strm, Ani2Alist
 
 if __name__ == "__main__":
-    logger.info(f"AutoFilm 启动中，当前的APP版本是：{settings.APP_VERSION}")
+    logger.info(f"AutoFilm启动中，当前的APP版本是：{settings.APP_VERSION}")
 
     scheduler = AsyncIOScheduler()
     
     if settings.AlistServerList:
-        logger.info("检测到 Alist 服务器配置，正在添加至后台任务")
+        logger.info("检测到Alist服务器配置，正在添加至后台任务")
         for server in settings.AlistServerList:
             cron = server.get("cron")
             if cron:
@@ -28,10 +28,10 @@ if __name__ == "__main__":
             else:
                 logger.warning(f"{server["id"]}未设置Cron")
     else:
-        logger.warning("未检测到 Alist 服务器配置")
+        logger.warning("未检测到Alist服务器配置")
 
     if settings.Ani2AlistList:
-        logger.info("检测到 Ani2Alist 服务器配置，正在添加至后台任务")
+        logger.info("检测到Ani2Alist服务器配置，正在添加至后台任务")
         for server in settings.Ani2AlistList:
             cron = server.get("cron")
             if cron:
@@ -40,11 +40,11 @@ if __name__ == "__main__":
             else:
                 logger.warning(f"{server["id"]}未设置Cron")
     else:
-        logger.warning("未检测到 Ani2Alist 服务器配置")
+        logger.warning("未检测到Ani2Alist服务器配置")
 
     scheduler.start()
 
     try:
         asyncio.get_event_loop().run_forever()
     except (KeyboardInterrupt, SystemExit):
-        print("AutoFilm 程序退出！")
+        logger.info("AutoFilm程序退出！")

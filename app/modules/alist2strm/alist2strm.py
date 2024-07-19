@@ -100,6 +100,7 @@ class Alist2Strm:
                         in VIDEO_EXTS | self.download_exts,
                     ):
                         _create_task(self.__file_processer(path))
+        logger.info("Alist2Strm处理完成")
 
     @retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
     async def __file_processer(self, /, path: AlistPath):
