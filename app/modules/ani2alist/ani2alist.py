@@ -7,6 +7,7 @@ from datetime import datetime
 from json import loads
 from aiohttp import ClientSession
 from feedparser import parse
+from urllib.parse import quote
 
 from app.core import logger
 from app.utils import structure_to_dict, dict_to_structure, retry
@@ -189,7 +190,7 @@ class Ani2Alist:
         """
         folder = self.__get_folder
         logger.debug(f"开始获取ANI Open {folder} 动画列表")
-        url = f"https://{self.__src_domain}/{folder}/"
+        url = quote(f"https://{self.__src_domain}/{folder}/", safe=":/-")
 
         async with ClientSession() as session:
 
@@ -215,7 +216,7 @@ class Ani2Alist:
                             ]
                         elif mimeType == "application/vnd.google-apps.folder":
                             logger.debug(f"获取目录：{name}")
-                            __url = _url + name + "/"
+                            __url = _url + quote(name, safe=":/-") + "/"
                             _anime_dict[name] = await parse_data(__url)
                         else:
                             raise RuntimeError(
