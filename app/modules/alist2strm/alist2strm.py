@@ -118,29 +118,29 @@ class Alist2Strm:
 
         url = path.raw_url if self.raw_url else path.download_url
 
-        async with self._async_semaphore:
-            try:
-                if local_path.exists() and not self.overwrite:
-                    logger.debug(f"跳过文件：{local_path.name}")
-                    return
+        try:
+            if local_path.exists() and not self.overwrite:
+                logger.debug(f"跳过文件：{local_path.name}")
+                return
 
-                _parent = local_path.parent
-                if not _parent.exists():
-                    await to_thread(_parent.mkdir, parents=True, exist_ok=True)
+            _parent = local_path.parent
+            if not _parent.exists():
+                await to_thread(_parent.mkdir, parents=True, exist_ok=True)
 
-                if path.suffix in VIDEO_EXTS:
-                    local_path = local_path.with_suffix(".strm")
-                    async with async_open(
-                        local_path, mode="w", encoding="utf-8"
-                    ) as file:
-                        await file.write(url)
-                    logger.debug(f"创建文件：{local_path}")
-                else:
+            if path.suffix in VIDEO_EXTS:
+                local_path = local_path.with_suffix(".strm")
+                async with async_open(
+                    local_path, mode="w", encoding="utf-8"
+                ) as file:
+                    await file.write(url)
+                logger.debug(f"创建文件：{local_path}")
+            else:
+                async with self._async_semaphore:
                     async with async_open(local_path, mode="wb") as file:
                         _write = file.write
                         async with self.session.get(url) as resp:
                             async for chunk in resp.content.iter_chunked(1024):
                                 await _write(chunk)
                     logger.debug(f"下载文件：{local_path.name}")
-            except:
-                raise RuntimeError(f"下载失败: {local_path.name}")
+        except:
+            raise RuntimeError(f"下载失败: {local_path.name}")
