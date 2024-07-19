@@ -122,7 +122,7 @@ class AlistClient:
         if result["code"] != 200:
             raise RuntimeError(f"获取目录{dir_path_str}的文件列表失败，错误信息：{result["message"]}")
         
-        logger.debug("获取目录{dir_path_str}的文件列表成功")
+        logger.debug(f"获取目录{dir_path_str}的文件列表成功")
         try:
             return [AlistPath(server_url=self.url, base_path=self.base_path, path=dir_path_str+path["name"], **path) for path in result["data"]["content"]]
         except Exception as e:
