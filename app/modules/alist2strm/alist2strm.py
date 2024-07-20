@@ -96,7 +96,7 @@ class Alist2Strm:
                 ) as client:
                     async for path in client.iter_path(
                         dir_path=self.source_dir,
-                        filter=lambda path: path.suffix
+                        filter=lambda path: path.suffix.lower()
                         in VIDEO_EXTS | self.download_exts,
                     ):
                         _create_task(self.__file_processer(path))
@@ -129,9 +129,7 @@ class Alist2Strm:
 
             if path.suffix in VIDEO_EXTS:
                 local_path = local_path.with_suffix(".strm")
-                async with async_open(
-                    local_path, mode="w", encoding="utf-8"
-                ) as file:
+                async with async_open(local_path, mode="w", encoding="utf-8") as file:
                     await file.write(url)
                 logger.debug(f"创建文件：{local_path}")
             else:
