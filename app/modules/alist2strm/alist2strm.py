@@ -87,6 +87,23 @@ class Alist2Strm:
         """
         处理主体
         """
+
+        def filter(path: AlistPath) -> bool:
+            if path.suffix.lower() not in VIDEO_EXTS and not self.download_exts:
+                logger.debug(f"文件{path.name}不在处理列表中")
+                return False
+
+            if self.overwrite:
+                return True
+
+            local_path = self.get_local_path(path)
+
+            if local_path.exists():
+                logger.debug(f"文件{local_path.name}已存在，跳过处理{path.path}")
+                return False
+            
+            return True
+
         async with ClientSession() as session:
             self.session = session
             async with TaskGroup() as tg:
@@ -95,9 +112,7 @@ class Alist2Strm:
                     self.url, self.username, self.password
                 ) as client:
                     async for path in client.iter_path(
-                        dir_path=self.source_dir,
-                        filter=lambda path: path.suffix.lower()
-                        in VIDEO_EXTS | self.download_exts,
+                        dir_path=self.source_dir, filter=filter
                     ):
                         _create_task(self.__file_processer(path))
         logger.info("Alist2Strm处理完成")
@@ -109,23 +124,11 @@ class Alist2Strm:
 
         :param path: AlistPath 对象
         """
-        if self.flatten_mode:
-            local_path = self.target_dir / path.name
-        else:
-            local_path = self.target_dir / path.path.replace(
-                self.source_dir, "", 1
-            ).lstrip("/")
-
-        if path.suffix.lower() in VIDEO_EXTS:
-            local_path = local_path.with_suffix(".strm")
+        local_path = self.get_local_path(path)
 
         url = path.raw_url if self.raw_url else path.download_url
 
         try:
-            if local_path.exists() and not self.overwrite:
-                logger.debug(f"跳过文件：{local_path.name}")
-                return
-
             _parent = local_path.parent
             if not _parent.exists():
                 await to_thread(_parent.mkdir, parents=True, exist_ok=True)
@@ -144,3 +147,19 @@ class Alist2Strm:
                     logger.debug(f"下载文件：{local_path.name}")
         except:
             raise RuntimeError(f"下载失败: {local_path.name}")
+
+    def get_local_path(self, path: AlistPath) -> Path:
+        """
+        根据给定的 AlistPath 对象和当前的配置，计算出本地文件路径。
+        """
+        if self.flatten_mode:
+            local_path = self.target_dir / path.name
+        else:
+            local_path = self.target_dir / path.path.replace(
+                self.source_dir, "", 1
+            ).lstrip("/")
+
+        if path.suffix.lower() in VIDEO_EXTS:
+            local_path = local_path.with_suffix(".strm")
+
+        return local_path
