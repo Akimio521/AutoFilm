@@ -48,8 +48,8 @@ def retry(
             while mtries > 1:
                 try:
                     return await wrapper(*args, **kwargs)
-                except ExceptionToCheck as e:
-                    msg = f"出现错误，错误信息{e}，{mdelay}秒后重试 ..."
+                except ExceptionToCheck as _e:
+                    msg = f"{_e}，{mdelay}秒后重试 ..."
                     if logger:
                         logger.warning(msg)
                     else:
@@ -62,9 +62,10 @@ def retry(
 
                     mtries -= 1
                     mdelay *= backoff
+                    e = _e
 
             if logger:
-                logger.warning("超出最大重试次数！返回默认值")
+                logger.warning(f"{_e}超出最大重试次数！返回默认值")
             return ret
 
         if iscoroutinefunction(f):

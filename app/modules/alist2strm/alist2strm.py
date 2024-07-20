@@ -133,10 +133,11 @@ class Alist2Strm:
             if not _parent.exists():
                 await to_thread(_parent.mkdir, parents=True, exist_ok=True)
 
+            logger.debug(f"开始处理{local_path}")
             if local_path.suffix == ".strm":
                 async with async_open(local_path, mode="w", encoding="utf-8") as file:
                     await file.write(url)
-                logger.debug(f"创建文件：{local_path}")
+                logger.debug(f"{local_path.name}创建成功")
             else:
                 async with self._async_semaphore:
                     async with async_open(local_path, mode="wb") as file:
@@ -144,9 +145,9 @@ class Alist2Strm:
                         async with self.session.get(url) as resp:
                             async for chunk in resp.content.iter_chunked(1024):
                                 await _write(chunk)
-                    logger.debug(f"下载文件：{local_path.name}")
+                    logger.debug(f"{local_path.name}下载成功")
         except:
-            raise RuntimeError(f"下载失败: {local_path.name}")
+            raise RuntimeError(f"{local_path}处理失败")
 
     def get_local_path(self, path: AlistPath) -> Path:
         """
