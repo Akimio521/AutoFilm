@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-import asyncio
+from asyncio import get_event_loop
 from sys import path
 from os.path import dirname
 path.append(dirname(dirname(__file__)))
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-
 
 from app.core import settings, logger
 from app.modules import Alist2Strm, Ani2Alist
@@ -55,6 +54,6 @@ if __name__ == "__main__":
     scheduler.start()
 
     try:
-        asyncio.get_event_loop().run_forever()
+        get_event_loop().run_forever()
     except (KeyboardInterrupt, SystemExit):
         logger.info("AutoFilm程序退出！")
