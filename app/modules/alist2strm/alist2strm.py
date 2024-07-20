@@ -127,7 +127,7 @@ class Alist2Strm:
             if not _parent.exists():
                 await to_thread(_parent.mkdir, parents=True, exist_ok=True)
 
-            if path.suffix in VIDEO_EXTS:
+            if path.suffix.lower() in VIDEO_EXTS:
                 local_path = local_path.with_suffix(".strm")
                 async with async_open(local_path, mode="w", encoding="utf-8") as file:
                     await file.write(url)
