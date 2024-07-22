@@ -146,8 +146,8 @@ class Alist2Strm:
                             async for chunk in resp.content.iter_chunked(1024):
                                 await _write(chunk)
                     logger.debug(f"{local_path.name}下载成功")
-        except:
-            raise RuntimeError(f"{local_path}处理失败")
+        except Exception as e:
+            raise RuntimeError(f"{local_path}处理失败，详细信息：{e}")
 
     def get_local_path(self, path: AlistPath) -> Path:
         """
