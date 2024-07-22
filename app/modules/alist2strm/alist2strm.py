@@ -76,7 +76,7 @@ class Alist2Strm:
         if nfo:
             download_exts |= NFO_EXTS
         if other_ext:
-            download_exts |= frozenset(other_ext.split(","))
+            download_exts |= frozenset(other_ext.lower().split(","))
 
         self.download_exts = download_exts
 
