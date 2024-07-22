@@ -10,19 +10,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.core import settings, logger
+from app.extensions import LOGO
 from app.modules import Alist2Strm, Ani2Alist
 
-LOGO = r"""
- █████╗ ██╗   ██╗████████╗ ██████╗ ███████╗██╗██╗     ███╗   ███╗    
-██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗██╔════╝██║██║     ████╗ ████║    
-███████║██║   ██║   ██║   ██║   ██║█████╗  ██║██║     ██╔████╔██║    
-██╔══██║██║   ██║   ██║   ██║   ██║██╔══╝  ██║██║     ██║╚██╔╝██║    
-██║  ██║╚██████╔╝   ██║   ╚██████╔╝██║     ██║███████╗██║ ╚═╝ ██║    
-╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝     ╚═╝
-""" + str(settings.APP_VERSION).center(65, "=")
 
 if __name__ == "__main__":
-    print(LOGO)
+    print(LOGO + str(settings.APP_VERSION).center(65, "="))
     logger.info(f"AutoFilm {settings.APP_VERSION}启动中...")
 
     scheduler = AsyncIOScheduler()

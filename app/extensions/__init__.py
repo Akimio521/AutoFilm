@@ -5,3 +5,4 @@ from app.extensions.exts import (
     IMAGE_EXTS,
     NFO_EXTS,
 )
+from app.extensions.logo import LOGO
