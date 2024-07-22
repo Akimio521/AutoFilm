@@ -35,7 +35,7 @@ class Alist2Strm:
         nfo: bool = False,
         raw_url: bool = False,
         overwrite: bool = False,
-        other_ext: str | None = None,
+        other_ext: str = "",
         max_workers: int = 5,
         **_,
     ) -> None:
@@ -75,10 +75,10 @@ class Alist2Strm:
             download_exts |= IMAGE_EXTS
         if nfo:
             download_exts |= NFO_EXTS
-        self.download_exts = download_exts
-
         if other_ext:
             download_exts |= frozenset(other_ext.split(","))
+
+        self.download_exts = download_exts
 
         self.overwrite = overwrite
         self._async_semaphore = Semaphore(max_workers)
