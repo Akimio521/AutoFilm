@@ -4,7 +4,6 @@
 from asyncio import to_thread, Semaphore, TaskGroup
 from os import PathLike
 from pathlib import Path
-from typing import Final
 
 from aiofile import async_open
 from aiohttp import ClientSession
