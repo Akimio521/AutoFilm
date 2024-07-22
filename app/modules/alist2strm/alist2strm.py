@@ -11,13 +11,8 @@ from aiohttp import ClientSession
 
 from app.core import logger
 from app.utils import retry
+from extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
 from app.modules.alist import AlistClient, AlistPath
-
-
-VIDEO_EXTS: Final = frozenset(("mp4", "mkv", "flv", "avi", "wmv", "ts", "rmvb", "webm"))
-SUBTITLE_EXTS: Final = frozenset(("ass", "srt", "ssa", "sub"))
-IMAGE_EXTS: Final = frozenset(("png", "jpg"))
-NFO_EXTS: Final = frozenset(("nfo",))
 
 
 class Alist2Strm:
@@ -101,7 +96,7 @@ class Alist2Strm:
             if local_path.exists():
                 logger.debug(f"文件{local_path.name}已存在，跳过处理{path.path}")
                 return False
-            
+
             return True
 
         async with ClientSession() as session:
