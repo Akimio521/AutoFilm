@@ -21,7 +21,7 @@ if __name__ == "__main__":
     scheduler = AsyncIOScheduler()
     
     if settings.AlistServerList:
-        logger.info("检测到Alist服务器配置，正在添加至后台任务")
+        logger.info("检测到Alist2Strm模块配置，正在添加至后台任务")
         for server in settings.AlistServerList:
             cron = server.get("cron")
             if cron:
@@ -30,10 +30,10 @@ if __name__ == "__main__":
             else:
                 logger.warning(f"{server["id"]}未设置Cron")
     else:
-        logger.warning("未检测到Alist服务器配置")
+        logger.warning("未检测到Alist2Strm模块配置")
 
     if settings.Ani2AlistList:
-        logger.info("检测到Ani2Alist服务器配置，正在添加至后台任务")
+        logger.info("检测到Ani2Alist模块配置，正在添加至后台任务")
         for server in settings.Ani2AlistList:
             cron = server.get("cron")
             if cron:
@@ -42,7 +42,7 @@ if __name__ == "__main__":
             else:
                 logger.warning(f"{server["id"]}未设置Cron")
     else:
-        logger.warning("未检测到Ani2Alist服务器配置")
+        logger.warning("未检测到Ani2Alist模块配置")
 
     scheduler.start()
 
