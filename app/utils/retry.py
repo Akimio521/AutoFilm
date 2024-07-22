@@ -65,7 +65,7 @@ def retry(
                     e = _e
 
             if logger:
-                logger.warning(f"{e}，超出最大重试次数！返回默认值")
+                logger.warning(f"{e}，超出最大重试次数！")
             return ret
 
         if iscoroutinefunction(f):
