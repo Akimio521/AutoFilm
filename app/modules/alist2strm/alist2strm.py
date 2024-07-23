@@ -77,7 +77,7 @@ class Alist2Strm:
         self.overwrite = overwrite
         self._async_semaphore = Semaphore(max_workers)
 
-    async def run(self, /):
+    async def run(self) -> None:
         """
         处理主体
         """
@@ -112,7 +112,7 @@ class Alist2Strm:
         logger.info("Alist2Strm处理完成")
 
     @retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
-    async def __file_processer(self, /, path: AlistPath):
+    async def __file_processer(self, path: AlistPath) -> None:
         """
         异步保存文件至本地
 
