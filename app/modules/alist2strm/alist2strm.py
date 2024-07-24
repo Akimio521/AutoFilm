@@ -10,7 +10,7 @@ from aiohttp import ClientSession
 
 from app.core import logger
 from app.utils import retry
-from extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
+from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
 from app.modules.alist import AlistClient, AlistPath
 
 
