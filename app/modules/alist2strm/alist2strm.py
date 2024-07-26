@@ -87,6 +87,9 @@ class Alist2Strm:
         """
 
         def filter(path: AlistPath) -> bool:
+            if path.is_dir:
+                return False
+            
             if not path.suffix.lower() in self.process_file_exts:
                 logger.debug(f"文件{path.name}不在处理列表中")
                 return False
