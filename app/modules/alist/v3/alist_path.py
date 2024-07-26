@@ -94,4 +94,4 @@ class AlistPath:
         if self.is_dir:
             return ""
         else:
-            return self.name.split(".")[-1]
+            return "." + self.name.split(".")[-1]
