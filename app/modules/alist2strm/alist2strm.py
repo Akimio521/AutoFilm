@@ -30,7 +30,8 @@ class Alist2Strm:
         raw_url: bool = False,
         overwrite: bool = False,
         other_ext: str = "",
-        max_workers: int = 5,
+        max_workers: int = 50,
+        max_downloader: int = 5,
         **_,
     ) -> None:
         """
@@ -49,6 +50,7 @@ class Alist2Strm:
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_worders: 最大并发数
+        :param max_downloader: 最大同时下载
         """
         self.url = url
         self.username = username
@@ -76,7 +78,8 @@ class Alist2Strm:
         self.process_file_exts = VIDEO_EXTS | download_exts
 
         self.overwrite = overwrite
-        self._async_semaphore = Semaphore(max_workers)
+        self.__max_workers = Semaphore(max_workers)
+        self.__max_downloader = Semaphore(max_downloader)
 
     async def run(self) -> None:
         """
@@ -98,19 +101,20 @@ class Alist2Strm:
                 return False
 
             return True
-
-        async with ClientSession() as session:
-            self.session = session
-            async with TaskGroup() as tg:
-                _create_task = tg.create_task
-                async with AlistClient(
-                    self.url, self.username, self.password
-                ) as client:
-                    async for path in client.iter_path(
-                        dir_path=self.source_dir, filter=filter
-                    ):
-                        _create_task(self.__file_processer(path))
-        logger.info("Alist2Strm处理完成")
+        
+        async with self.__max_workers:
+            async with ClientSession() as session:
+                self.session = session
+                async with TaskGroup() as tg:
+                    _create_task = tg.create_task
+                    async with AlistClient(
+                        self.url, self.username, self.password
+                    ) as client:
+                        async for path in client.iter_path(
+                            dir_path=self.source_dir, filter=filter
+                        ):
+                            _create_task(self.__file_processer(path))
+            logger.info("Alist2Strm处理完成")
 
     @retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
     async def __file_processer(self, path: AlistPath) -> None:
@@ -134,7 +138,7 @@ class Alist2Strm:
                     await file.write(url)
                 logger.debug(f"{local_path.name}创建成功")
             else:
-                async with self._async_semaphore:
+                async with self.__max_downloader:
                     async with async_open(local_path, mode="wb") as file:
                         _write = file.write
                         async with self.session.get(url) as resp:
