@@ -1,2 +1,2 @@
-from app.utils.urltree import structure_to_dict, dict_to_structure
+from app.utils.alist_url_tree import AlistUrlTreeUtils
 from app.utils.retry import retry
