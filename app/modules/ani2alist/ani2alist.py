@@ -214,7 +214,7 @@ class Ani2Alist:
                             size: int = file["size"]
                             __url = _url + quoted_name + "?d=true"
                             logger.debug(
-                                f"获取文件：{name}，文件大小：{size / 1024 / 1024}MB，播放地址：{__url}"
+                                f"获取文件：{name}，文件大小：{int(size) / 1024 / 1024:.2f}MB，播放地址：{__url}"
                             )
                             _anime_dict[name] = [
                                 size,
