@@ -212,10 +212,13 @@ class Ani2Alist:
 
                         if mimeType in FILE_MINETYPE:
                             size: int = file["size"]
-                            logger.debug(f"获取文件：{name}，文件大小：{size}")
+                            __url = _url + quoted_name + "?d=true"
+                            logger.debug(
+                                f"获取文件：{name}，文件大小：{size / 1024 / 1024}MB，播放地址：{__url}"
+                            )
                             _anime_dict[name] = [
                                 size,
-                                _url + quoted_name + "?d=true",
+                                __url,
                             ]
                         elif mimeType == "application/vnd.google-apps.folder":
                             logger.debug(f"获取目录：{name}")

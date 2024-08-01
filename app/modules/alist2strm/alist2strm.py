@@ -139,7 +139,7 @@ class Alist2Strm:
             if local_path.suffix == ".strm":
                 async with async_open(local_path, mode="w", encoding="utf-8") as file:
                     await file.write(url)
-                logger.debug(f"{local_path.name}创建成功")
+                logger.info(f"{local_path.name}创建成功")
             else:
                 async with self.__max_downloaders:
                     async with async_open(local_path, mode="wb") as file:
@@ -147,7 +147,7 @@ class Alist2Strm:
                         async with self.session.get(url) as resp:
                             async for chunk in resp.content.iter_chunked(1024):
                                 await _write(chunk)
-                    logger.debug(f"{local_path.name}下载成功")
+                    logger.info(f"{local_path.name}下载成功")
         except Exception as e:
             raise RuntimeError(f"{local_path}处理失败，详细信息：{e}")
 
