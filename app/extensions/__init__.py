@@ -6,3 +6,4 @@ from app.extensions.exts import (
     NFO_EXTS,
 )
 from app.extensions.logo import LOGO
+from app.extensions.url import SAFE_WORD
