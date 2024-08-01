@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-from typing import Optional
-from urllib.parse import quote
+from app.utils import UrlUtils
+
 
 class AlistPath:
     """
     Alist 文件/目录对象
     """
+
     def __init__(
         self,
         server_url: str,
@@ -16,17 +17,17 @@ class AlistPath:
         name: str,
         size: int,
         is_dir: bool,
-        modified: Optional[str] = None,
-        created: Optional[str] = None,
+        modified: str | None = None,
+        created: str | None = None,
         sign: str = "",
-        thumb: Optional[str] = None,
-        type: Optional[int] = None,
-        hashinfo: Optional[str] = None,
-        hash_info: Optional[str] = None,
-        raw_url: Optional[str] = None,
-        readme: Optional[str] = None,
-        header: Optional[dict] = None,
-        provider: Optional[str] = None,
+        thumb: str | None = None,
+        type: str | None = None,
+        hashinfo: str | None = None,
+        hash_info: str | None = None,
+        raw_url: str | None = None,
+        readme: str | None = None,
+        header: dict | None = None,
+        provider: str | None = None,
         **_,
     ):
         """
@@ -73,19 +74,19 @@ class AlistPath:
         文件/目录在 Alist 服务器上的绝对路径
         """
         return self.base_path.rstrip("/") + self.path
-    
+
     @property
     def download_url(self):
         """
         文件下载地址
         """
         if self.sign:
-            url =  self.server_url + "/d" + self.abs_path + "?sign=" + self.sign
+            url = self.server_url + "/d" + self.abs_path + "?sign=" + self.sign
         else:
             url = self.server_url + "/d" + self.abs_path
-        
-        return quote(url, safe = "@#$&=:/,;?+\'")
-    
+
+        return UrlUtils.encode(url)
+
     @property
     def suffix(self):
         """
