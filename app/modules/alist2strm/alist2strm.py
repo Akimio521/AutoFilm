@@ -89,7 +89,7 @@ class Alist2Strm:
         def filter(path: AlistPath) -> bool:
             if path.is_dir:
                 return False
-            
+
             if not path.suffix.lower() in self.process_file_exts:
                 logger.debug(f"文件{path.name}不在处理列表中")
                 return False
@@ -104,7 +104,7 @@ class Alist2Strm:
                 return False
 
             return True
-        
+
         async with self.__max_workers:
             async with ClientSession() as session:
                 self.session = session
@@ -144,7 +144,7 @@ class Alist2Strm:
                 async with self.__max_downloaders:
                     async with async_open(local_path, mode="wb") as file:
                         _write = file.write
-                        async with self.session.get(url) as resp:
+                        async with self.session.get(path.raw_url) as resp:
                             async for chunk in resp.content.iter_chunked(1024):
                                 await _write(chunk)
                     logger.info(f"{local_path.name}下载成功")
