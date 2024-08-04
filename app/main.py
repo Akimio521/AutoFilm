@@ -26,9 +26,9 @@ if __name__ == "__main__":
             cron = server.get("cron")
             if cron:
                 scheduler.add_job(Alist2Strm(**server).run,trigger=CronTrigger.from_crontab(cron))
-                logger.info(f"{server["id"]}已被添加至后台任务")
+                logger.info(f'{server["id"]}已被添加至后台任务')
             else:
-                logger.warning(f"{server["id"]}未设置Cron")
+                logger.warning(f'{server["id"]}未设置Cron')
     else:
         logger.warning("未检测到Alist2Strm模块配置")
 
@@ -38,9 +38,9 @@ if __name__ == "__main__":
             cron = server.get("cron")
             if cron:
                 scheduler.add_job(Ani2Alist(**server).run,trigger=CronTrigger.from_crontab(cron))
-                logger.info(f"{server["id"]}已被添加至后台任务")
+                logger.info(f'{server["id"]}已被添加至后台任务')
             else:
-                logger.warning(f"{server["id"]}未设置Cron")
+                logger.warning(f'{server["id"]}未设置Cron')
     else:
         logger.warning("未检测到Ani2Alist模块配置")
 

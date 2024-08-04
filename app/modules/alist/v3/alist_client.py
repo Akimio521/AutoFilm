@@ -54,7 +54,7 @@ class AlistClient:
             result = await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"登录失败，错误信息：{result["message"]}")
+            raise RuntimeError(f'登录失败，错误信息：{result["message"]}')
         
         logger.debug(f"{self.username}登录成功")
         self.__HEADERS.update({"Authorization": result["data"]["token"]})
@@ -77,7 +77,7 @@ class AlistClient:
             result = await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"获取用户信息失败，错误信息：{result["message"]}")
+            raise RuntimeError(f'获取用户信息失败，错误信息：{result["message"]}')
         
         try:
             self.base_path: str = result["data"]["base_path"]
@@ -120,7 +120,7 @@ class AlistClient:
             result =  await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"获取目录{dir_path_str}的文件列表失败，错误信息：{result["message"]}")
+            raise RuntimeError(f'获取目录{dir_path_str}的文件列表失败，错误信息：{result["message"]}')
         
         logger.debug(f"获取目录{dir_path_str}的文件列表成功")
         try:
@@ -161,7 +161,7 @@ class AlistClient:
             result = await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"获取路径{path_str}详细信息失败，详细信息：{result["message"]}")
+            raise RuntimeError(f'获取路径{path_str}详细信息失败，详细信息：{result["message"]}')
         
         logger.debug(f"获取路径{path_str}详细信息成功")
         try:
@@ -184,7 +184,7 @@ class AlistClient:
             result = await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"获取存储器列表失败，详细信息：{result["message"]}")
+            raise RuntimeError(f'获取存储器列表失败，详细信息：{result["message"]}')
 
         logger.debug("获取存储器列表成功")
         try:
@@ -220,7 +220,7 @@ class AlistClient:
             result = await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"创建存储失败，详细信息：{result["message"]}")
+            raise RuntimeError(f'创建存储失败，详细信息：{result["message"]}')
         
         logger.debug("创建存储成功")
         return
@@ -259,7 +259,7 @@ class AlistClient:
             result = await resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f"更新存储器失败，详细信息：{result["message"]}")
+            raise RuntimeError(f'更新存储器失败，详细信息：{result["message"]}')
         
         logger.debug(f"更新存储器成功，存储器ID：{storage.id}，挂载路径：{storage.mount_path}")
         return
