@@ -27,7 +27,7 @@ class Alist2Strm:
         subtitle: bool = False,
         image: bool = False,
         nfo: bool = False,
-        raw_url: bool = False,
+        mode: str = "AlistURL",
         overwrite: bool = False,
         other_ext: str = "",
         max_workers: int = 50,
@@ -46,7 +46,7 @@ class Alist2Strm:
         :param subtitle: 是否下载字幕文件，默认为 False
         :param image: 是否下载图片文件，默认为 False
         :param nfo: 是否下载 .nfo 文件，默认为 False
-        :param raw_url: 是否使用原始地址，默认为 False
+        :param mode: Strm模式(AlistURL/RawURL/AlistPath)
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_worders: 最大并发数
@@ -55,7 +55,7 @@ class Alist2Strm:
         self.url = url
         self.username = username
         self.password = password
-        self.raw_url = raw_url
+        self.mode = mode
 
         self.source_dir = source_dir
         self.target_dir = Path(target_dir)
@@ -105,6 +105,12 @@ class Alist2Strm:
 
             return True
 
+        if not self.mode in ["AlistURL", "RawURL", "AlistPath"]:
+            logger.warning(
+                f"Alist2Strm的模式{self.mode}不存在，已设置为默认模式AlistURL"
+            )
+            self.mode = "AlistURL"
+
         async with self.__max_workers:
             async with ClientSession() as session:
                 self.session = session
@@ -128,7 +134,14 @@ class Alist2Strm:
         """
         local_path = self.get_local_path(path)
 
-        url = path.raw_url if self.raw_url else path.download_url
+        if self.mode == "AlistURL":
+            content = path.download_url
+        elif self.mode == "RawURL":
+            content = path.raw_url
+        elif self.mode == "AlistPath":
+            content = path.path
+        else:
+            raise ValueError(f"AlistStrm未知的模式{self.mode}")
 
         try:
             _parent = local_path.parent
@@ -138,7 +151,7 @@ class Alist2Strm:
             logger.debug(f"开始处理{local_path}")
             if local_path.suffix == ".strm":
                 async with async_open(local_path, mode="w", encoding="utf-8") as file:
-                    await file.write(url)
+                    await file.write(content)
                 logger.info(f"{local_path.name}创建成功")
             else:
                 async with self.__max_downloaders:
