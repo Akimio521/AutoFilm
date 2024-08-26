@@ -26,7 +26,7 @@ jobs:
   Release-Docker-Builder:
     name: Build Docker Image
     needs: [ Get-Version ]
-    use: ./.github/workflows/docker-builder.yaml
+    uses: ./.github/workflows/docker-builder.yaml
     with:
       APP_VERSION: ${{ needs.Get-Version.outputs.app_version }}
       IS_LATEST: true

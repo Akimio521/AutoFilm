@@ -1,4 +1,4 @@
-name: AutoFilm DEV-Version
+name: AutoFilm DEV
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 jobs:
   Dev-Docker-Builder:
     name: Build Docker Image
-    use: ./.github/workflows/docker-builder.yaml
+    uses: ./.github/workflows/docker-builder.yaml
     with:
       APP_VERSION: DEV
       IS_LATEST: false
