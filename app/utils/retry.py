@@ -63,7 +63,6 @@ def retry(
                     mtries -= 1
                     mdelay *= backoff
                     e = _e
-
             if logger:
                 logger.warning(f"{e}，超出最大重试次数！")
             return ret
