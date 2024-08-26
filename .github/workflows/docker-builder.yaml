@@ -40,7 +40,7 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/autofilm
           tags: |
-              type=raw,value=latest,enable=true
+              type=raw,value=latest,enable=${{ env.IS_LATEST }}
               type=raw,value=${{ env.APP_VERSION }},enable=true
 
       - name: Set up QEMU
