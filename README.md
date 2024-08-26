@@ -48,7 +48,7 @@
 - [x] 轻量化 Emby 服务器，降低 Emby 服务器的性能需求以及硬盘需求
 - [x] 运行稳定
 - [x] 相比直接访问 Webdav，Emby、Jellyfin 服务器可以提供更好的视频搜索功能以及自带刮削器，以及多设备同步播放进度
-- [x] 提高访问速度，播放速度不受 Jellyfin 服务器带宽限制(原版 Jellyfin 开启转码后会代理访问 strm 文件，无法实现直链访问，需修改前端)
+- [x] 提高访问速度，播放速度不受 Emby/Jellyfin 服务器带宽限制（需要使用[MediaWarp](https://github.com/Akimio521/MediaWarp)）
 
 # TODO LIST
 - [x] 从config文件中读取多个参数
