@@ -27,12 +27,12 @@ jobs:
     name: Build Docker Image
     steps:
       - name: Show Information
-          run: |
-            echo "Docker镜像版本的标签号：${{ env.APP_VERSION }}"
-            echo "是否发布为Docker镜像最新版本：${{ env.IS_LATEST }}"
+        run: |
+          echo "Docker镜像版本的标签号：${{ env.APP_VERSION }}"
+          echo "是否发布为Docker镜像最新版本：${{ env.IS_LATEST }}"
 
-        - name: Clone Repository
-          uses: actions/checkout@v4
+      - name: Clone Repository
+        uses: actions/checkout@v4
 
       - name: Docker Meta
         id: meta
