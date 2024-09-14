@@ -97,7 +97,7 @@ class Alist2Strm:
             if self.overwrite:
                 return True
 
-            local_path = self.get_local_path(path)
+            local_path = self.__get_local_path(path)
 
             if local_path.exists():
                 logger.debug(f"文件{local_path.name}已存在，跳过处理{path.path}")
@@ -132,7 +132,7 @@ class Alist2Strm:
 
         :param path: AlistPath 对象
         """
-        local_path = self.get_local_path(path)
+        local_path = self.__get_local_path(path)
 
         if self.mode == "AlistURL":
             content = path.download_url
@@ -164,7 +164,7 @@ class Alist2Strm:
         except Exception as e:
             raise RuntimeError(f"{local_path}处理失败，详细信息：{e}")
 
-    def get_local_path(self, path: AlistPath) -> Path:
+    def __get_local_path(self, path: AlistPath) -> Path:
         """
         根据给定的 AlistPath 对象和当前的配置，计算出本地文件路径。
         """
