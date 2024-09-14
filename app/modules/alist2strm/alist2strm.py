@@ -157,7 +157,7 @@ class Alist2Strm:
                 async with self.__max_downloaders:
                     async with async_open(local_path, mode="wb") as file:
                         _write = file.write
-                        async with self.session.get(path.raw_url) as resp:
+                        async with self.session.get(path.download_url) as resp:
                             async for chunk in resp.content.iter_chunked(1024):
                                 await _write(chunk)
                     logger.info(f"{local_path.name}下载成功")
