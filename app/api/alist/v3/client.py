@@ -9,8 +9,8 @@ from aiohttp import ClientSession
 
 from app.core import logger
 from app.utils import retry
-from app.modules.alist.v3.alist_path import AlistPath
-from app.modules.alist.v3.alist_storage import AlistStorage
+from app.api.alist.v3.path import AlistPath
+from app.api.alist.v3.storage import AlistStorage
 
 
 class AlistClient:

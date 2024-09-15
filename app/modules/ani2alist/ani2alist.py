@@ -11,7 +11,7 @@ from feedparser import parse
 from app.core import logger
 from app.utils import UrlUtils
 from app.utils import AlistUrlTreeUtils, retry
-from app.modules.alist import AlistClient, AlistStorage
+from app.api import AlistClient, AlistStorage
 
 VIDEO_MINETYPE: Final = frozenset(("video/mp4", "video/x-matroska"))
 SUBTITLE_MINETYPE: Final = frozenset(("application/octet-stream",))
