@@ -111,6 +111,11 @@ class Alist2Strm:
             )
             self.mode = "AlistURL"
 
+        if self.mode == "RawURL":
+            is_detail = True
+        else:
+            is_detail = False
+
         async with self.__max_workers:
             async with ClientSession() as session:
                 self.session = session
@@ -120,7 +125,7 @@ class Alist2Strm:
                         self.url, self.username, self.password
                     ) as client:
                         async for path in client.iter_path(
-                            dir_path=self.source_dir, filter=filter
+                            dir_path=self.source_dir, is_detail=is_detail, filter=filter
                         ):
                             _create_task(self.__file_processer(path))
             logger.info("Alist2Strm处理完成")
