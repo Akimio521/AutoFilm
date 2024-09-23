@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-from app.utils import UrlUtils
+from app.utils import URLUtils
 
 
 class AlistPath:
@@ -85,7 +85,7 @@ class AlistPath:
         else:
             url = self.server_url + "/d" + self.abs_path
 
-        return UrlUtils.encode(url)
+        return URLUtils.encode(url)
 
     @property
     def suffix(self):

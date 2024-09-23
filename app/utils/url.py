@@ -4,7 +4,7 @@ from urllib.parse import quote
 from app.extensions import SAFE_WORD
 
 
-class UrlUtils:
+class URLUtils:
     """
     URL相关工具
     """

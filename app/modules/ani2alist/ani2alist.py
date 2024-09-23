@@ -9,7 +9,7 @@ from aiohttp import ClientSession
 from feedparser import parse
 
 from app.core import logger
-from app.utils import UrlUtils
+from app.utils import URLUtils
 from app.utils import AlistUrlTreeUtils, retry
 from app.api import AlistClient, AlistStorage
 
@@ -192,7 +192,7 @@ class Ani2Alist:
         """
         folder = self.__get_folder
         logger.debug(f"开始获取ANI Open {folder} 动画列表")
-        url = UrlUtils.encode(f"https://{self.__src_domain}/{folder}/")
+        url = URLUtils.encode(f"https://{self.__src_domain}/{folder}/")
 
         async with ClientSession() as session:
 
@@ -208,7 +208,7 @@ class Ani2Alist:
                     for file in _result["files"]:
                         mimeType: str = file["mimeType"]
                         name: str = file["name"]
-                        quoted_name = UrlUtils.encode(name)
+                        quoted_name = URLUtils.encode(name)
 
                         if mimeType in FILE_MINETYPE:
                             size: int = file["size"]
