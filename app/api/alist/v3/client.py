@@ -27,7 +27,6 @@ class AlistClient:
         :param password: Alist 密码
         """
         self.__HEADERS = {
-            "User-Agent": "Apifox/1.0.0 (https://apifox.com)",
             "Content-Type": "application/json",
         }
 
@@ -47,21 +46,20 @@ class AlistClient:
         """
         data = dumps({"username": self.username, "password": self.__password})
         api_url = self.url + "/api/auth/login"
-        async with self.__session.post(api_url, data=data) as resp:
+        async with ClientSession(headers=self.__HEADERS) as session:
+            async with session.post(api_url, data=data) as resp:
 
-            if resp.status != 200:
-                raise RuntimeError(f"登录请求发送失败，状态码：{resp.status}")
+                if resp.status != 200:
+                    raise RuntimeError(f"登录请求发送失败，状态码：{resp.status}")
 
-            result = await resp.json()
+                result = await resp.json()
 
-        if result["code"] != 200:
-            raise RuntimeError(f'登录失败，错误信息：{result["message"]}')
+            if result["code"] != 200:
+                raise RuntimeError(f'登录失败，错误信息：{result["message"]}')
 
-        logger.debug(f"{self.username}登录成功")
-        self.__HEADERS.update({"Authorization": result["data"]["token"]})
+            logger.debug(f"{self.username}登录成功")
+            self.__HEADERS.update({"Authorization": result["data"]["token"]})
 
-        if self.__session:
-            await self.__session.close()
         self.__session = ClientSession(headers=self.__HEADERS)
 
     @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None)
@@ -368,7 +366,6 @@ class AlistClient:
         return self.__dir
 
     async def __aenter__(self):
-        self.__session = ClientSession(headers=self.__HEADERS)
         await self.async_api_auth_login()
         await self.async_api_me()
         return self
