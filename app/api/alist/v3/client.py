@@ -337,7 +337,7 @@ class AlistClient:
         for path in await self.async_api_fs_list(dir_path):
             if path.is_dir:
                 async for child_path in self.iter_path(
-                    dir_path=path.path, filter=filter
+                    dir_path=path.path, is_detail=is_detail, filter=filter
                 ):
                     yield child_path
 
