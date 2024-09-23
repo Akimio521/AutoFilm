@@ -314,6 +314,7 @@ class AlistClient:
     async def iter_path(
         self,
         dir_path: str | None = None,
+        is_detail: bool = True,
         filter: Callable[[AlistPath], bool] = lambda x: True,
     ) -> AsyncGenerator[AlistPath, None]:
         """
@@ -321,6 +322,7 @@ class AlistClient:
         返回目录及其子目录的所有文件和目录的 AlistPath 对象
 
         :param dir_path: 目录路径（默认为 self.pwd）
+        :param is_detail：是否获取详细信息（raw_url）
         :param filter: 匿名函数过滤器（默认不启用）
         :return: AlistPath 对象生成器
         """
@@ -342,7 +344,10 @@ class AlistClient:
                     yield child_path
 
             if filter(path):
-                yield await self.async_api_fs_get(path)
+                if is_detail:
+                    yield await self.async_api_fs_get(path)
+                else:
+                    yield path
 
     def chdir(self, dir_path: str) -> None:
         """
