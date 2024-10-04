@@ -189,7 +189,7 @@ class AlistClient:
                     )
                 result = await resp.json()
         except asyncio.TimeoutError:
-            raise RuntimeError("获取路径{path_str}详细信息的请求超时")
+            raise RuntimeError(f"获取路径{path_str}详细信息的请求超时")
 
         if result["code"] != 200:
             raise RuntimeError(
