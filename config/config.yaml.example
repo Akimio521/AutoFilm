@@ -1,49 +1,51 @@
 Settings:
-  DEV: False                          # 开发者模式(可选，默认 False)
+  DEV: False                          # Developer mode (optional, default False)
 
 Alist2StrmList:
-  - id: 动漫                          # 标识 ID
-    cron: 0 20 * * *                  # 后台定时任务 Crontable 表达式
-    url: https://alist.akimio.top     # Alist 服务器地址
-    username: admin                   # Alist 用户名
-    password: adminadmin              # Alist 密码
-    source_dir: /ani/                 # Alist 服务器上文件夹路径
-    target_dir: D:\media\             # 输出路径
-    flatten_mode: False               # 平铺模式，开启后 subtitle、image、nfo 强制关闭(可选，默认 False)
-    subtitle: False                   # 是否下载字幕文件（可选，默认 False）
-    image: False                      # 是否下载图片文件（可选，默认 False）
-    nfo: False                        # 是否下载 .nfo 文件（可选，默认 False）
-    mode: AlistURL                    # Strm文件中的内容（可选项：AlistURL、RawURL、AlistPath）
-    overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件（可选，默认 False）
-    other_ext:                        # 自定义下载后缀，使用西文半角逗号进行分割，（可选，默认为空）
-    max_workers: 50                   # 最大并发数，减轻对 Alist 服务器的负载（可选，默认 50）
-    max_downloaders: 5                 # 最大同时下载文件数（可选，默认 5）
-    
-  - id: 电影
-    cron: 0 0 7 * *
+  - id: Anime                         # Identifier ID
+    cron: 0 20 * * *                  # Background scheduled task Crontab expression
+    url: https://alist.akimio.top     # Alist server address
+    username: admin                   # Alist username
+    password: adminadmin              # Alist password
+    source_dir: /ani/                 # Directory path on Alist server
+    target_dir: D:\media\             # Output path
+    flatten_mode: False               # Flatten mode; when enabled, subtitle, image, nfo are forcibly turned off (optional, default False)
+    subtitle: False                   # Whether to download subtitle files (optional, default False)
+    image: False                      # Whether to download image files (optional, default False)
+    nfo: False                        # Whether to download .nfo files (optional, default False)
+    mode: AlistURL                    # Content in .strm files (options: AlistURL, RawURL, AlistPath)
+    overwrite: False                  # Overwrite mode; whether to regenerate/download the file when a file with the same name exists locally (optional, default False)
+    sync_server: True                 # Synchronize with the server (delete obsolete .strm files) (optional, default True)
+    other_ext:                        # Custom download extensions, separated by commas (optional, default empty)
+    max_workers: 50                   # Maximum concurrency to reduce the load on the Alist server (optional, default 50)
+    max_downloaders: 5                # Maximum number of simultaneous file downloads (optional, default 5)
+
+  - id: Movies
+    cron: 0 0 7 * *                   # Background scheduled task Crontab expression
     url: http://alist.example2.com:5244
     username: alist
     password: alist
-    source_dir: /网盘/115/电影
-    target_dir: /media/my_video 
+    source_dir: /Drive/115/Movies     # Directory path on Alist server
+    target_dir: /media/my_video       # Output path
     flatten_mode: False 
     subtitle: False
     image: False
     nfo: False
     mode: RawURL
     overwrite: False
+    sync_server: True
     other_ext: zip,md
     max_workers: 5
 
 Ani2AlistList:
-  - id: 新番追更                           # 标识 ID
-    cron: 20 12 * * *                     # 后台定时任务 Crontable 表达式
-    url: https://127.0.0.1:5244           # Alist 服务器地址
-    username: admin                       # Alist 用户名（需管理员权限）
-    password: myalist                     # Alist 密码
-    target_dir: /视频/动漫/新番            # Alist 地址树存储器路径，若存储器不存在将自动创建（可选，默认/Anime）
-    rss_update: False                     # 使用 RSS 订阅更新最新番剧，启用后忽视传入的 year 和 month（可选，默认为 True）
-    year: 2024                            # 动漫季度-年份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
-    month: 7                              # 动漫季度-月份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
-    src_domain: aniopen.an-i.workers.dev  # ANI Open 项目域名（可选，默认为 aniopen.an-i.workers.dev）
-    rss_domain: api.ani.rip               # ANI Open 项目 RSS 订阅域名（可选，默认为 api.ani.rip） 
+  - id: New Anime Updates             # Identifier ID
+    cron: 20 12 * * *                 # Background scheduled task Crontab expression
+    url: https://127.0.0.1:5244       # Alist server address
+    username: admin                   # Alist username (requires administrator privileges)
+    password: myalist                 # Alist password
+    target_dir: /Videos/Anime/New     # Alist storage path in the address tree; if the storage does not exist, it will be automatically created (optional, default /Anime)
+    rss_update: False                 # Use RSS subscription to update the latest anime; when enabled, ignores the provided year and month (optional, default True)
+    year: 2024                        # Anime season - year, supports only anime updated after 2019-1 (optional, default uses current date)
+    month: 7                          # Anime season - month, supports only anime updated after 2019-1 (optional, default uses current date)
+    src_domain: aniopen.an-i.workers.dev  # ANI Open project domain name (optional, default aniopen.an-i.workers.dev)
+    rss_domain: api.ani.rip               # ANI Open project RSS subscription domain name (optional, default api.ani.rip)
