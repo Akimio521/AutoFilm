@@ -32,14 +32,14 @@ class Alist2Strm:
         other_ext: str = "",
         max_workers: int = 50,
         max_downloaders: int = 5,
-        sync_server: bool = True,  # Nouveau paramètre
+        sync_server: bool = True,
         **_,
     ) -> None:
         """
-        Initialise l'objet Alist2Strm.
+        Initialize the Alist2Strm object.
 
-        :param sync_server: Si True, synchronise avec le serveur Alist (supprime les fichiers .strm obsolètes). Par défaut True.
-        Autres paramètres décrits précédemment...
+        :param sync_server: If True, synchronizes with the Alist server (deletes obsolete .strm files). Default is True.
+        Other parameters described previously...
         """
         self.url = url
         self.username = username
@@ -75,25 +75,25 @@ class Alist2Strm:
         # Initialize processed local paths set
         self.processed_local_paths = set()
 
-        self.sync_server = sync_server  # Enregistrer le nouveau paramètre
+        self.sync_server = sync_server  # Store the new parameter
 
     async def run(self) -> None:
         """
-        Fonction principale de traitement.
+        Main processing function.
         """
         def filter_func(path: AlistPath) -> bool:
             if path.is_dir:
                 return False
 
             if not path.suffix.lower() in self.process_file_exts:
-                logger.debug(f"Fichier {path.name} non pris en charge.")
+                logger.debug(f"File {path.name} not supported.")
                 return False
 
-            return True  # Toujours True pour traiter tous les fichiers
+            return True  # Always True to process all files
 
         if self.mode not in ["AlistURL", "RawURL", "AlistPath"]:
             logger.warning(
-                f"Mode '{self.mode}' non reconnu pour Alist2Strm. Utilisation du mode 'AlistURL' par défaut."
+                f"Mode '{self.mode}' not recognized for Alist2Strm. Using default mode 'AlistURL'."
             )
             self.mode = "AlistURL"
 
@@ -113,29 +113,29 @@ class Alist2Strm:
                             filter=filter_func,
                         ):
                             _create_task(self.__file_processor(path))
-                logger.info("Traitement Alist2Strm terminé.")
+                logger.info("Alist2Strm processing completed.")
 
-        # Si la synchronisation avec le serveur est activée
+        # If synchronization with the server is enabled
         if self.sync_server:
-            # Étape de nettoyage : suppression des fichiers .strm obsolètes et de leurs fichiers associés
+            # Cleanup step: delete obsolete .strm files and their associated files
             await self.__cleanup_local_files()
-            logger.info("Nettoyage des fichiers .strm obsolètes terminé.")
+            logger.info("Cleanup of obsolete .strm files completed.")
 
     @retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
     async def __file_processor(self, path: AlistPath) -> None:
         """
-        Enregistre le fichier localement de manière asynchrone.
+        Asynchronously saves the file locally.
 
-        :param path: Objet AlistPath
+        :param path: AlistPath object
         """
         local_path = self.__get_local_path(path)
 
-        # Ajouter le chemin local aux chemins traités
+        # Add the local path to processed paths
         self.processed_local_paths.add(local_path)
 
         if not self.overwrite and local_path.exists():
             logger.debug(
-                f"Fichier {local_path.name} déjà existant, saut du traitement de {path.path}."
+                f"File {local_path.name} already exists, skipping processing of {path.path}."
             )
             return
 
@@ -146,44 +146,44 @@ class Alist2Strm:
         elif self.mode == "AlistPath":
             content = path.path
         else:
-            raise ValueError(f"Mode inconnu pour AlistStrm : {self.mode}")
+            raise ValueError(f"Unknown mode for AlistStrm: {self.mode}")
 
         try:
             parent_dir = local_path.parent
             if not parent_dir.exists():
                 await to_thread(parent_dir.mkdir, parents=True, exist_ok=True)
 
-            logger.debug(f"Traitement de {local_path}...")
+            logger.debug(f"Processing {local_path}...")
             if local_path.suffix.lower() == ".strm":
                 async with async_open(local_path, mode="w", encoding="utf-8") as file:
                     await file.write(content)
-                logger.info(f"{local_path.name} créé avec succès.")
+                logger.info(f"{local_path.name} created successfully.")
             else:
                 async with self.__max_downloaders:
                     async with async_open(local_path, mode="wb") as file:
                         async with self.session.get(path.download_url) as resp:
                             if resp.status != 200:
                                 raise RuntimeError(
-                                    f"Échec du téléchargement de {path.download_url}, code d'état : {resp.status}"
+                                    f"Failed to download {path.download_url}, status code: {resp.status}"
                                 )
                             async for chunk in resp.content.iter_chunked(1024):
                                 await file.write(chunk)
-                    logger.info(f"{local_path.name} téléchargé avec succès.")
+                    logger.info(f"{local_path.name} downloaded successfully.")
 
         except Exception as e:
-            raise RuntimeError(f"Échec du traitement de {local_path}, détails : {e}")
+            raise RuntimeError(f"Failed to process {local_path}, details: {e}")
 
     def __get_local_path(self, path: AlistPath) -> Path:
         """
-        Calcule le chemin du fichier local en fonction de l'objet AlistPath et de la configuration actuelle.
+        Calculates the local file path based on the AlistPath object and current configuration.
 
-        :param path: Objet AlistPath
-        :return: Chemin du fichier local
+        :param path: AlistPath object
+        :return: Local file path
         """
         if self.flatten_mode:
             local_path = self.target_dir / path.name
         else:
-            # S'assurer que le chemin est relatif à source_dir
+            # Ensure that the path is relative to source_dir
             relative_path = path.path
             if relative_path.startswith("/"):
                 relative_path = relative_path[1:]
@@ -196,43 +196,43 @@ class Alist2Strm:
 
     async def __cleanup_local_files(self) -> None:
         """
-        Supprime les fichiers .strm locaux et leurs fichiers associés qui n'ont pas été traités lors de l'exécution actuelle.
+        Deletes local .strm files and their associated files that were not processed in the current run.
         """
-        logger.info("Début du nettoyage des fichiers .strm obsolètes.")
+        logger.info("Starting cleanup of obsolete .strm files.")
 
-        # Collecter tous les fichiers dans le répertoire cible
+        # Collect all files in target directory
         if self.flatten_mode:
-            # Ne regarder que dans target_dir
+            # Only look in target_dir
             all_local_files = [f for f in self.target_dir.iterdir() if f.is_file()]
         else:
-            # Parcourir target_dir récursivement
+            # Walk through target_dir recursively
             all_local_files = [
                 f for f in self.target_dir.rglob("*") if f.is_file()
             ]
 
         files_to_delete = set(all_local_files) - self.processed_local_paths
 
-        # Supprimer les fichiers et leurs fichiers associés
+        # Delete the files and their associated files
         for file_path in files_to_delete:
             associated_files = self.__get_associated_files(file_path)
             for file in [file_path] + associated_files:
                 try:
                     if file.exists():
                         await to_thread(file.unlink)
-                        logger.info(f"Fichier obsolète supprimé : {file}")
+                        logger.info(f"Obsolete file deleted: {file}")
                 except Exception as e:
-                    logger.error(f"Échec de la suppression du fichier {file} : {e}")
+                    logger.error(f"Failed to delete file {file}: {e}")
 
     def __get_associated_files(self, file_path: Path) -> list[Path]:
         """
-        Récupère les fichiers associés (.nfo, sous-titres, etc.) pour un fichier donné.
+        Retrieves associated files (.nfo, subtitles, etc.) for a given file.
 
-        :param file_path: Chemin du fichier
-        :return: Liste des chemins des fichiers associés
+        :param file_path: Path to the file
+        :return: List of associated file paths
         """
         associated_files = []
 
-        # Définir les extensions associées en fonction de la configuration
+        # Define associated extensions based on configuration
         associated_exts = list(self.download_exts)
 
         for ext in associated_exts:
