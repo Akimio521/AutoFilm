@@ -38,8 +38,22 @@ class Alist2Strm:
         """
         Initialize the Alist2Strm object.
 
+        :param url: Alist server URL, default is "http://localhost:5244"
+        :param username: Alist username, default is empty
+        :param password: Alist password, default is empty
+        :param source_dir: Source directory in Alist to synchronize, default is "/"
+        :param target_dir: Directory to output .strm files, default is current working directory
+        :param flatten_mode: If True, saves all .strm files in a single directory, default is False
+        :param subtitle: If True, downloads subtitle files, default is False
+        :param image: If True, downloads image files, default is False
+        :param nfo: If True, downloads .nfo files, default is False
+        :param mode: Strm mode (AlistURL/RawURL/AlistPath)
+        :param overwrite: If True, overwrite existing local files, default is False
+        :param other_ext: Custom extensions to download, separated by commas, default is empty
+        :param max_workers: Maximum number of concurrent workers
+        :param max_downloaders: Maximum number of simultaneous downloads
         :param sync_server: If True, synchronizes with the Alist server (deletes obsolete .strm files). Default is True.
-        Other parameters described previously...
+
         """
         self.url = url
         self.username = username
