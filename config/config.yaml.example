@@ -15,9 +15,10 @@ Alist2StrmList:
     nfo: False                        # 是否下载 .nfo 文件（可选，默认 False）
     mode: AlistURL                    # Strm文件中的内容（可选项：AlistURL、RawURL、AlistPath）
     overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件（可选，默认 False）
+    sync_server: True                 # 是否同步服务器，删除过期的 .strm 文件（可选，默认为 True）
     other_ext:                        # 自定义下载后缀，使用西文半角逗号进行分割，（可选，默认为空）
     max_workers: 50                   # 最大并发数，减轻对 Alist 服务器的负载（可选，默认 50）
-    max_downloaders: 5                 # 最大同时下载文件数（可选，默认 5）
+    max_downloaders: 5                # 最大同时下载文件数（可选，默认 5）
     
   - id: 电影
     cron: 0 0 7 * *
@@ -32,6 +33,7 @@ Alist2StrmList:
     nfo: False
     mode: RawURL
     overwrite: False
+    sync_server: True
     other_ext: zip,md
     max_workers: 5
 

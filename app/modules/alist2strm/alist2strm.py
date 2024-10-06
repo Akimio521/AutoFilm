@@ -32,6 +32,7 @@ class Alist2Strm:
         other_ext: str = "",
         max_workers: int = 50,
         max_downloaders: int = 5,
+        sync_server: bool = True,
         **_,
     ) -> None:
         """
@@ -49,8 +50,9 @@ class Alist2Strm:
         :param mode: Strm模式(AlistURL/RawURL/AlistPath)
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
-        :param max_worders: 最大并发数
+        :param max_workers: 最大并发数
         :param max_downloaders: 最大同时下载
+        :param sync_server: 是否同步服务器，删除过期的 .strm 文件，默认为 True
         """
         self.url = url
         self.username = username
@@ -81,6 +83,10 @@ class Alist2Strm:
         self.__max_workers = Semaphore(max_workers)
         self.__max_downloaders = Semaphore(max_downloaders)
 
+        self.processed_local_paths = set()
+
+        self.sync_server = sync_server
+
     async def run(self) -> None:
         """
         处理主体
@@ -94,12 +100,10 @@ class Alist2Strm:
                 logger.debug(f"文件{path.name}不在处理列表中")
                 return False
 
-            if self.overwrite:
-                return True
-
             local_path = self.__get_local_path(path)
+            self.processed_local_paths.add(local_path)
 
-            if local_path.exists():
+            if not self.overwrite and local_path.exists():
                 logger.debug(f"文件{local_path.name}已存在，跳过处理{path.path}")
                 return False
 
@@ -129,6 +133,10 @@ class Alist2Strm:
                         ):
                             _create_task(self.__file_processer(path))
             logger.info("Alist2Strm处理完成")
+
+        if self.sync_server:
+            await self.__cleanup_local_files()
+            logger.info("清理过期的 .strm 文件完成")
 
     @retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
     async def __file_processer(self, path: AlistPath) -> None:
@@ -161,10 +169,13 @@ class Alist2Strm:
             else:
                 async with self.__max_downloaders:
                     async with async_open(local_path, mode="wb") as file:
-                        _write = file.write
                         async with self.session.get(path.download_url) as resp:
+                            if resp.status != 200:
+                                raise RuntimeError(
+                                    f"下载{path.download_url}失败，状态码：{resp.status}"
+                                )
                             async for chunk in resp.content.iter_chunked(1024):
-                                await _write(chunk)
+                                await file.write(chunk)
                     logger.info(f"{local_path.name}下载成功")
         except Exception as e:
             raise RuntimeError(f"{local_path}处理失败，详细信息：{e}")
@@ -172,15 +183,61 @@ class Alist2Strm:
     def __get_local_path(self, path: AlistPath) -> Path:
         """
         根据给定的 AlistPath 对象和当前的配置，计算出本地文件路径。
+
+        :param path: AlistPath 对象
+        :return: 本地文件路径
         """
         if self.flatten_mode:
             local_path = self.target_dir / path.name
         else:
-            local_path = self.target_dir / path.path.replace(
-                self.source_dir, "", 1
-            ).lstrip("/")
+            relative_path = path.path
+            if relative_path.startswith("/"):
+                relative_path = relative_path[1:]
+            local_path = self.target_dir / relative_path
 
         if path.suffix.lower() in VIDEO_EXTS:
             local_path = local_path.with_suffix(".strm")
 
         return local_path
+
+    async def __cleanup_local_files(self) -> None:
+        """
+        删除本地未处理的 .strm 文件及其关联文件
+        """
+        logger.info("开始清理本地过期的 .strm 文件")
+
+        if self.flatten_mode:
+            all_local_files = [f for f in self.target_dir.iterdir() if f.is_file()]
+        else:
+            all_local_files = [
+                f for f in self.target_dir.rglob("*") if f.is_file()
+            ]
+
+        files_to_delete = set(all_local_files) - self.processed_local_paths
+
+        for file_path in files_to_delete:
+            associated_files = self.__get_associated_files(file_path)
+            for file in [file_path] + associated_files:
+                try:
+                    if file.exists():
+                        await to_thread(file.unlink)
+                        logger.info(f"删除过期文件：{file}")
+                except Exception as e:
+                    logger.error(f"删除文件{file}失败：{e}")
+
+    def __get_associated_files(self, file_path: Path) -> list[Path]:
+        """
+        获取给定文件的关联文件（如 .nfo、字幕等）
+
+        :param file_path: 文件路径
+        :return: 关联文件的路径列表
+        """
+        associated_files = []
+
+        associated_exts = list(self.download_exts)
+
+        for ext in associated_exts:
+            associated_file = file_path.with_suffix(ext)
+            associated_files.append(associated_file)
+
+        return associated_files
