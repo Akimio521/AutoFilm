@@ -3,7 +3,7 @@ Settings:
 
 Alist2StrmList:
   - id: 动漫                          # 标识 ID
-    cron: 0 20 * * *                  # 后台定时任务 Crontable 表达式
+    cron: 0 20 * * *                  # 后台定时任务 Cron 表达式
     url: https://alist.akimio.top     # Alist 服务器地址
     username: admin                   # Alist 用户名
     password: adminadmin              # Alist 密码
@@ -13,9 +13,9 @@ Alist2StrmList:
     subtitle: False                   # 是否下载字幕文件（可选，默认 False）
     image: False                      # 是否下载图片文件（可选，默认 False）
     nfo: False                        # 是否下载 .nfo 文件（可选，默认 False）
-    mode: AlistURL                    # Strm文件中的内容（可选项：AlistURL、RawURL、AlistPath）
+    mode: AlistURL                    # Strm 文件中的内容（可选项：AlistURL、RawURL、AlistPath）
     overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件（可选，默认 False）
-    sync_server: True                 # 是否同步服务器，删除过期的 .strm 文件（可选，默认为 True）
+    sync_server: True                 # 是否同步服务器（可选，默认为 True）
     other_ext:                        # 自定义下载后缀，使用西文半角逗号进行分割，（可选，默认为空）
     max_workers: 50                   # 最大并发数，减轻对 Alist 服务器的负载（可选，默认 50）
     max_downloaders: 5                # 最大同时下载文件数（可选，默认 5）
@@ -39,7 +39,7 @@ Alist2StrmList:
 
 Ani2AlistList:
   - id: 新番追更                           # 标识 ID
-    cron: 20 12 * * *                     # 后台定时任务 Crontable 表达式
+    cron: 20 12 * * *                     # 后台定时任务 Cron 表达式
     url: https://127.0.0.1:5244           # Alist 服务器地址
     username: admin                       # Alist 用户名（需管理员权限）
     password: myalist                     # Alist 密码
@@ -47,5 +47,5 @@ Ani2AlistList:
     rss_update: False                     # 使用 RSS 订阅更新最新番剧，启用后忽视传入的 year 和 month（可选，默认为 True）
     year: 2024                            # 动漫季度-年份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
     month: 7                              # 动漫季度-月份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
-    src_domain: aniopen.an-i.workers.dev  # ANI Open 项目域名（可选，默认为 aniopen.an-i.workers.dev）
-    rss_domain: api.ani.rip               # ANI Open 项目 RSS 订阅域名（可选，默认为 api.ani.rip） 
+    src_domain: aniopen.an-i.workers.dev  # AniOpen 项目域名（可选，默认为 aniopen.an-i.workers.dev）
+    rss_domain: api.ani.rip               # AniOpen 项目 RSS 订阅域名（可选，默认为 api.ani.rip） 

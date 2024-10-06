@@ -49,10 +49,10 @@ class Alist2Strm:
         :param nfo: 是否下载 .nfo 文件，默认为 False
         :param mode: Strm模式(AlistURL/RawURL/AlistPath)
         :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
+        :param sync_server: 是否同步服务器，启用后若服务器中删除了文件，也会将本地文件删除，默认为 True
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_workers: 最大并发数
         :param max_downloaders: 最大同时下载
-        :param sync_server: 是否同步服务器，删除过期的 .strm 文件，默认为 True
         """
         self.url = url
         self.username = username
@@ -202,16 +202,14 @@ class Alist2Strm:
 
     async def __cleanup_local_files(self) -> None:
         """
-        删除本地未处理的 .strm 文件及其关联文件
+        删除服务器中已删除的本地的 .strm 文件及其关联文件
         """
-        logger.info("开始清理本地过期的 .strm 文件")
+        logger.info("开始清理本地文件")
 
         if self.flatten_mode:
             all_local_files = [f for f in self.target_dir.iterdir() if f.is_file()]
         else:
-            all_local_files = [
-                f for f in self.target_dir.rglob("*") if f.is_file()
-            ]
+            all_local_files = [f for f in self.target_dir.rglob("*") if f.is_file()]
 
         files_to_delete = set(all_local_files) - self.processed_local_paths
 
@@ -221,7 +219,7 @@ class Alist2Strm:
                 try:
                     if file.exists():
                         await to_thread(file.unlink)
-                        logger.info(f"删除过期文件：{file}")
+                        logger.info(f"删除文件：{file}")
                 except Exception as e:
                     logger.error(f"删除文件{file}失败：{e}")
 
