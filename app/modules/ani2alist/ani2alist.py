@@ -130,7 +130,7 @@ class Ani2Alist:
             )
             if not storage:
                 logger.debug(
-                    f"在Alist服务器上未找到存储器{self.__target_dir}，开始创建存储器"
+                    f"在Alist服务器上未找到存储器 {self.__target_dir}，开始创建存储器"
                 )
                 storage = AlistStorage(driver="UrlTree", mount_path=self.__target_dir)
                 await client.async_api_admin_storage_create(storage)

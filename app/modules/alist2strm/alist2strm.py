@@ -103,21 +103,21 @@ class Alist2Strm:
                 return False
 
             if not path.suffix.lower() in self.process_file_exts:
-                logger.debug(f"文件{path.name}不在处理列表中")
+                logger.debug(f"文件 {path.name} 不在处理列表中")
                 return False
 
             local_path = self.__get_local_path(path)
             self.processed_local_paths.add(local_path)
 
             if not self.overwrite and local_path.exists():
-                logger.debug(f"文件{local_path.name}已存在，跳过处理{path.path}")
+                logger.debug(f"文件 {local_path.name} 已存在，跳过处理 {path.path}")
                 return False
 
             return True
 
         if not self.mode in ["AlistURL", "RawURL", "AlistPath"]:
             logger.warning(
-                f"Alist2Strm的模式{self.mode}不存在，已设置为默认模式AlistURL"
+                f"Alist2Strm的模式 {self.mode} 不存在，已设置为默认模式AlistURL"
             )
             self.mode = "AlistURL"
 
@@ -162,31 +162,31 @@ class Alist2Strm:
         elif self.mode == "AlistPath":
             content = path.path
         else:
-            raise ValueError(f"AlistStrm未知的模式{self.mode}")
+            raise ValueError(f"AlistStrm未知的模式 {self.mode}")
 
         try:
             _parent = local_path.parent
             if not _parent.exists():
                 await to_thread(_parent.mkdir, parents=True, exist_ok=True)
 
-            logger.debug(f"开始处理{local_path}")
+            logger.debug(f"开始处理 {local_path}")
             if local_path.suffix == ".strm":
                 async with async_open(local_path, mode="w", encoding="utf-8") as file:
                     await file.write(content)
-                logger.info(f"{local_path.name}创建成功")
+                logger.info(f"{local_path.name} 创建成功")
             else:
                 async with self.__max_downloaders:
                     async with async_open(local_path, mode="wb") as file:
                         async with self.session.get(path.download_url) as resp:
                             if resp.status != 200:
                                 raise RuntimeError(
-                                    f"下载{path.download_url}失败，状态码：{resp.status}"
+                                    f"下载 {path.download_url} 失败，状态码：{resp.status}"
                                 )
                             async for chunk in resp.content.iter_chunked(1024):
                                 await file.write(chunk)
-                    logger.info(f"{local_path.name}下载成功")
+                    logger.info(f"{local_path.name} 下载成功")
         except Exception as e:
-            raise RuntimeError(f"{local_path}处理失败，详细信息：{e}")
+            raise RuntimeError(f"{local_path} 处理失败，详细信息：{e}")
 
     def __get_local_path(self, path: AlistPath) -> Path:
         """
