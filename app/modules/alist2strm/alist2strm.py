@@ -83,8 +83,6 @@ class Alist2Strm:
         self.__max_workers = Semaphore(max_workers)
         self.__max_downloaders = Semaphore(max_downloaders)
 
-        self.processed_local_paths = set()
-
         self.sync_server = sync_server
 
     async def run(self) -> None:
@@ -119,6 +117,8 @@ class Alist2Strm:
             is_detail = True
         else:
             is_detail = False
+
+        self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
         async with self.__max_workers:
             async with ClientSession() as session:
