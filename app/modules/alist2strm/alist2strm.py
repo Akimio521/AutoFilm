@@ -91,6 +91,14 @@ class Alist2Strm:
         """
 
         def filter(path: AlistPath) -> bool:
+            """
+            过滤器
+            根据 Alist2Strm 配置判断是否需要处理该文件
+            将云盘上上的文件对应的本地文件路径保存至 self.processed_local_paths
+
+            :param path: AlistPath 对象
+            """
+
             if path.is_dir:
                 return False
 
