@@ -222,28 +222,9 @@ class Alist2Strm:
         files_to_delete = set(all_local_files) - self.processed_local_paths
 
         for file_path in files_to_delete:
-            associated_files = self.__get_associated_files(file_path)
-            for file in [file_path] + associated_files:
-                try:
-                    if file.exists():
-                        await to_thread(file.unlink)
-                        logger.info(f"删除文件：{file}")
-                except Exception as e:
-                    logger.error(f"删除文件{file}失败：{e}")
-
-    def __get_associated_files(self, file_path: Path) -> list[Path]:
-        """
-        获取给定文件的关联文件（如 .nfo、字幕等）
-
-        :param file_path: 文件路径
-        :return: 关联文件的路径列表
-        """
-        associated_files = []
-
-        associated_exts = list(self.download_exts)
-
-        for ext in associated_exts:
-            associated_file = file_path.with_suffix(ext)
-            associated_files.append(associated_file)
-
-        return associated_files
+            try:
+                if file_path.exists():
+                    await to_thread(file_path.unlink)
+                    logger.info(f"删除文件：{file_path}")
+            except Exception as e:
+                logger.error(f"删除文件 {file_path} 失败：{e}")
