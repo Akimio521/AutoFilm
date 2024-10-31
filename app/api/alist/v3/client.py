@@ -20,6 +20,10 @@ class AlistClient(metaclass=Multiton):
     Alist 客户端 API
     """
 
+    __HEADERS = {
+        "Content-Type": "application/json",
+    }
+
     def __init__(self, url: str, username: str, password: str) -> None:
         """
         AlistClient 类初始化
@@ -28,10 +32,6 @@ class AlistClient(metaclass=Multiton):
         :param username: Alist 用户名
         :param password: Alist 密码
         """
-
-        self.__HEADERS = {
-            "Content-Type": "application/json",
-        }
 
         if not url.startswith("http"):
             url = "https://" + url
