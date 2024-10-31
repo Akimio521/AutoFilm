@@ -4,6 +4,7 @@ from time import sleep
 from logging import Logger
 
 from app.core.log import LoggerManager
+from app.utils.singleton import Singleton
 
 TRIES = 3
 DELAY = 3
@@ -11,8 +12,8 @@ BACKOFF = 1
 T = TypeVar("T")
 
 
-class Retry:
-    """ "
+class Retry(metaclass=Singleton):
+    """
     重试装饰器
     """
 

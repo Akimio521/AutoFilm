@@ -1,5 +1,8 @@
-class AlistUrlTreeUtils:
-    """ "
+from app.utils.singleton import Singleton
+
+
+class AlistUrlTreeUtils(metaclass=Singleton):
+    """
     Alist 地址树结构转换工具
     """
 
