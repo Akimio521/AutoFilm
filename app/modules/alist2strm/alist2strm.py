@@ -9,7 +9,7 @@ from aiofile import async_open
 from aiohttp import ClientSession
 
 from app.core import logger
-from app.utils import retry
+from app.utils import Retry
 from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
 from app.api import AlistClient, AlistPath
 
@@ -146,7 +146,7 @@ class Alist2Strm:
             await self.__cleanup_local_files()
             logger.info("清理过期的 .strm 文件完成")
 
-    @retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
+    @Retry.async_retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
     async def __file_processer(self, path: AlistPath) -> None:
         """
         异步保存文件至本地

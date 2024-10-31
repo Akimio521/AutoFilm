@@ -10,7 +10,7 @@ from feedparser import parse
 
 from app.core import logger
 from app.utils import URLUtils
-from app.utils import AlistUrlTreeUtils, retry
+from app.utils import AlistUrlTreeUtils, Retry
 from app.api import AlistClient, AlistStorage
 
 VIDEO_MINETYPE: Final = frozenset(("video/mp4", "video/x-matroska"))
@@ -196,7 +196,9 @@ class Ani2Alist:
 
         async with ClientSession() as session:
 
-            @retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret={})
+            @Retry.async_retry(
+                Exception, tries=3, delay=3, backoff=2, logger=logger, ret={}
+            )
             async def parse_data(_url: str = url) -> dict:
                 logger.debug(f"请求地址：{_url}")
                 async with session.post(_url, json={}) as _resp:
@@ -234,7 +236,7 @@ class Ani2Alist:
             return await parse_data()
 
     @property
-    @retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret={})
+    @Retry.async_retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret={})
     async def get_rss_anime_dict(self) -> dict:
         """
         获取 RSS 动画列表

@@ -8,7 +8,7 @@ import asyncio
 from aiohttp import ClientSession
 
 from app.core import logger
-from app.utils import retry
+from app.utils import Retry
 from app.api.alist.v3.path import AlistPath
 from app.api.alist.v3.storage import AlistStorage
 
@@ -38,7 +38,9 @@ class AlistClient:
         self.__password = password
         self.__dir = "/"
 
-    @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None)
+    @Retry.async_retry(
+        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
+    )
     async def async_api_auth_login(self) -> None:
         """
         登录 Alist 服务器认证账户信息
@@ -62,7 +64,9 @@ class AlistClient:
 
         self.__session = ClientSession(headers=self.__HEADERS)
 
-    @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None)
+    @Retry.async_retry(
+        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
+    )
     async def async_api_me(self) -> None:
         """
         获取用户信息
@@ -84,7 +88,7 @@ class AlistClient:
         except:
             raise RuntimeError("获取用户信息失败")
 
-    @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
+    @Retry.async_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
     async def async_api_fs_list(
         self, path: AlistPath | str | None = None
     ) -> list[AlistPath]:
@@ -148,7 +152,9 @@ class AlistClient:
                 f"返回目录{dir_path_str}的AlistPath对象列表失败，错误信息：{e}"
             )
 
-    @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None)
+    @Retry.async_retry(
+        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
+    )
     async def async_api_fs_get(
         self, path: AlistPath | str | None = None
     ) -> AlistPath | None:
@@ -207,7 +213,7 @@ class AlistClient:
         except Exception as e:
             raise RuntimeError(f"返回路径{path_str}的AlistPath对象失败，错误信息：{e}")
 
-    @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
+    @Retry.async_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
     async def async_api_admin_storage_list(self) -> list[AlistStorage]:
         """
         列出存储列表 需要管理员用户权限
@@ -231,7 +237,9 @@ class AlistClient:
         except Exception as e:
             raise RuntimeError(f"返回AlistStorage对象列表失败，错误信息：{e}")
 
-    @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None)
+    @Retry.async_retry(
+        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
+    )
     async def async_api_admin_storage_create(self, storage: AlistStorage) -> None:
         """
         创建存储 需要管理员用户权限
@@ -266,7 +274,9 @@ class AlistClient:
         logger.debug("创建存储成功")
         return
 
-    @retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None)
+    @Retry.async_retry(
+        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
+    )
     async def sync_api_admin_storage_update(self, storage: AlistStorage) -> None:
         """
         更新存储，需要管理员用户权限
