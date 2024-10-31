@@ -13,6 +13,8 @@
 
 # AutoFilm
 
+[English](README_EN.md) | 中文
+
 **一个为Emby、Jellyfin服务器提供直链播放的小项目** 
 
 [![license][license-badge]][license]
