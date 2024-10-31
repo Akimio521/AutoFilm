@@ -37,8 +37,8 @@ class AlistClient(metaclass=Multiton):
             url = "https://" + url
         self.url = url.rstrip("/")
 
-        self.username = username
-        self.__password = password
+        self.username = str(username)
+        self.__password = str(password)
         self.__dir = "/"
         self.__token = {
             "token": "",  # 令牌 token str
