@@ -37,8 +37,8 @@ class AlistClient(metaclass=Multiton):
             url = "https://" + url
         self.url = url.rstrip("/")
 
-        self.username = str(username)
-        self.__password = str(password)
+        self.__username = str(username)
+        self.___password = str(password)
         self.__dir = "/"
         self.__token = {
             "token": "",  # 令牌 token str
@@ -55,6 +55,22 @@ class AlistClient(metaclass=Multiton):
 
     async def __aexit__(self, *_):
         await self.__session.close()
+
+    @property
+    def username(self) -> str:
+        """
+        获取用户名
+        """
+
+        return self.__username
+
+    @property
+    def __password(self) -> str:
+        """
+        获取密码
+        """
+
+        return self.___password
 
     @property
     def __get_token(self) -> str:
