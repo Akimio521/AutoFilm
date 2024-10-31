@@ -56,6 +56,7 @@ class AlistClient(metaclass=Multiton):
     async def __aexit__(self, *_):
         await self.__session.close()
 
+    @property
     def __get_token(self) -> str:
         """
         返回可用登录令牌
@@ -76,6 +77,7 @@ class AlistClient(metaclass=Multiton):
 
             return self.__token["token"]
 
+    @property
     def __get_header_with_token(self) -> dict:
         """
         返回带有 token 的 header
@@ -83,7 +85,7 @@ class AlistClient(metaclass=Multiton):
         :return: 带有 token 的 header
         """
 
-        return self.__HEADERS.copy().update({"Authorization": self.__get_token()})
+        return self.__HEADERS.copy().update({"Authorization": self.__get_token})
 
     @Retry.sync_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret="")
     def sync_api_auth_login(self) -> str:
@@ -119,7 +121,7 @@ class AlistClient(metaclass=Multiton):
 
         api_url = self.url + "/api/me"
         session = Session()
-        session.headers.update(self.__get_header_with_token())
+        session.headers.update(self.__get_header_with_token)
         resp = session.get(api_url)
 
         if resp.status_code != 200:
@@ -169,7 +171,7 @@ class AlistClient(metaclass=Multiton):
         )
 
         try:
-            self.__session.headers.update(self.__get_header_with_token())
+            self.__session.headers.update(self.__get_header_with_token)
             async with self.__session.post(api_url, data=payload) as resp:
                 if resp.status != 200:
                     raise RuntimeError(
@@ -237,7 +239,7 @@ class AlistClient(metaclass=Multiton):
         )
 
         try:
-            self.__session.headers.update(self.__get_header_with_token())
+            self.__session.headers.update(self.__get_header_with_token)
             async with self.__session.post(api_url, data=payload) as resp:
                 if resp.status != 200:
                     raise RuntimeError(
@@ -274,7 +276,7 @@ class AlistClient(metaclass=Multiton):
         """
         api_url = self.url + "/api/admin/storage/list"
 
-        self.__session.headers.update(self.__get_header_with_token())
+        self.__session.headers.update(self.__get_header_with_token)
         async with self.__session.get(api_url) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"获取存储器列表请求发送失败，状态码：{resp.status}")
@@ -317,7 +319,7 @@ class AlistClient(metaclass=Multiton):
             }
         )
 
-        self.__session.headers.update(self.__get_header_with_token())
+        self.__session.headers.update(self.__get_header_with_token)
         async with self.__session.post(api_url, data=payload) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"创建存储请求发送失败，状态码：{resp.status}")
@@ -361,7 +363,7 @@ class AlistClient(metaclass=Multiton):
             }
         )
 
-        self.__session.headers.update(self.__get_header_with_token())
+        self.__session.headers.update(self.__get_header_with_token)
         async with self.__session.post(api_url, data=payload) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"更新存储请求发送失败，状态码：{resp.status}")
