@@ -32,7 +32,7 @@ class Alist2Strm:
         other_ext: str = "",
         max_workers: int = 50,
         max_downloaders: int = 5,
-        sync_server: bool = True,
+        sync_server: bool = False,
         **_,
     ) -> None:
         """
