@@ -113,7 +113,9 @@ class AlistClient(metaclass=Multiton):
 
         data = dumps({"username": self.username, "password": self.__password})
         api_url = self.url + "/api/auth/login"
-        resp = Session(headers=self.__HEADERS).post(api_url, data=data)
+        session = Session()
+        session.headers.update(self.__get_header_with_token)
+        resp = session.post(api_url, data=data)
 
         if resp.status_code != 200:
             raise RuntimeError(f"登录请求发送失败，状态码：{resp.status_code}")
