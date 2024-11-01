@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 from asyncio import get_event_loop
 from sys import path
 from os.path import dirname
@@ -15,14 +12,25 @@ from app.extensions import LOGO
 from app.modules import Alist2Strm, Ani2Alist
 
 
+def print_logo() -> None:
+    """
+    打印 Logo
+    """
+
+    print(LOGO)
+    print(f" {settings.APP_NAME} {settings.APP_VERSION} ".center(65, "="))
+    print("")
+
+
 if __name__ == "__main__":
-    print(LOGO + str(settings.APP_VERSION).center(65, "="))
+    print_logo()
+
     logger.info(f"AutoFilm {settings.APP_VERSION} 启动中...")
 
     scheduler = AsyncIOScheduler()
 
     if settings.AlistServerList:
-        logger.info("检测到Alist2Strm模块配置，正在添加至后台任务")
+        logger.info("检测到 Alist2Strm 模块配置，正在添加至后台任务")
         for server in settings.AlistServerList:
             cron = server.get("cron")
             if cron:
@@ -31,12 +39,12 @@ if __name__ == "__main__":
                 )
                 logger.info(f'{server["id"]} 已被添加至后台任务')
             else:
-                logger.warning(f'{server["id"]} 未设置Cron')
+                logger.warning(f'{server["id"]} 未设置 cron')
     else:
         logger.warning("未检测到 Alist2Strm 模块配置")
 
     if settings.Ani2AlistList:
-        logger.info("检测到Ani2Alist模块配置，正在添加至后台任务")
+        logger.info("检测到 Ani2Alist 模块配置，正在添加至后台任务")
         for server in settings.Ani2AlistList:
             cron = server.get("cron")
             if cron:
@@ -45,7 +53,7 @@ if __name__ == "__main__":
                 )
                 logger.info(f'{server["id"]} 已被添加至后台任务')
             else:
-                logger.warning(f'{server["id"]} 未设置Cron')
+                logger.warning(f'{server["id"]} 未设置 cron')
     else:
         logger.warning("未检测到 Ani2Alist 模块配置")
 
