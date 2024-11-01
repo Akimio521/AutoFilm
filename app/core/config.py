@@ -16,7 +16,7 @@ class SettingManager:
     # APP 名称
     APP_NAME: str = "Autofilm"
     # APP 版本
-    APP_VERSION: int = APP_VERSION
+    APP_VERSION: str = APP_VERSION
     # 时区
     TZ: str = "Asia/Shanghai"
     # 开发者模式
@@ -46,7 +46,7 @@ class SettingManager:
         加载模式
         """
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
-            is_dev = safe_load(file).get("Settings",{}).get("DEV")
+            is_dev = safe_load(file).get("Settings", {}).get("DEV")
         if is_dev:
             self.DEBUG = is_dev
 
@@ -77,7 +77,7 @@ class SettingManager:
         配置文件
         """
         return self.CONFIG_DIR / "config.yaml"
-    
+
     @property
     def LOG(self) -> Path:
         """
@@ -87,14 +87,13 @@ class SettingManager:
             return self.LOG_DIR / "dev.log"
         else:
             return self.LOG_DIR / "AutoFilm.log"
-            
 
     @property
     def AlistServerList(self) -> list[dict[str, any]]:
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
             alist_server_list = safe_load(file).get("Alist2StrmList", [])
         return alist_server_list
-    
+
     @property
     def Ani2AlistList(self) -> list[dict[str, any]]:
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
