@@ -13,7 +13,7 @@
 
 # AutoFilm
 
-**一个为Emby、Jellyfin服务器提供直链播放的小项目** 
+**一个为 Emby、Jellyfin 服务器提供直链播放的小项目** 
 
 [![license][license-badge]][license]
 [![prs][prs-badge]][prs]
@@ -32,14 +32,14 @@
 </div>
 
 # 说明文档
-详情见[AutoFilm说明文档](https://blog.akimio.top/posts/1031/)
+详情见 [AutoFilm 说明文档](https://blog.akimio.top/posts/1031/)
 
 # 部署方式
-1. Docker运行
+1. Docker 运行
     ```bash
     docker run -d --name autofilm  -v ./config:/config -v ./media:/media -v ./logs:/logs akimio/autofilm
     ```
-2. Python环境运行（Python3.12）
+2. Python 环境运行（Python3.12）
     ```bash
     python app/main.py
     ```
@@ -48,17 +48,18 @@
 - [x] 轻量化 Emby 服务器，降低 Emby 服务器的性能需求以及硬盘需求
 - [x] 运行稳定
 - [x] 相比直接访问 Webdav，Emby、Jellyfin 服务器可以提供更好的视频搜索功能以及自带刮削器，以及多设备同步播放进度
-- [x] 提高访问速度，播放速度不受 Emby/Jellyfin 服务器带宽限制（需要使用[MediaWarp](https://github.com/Akimio521/MediaWarp)）
+- [x] 提高访问速度，播放速度不受 Emby / Jellyfin 服务器带宽限制（需要使用 [MediaWarp](https://github.com/Akimio521/MediaWarp)）
 
 # TODO LIST
-- [x] 从config文件中读取多个参数
+- [x] 从 config 文件中读取配置
 - [x] 优化程序运行效率（异步处理）
-- [x] 增加Docker镜像
-- [x] Strm模式/媒体库模式
-- [ ] 对接TMDB实现分类、重命名、刮削等功能
+- [x] 增加 Docker 镜像
+- [x] 本地同步网盘
+- [ ] 通知功能
+- [ ] 对接 TMDB 实现分类、重命名、刮削等功能
 
 # 更新日志
-- 2024.8.26：v1.2.4，完善URL中文字符编码问题，增加Python3.11的兼容性，Alist2Strm的mode选项
+- 2024.8.26：v1.2.4，完善 URL 中文字符编码问题，提高 Python3.11 兼容性，Alist2Strm 的 mode 选项
 - 2024.7.17：v1.2.2，增加 Ani2Strm 模块
 - 2024.7.8：v1.2.0，修改程序运行逻辑，使用 AsyncIOScheduler 实现后台定时任务
 - 2024.6.3：v1.1.0，使用 alist 官方 api 替代 webdav 实现“扫库”，采用异步并发提高运行效率，配置文件有改动，支持非基础路径 Alist 用户以及无 Webdav 权限用户
