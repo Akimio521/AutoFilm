@@ -94,6 +94,17 @@ class AlistClient(metaclass=Multiton):
             return self.__token["token"]
 
     @property
+    def __get_header(self) -> dict:
+        """
+        返回 header
+        直接返回类属性 __HEADERS，而不是 __HEADERS.copy()
+
+        :return: header
+        """
+
+        return self.__HEADERS
+
+    @property
     def __get_header_with_token(self) -> dict:
         """
         返回带有 token 的 header
@@ -101,7 +112,7 @@ class AlistClient(metaclass=Multiton):
         :return: 带有 token 的 header
         """
 
-        return self.__HEADERS.copy().update({"Authorization": self.__get_token})
+        return self.__get_header.copy().update({"Authorization": self.__get_token})
 
     @Retry.sync_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret="")
     def sync_api_auth_login(self) -> str:
@@ -114,7 +125,7 @@ class AlistClient(metaclass=Multiton):
         data = dumps({"username": self.username, "password": self.__password})
         api_url = self.url + "/api/auth/login"
         session = Session()
-        session.headers.update(self.__get_header_with_token)
+        session.headers.update(self.__get_header)
         resp = session.post(api_url, data=data)
 
         if resp.status_code != 200:
