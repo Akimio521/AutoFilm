@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
-
 from pathlib import Path
 from yaml import safe_load
 
@@ -46,9 +42,9 @@ class SettingManager:
         加载模式
         """
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
-            is_dev = safe_load(file).get("Settings", {}).get("DEV")
-        if is_dev:
-            self.DEBUG = is_dev
+            is_dev = safe_load(file).get("Settings", {}).get("DEV", False)
+
+        self.DEBUG = is_dev
 
     @property
     def BASE_DIR(self) -> Path:
