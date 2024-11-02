@@ -97,12 +97,12 @@ class AlistClient(metaclass=Multiton):
     def __get_header(self) -> dict:
         """
         返回 header
-        直接返回类属性 __HEADERS，而不是 __HEADERS.copy()
+        直接返回类属性 __HEADERS.copy()
 
         :return: header
         """
 
-        return self.__HEADERS
+        return self.__HEADERS.copy()
 
     @property
     def __get_header_with_token(self) -> dict:
@@ -112,7 +112,9 @@ class AlistClient(metaclass=Multiton):
         :return: 带有 token 的 header
         """
 
-        return self.__get_header.copy().update({"Authorization": self.__get_token})
+        header = self.__get_header
+        header.update({"Authorization": self.__get_token})
+        return header
 
     @Retry.sync_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret="")
     def sync_api_auth_login(self) -> str:
