@@ -26,6 +26,7 @@ if __name__ == "__main__":
     print_logo()
 
     logger.info(f"AutoFilm {settings.APP_VERSION} 启动中...")
+    logger.debug(f"是否开启 DEBUG 模式: {settings.DEBUG}")
 
     scheduler = AsyncIOScheduler()
 
@@ -58,6 +59,7 @@ if __name__ == "__main__":
         logger.warning("未检测到 Ani2Alist 模块配置")
 
     scheduler.start()
+    logger.info("AutoFilm 启动完成")
 
     try:
         get_event_loop().run_forever()
