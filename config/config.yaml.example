@@ -7,6 +7,7 @@ Alist2StrmList:
     url: https://alist.akimio.top     # Alist 服务器地址
     username: admin                   # Alist 用户名
     password: adminadmin              # Alist 密码
+    token: alist-d22d23ddf42fvv2      # Alist Token 永久令牌（可选，使用永久令牌则无需设置账号密码）
     source_dir: /ani/                 # Alist 服务器上文件夹路径
     target_dir: D:\media\             # 输出路径
     flatten_mode: False               # 平铺模式，开启后 subtitle、image、nfo 强制关闭(可选，默认 False)
@@ -25,6 +26,7 @@ Alist2StrmList:
     url: http://alist.example2.com:5244
     username: alist
     password: alist
+    token:
     source_dir: /网盘/115/电影
     target_dir: /media/my_video 
     flatten_mode: False 
@@ -43,6 +45,7 @@ Ani2AlistList:
     url: https://127.0.0.1:5244           # Alist 服务器地址
     username: admin                       # Alist 用户名（需管理员权限）
     password: myalist                     # Alist 密码
+    token: alist-d2cac32c3c3cec2
     target_dir: /视频/动漫/新番            # Alist 地址树存储器路径，若存储器不存在将自动创建（可选，默认/Anime）
     rss_update: False                     # 使用 RSS 订阅更新最新番剧，启用后忽视传入的 year 和 month（可选，默认为 True）
     year: 2024                            # 动漫季度-年份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）

@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 from asyncio import to_thread, Semaphore, TaskGroup
 from os import PathLike
 from pathlib import Path
@@ -21,6 +18,7 @@ class Alist2Strm:
         url: str = "http://localhost:5244",
         username: str = "",
         password: str = "",
+        token: str = "",
         source_dir: str = "/",
         target_dir: str | PathLike = "",
         flatten_mode: bool = False,
@@ -55,8 +53,9 @@ class Alist2Strm:
         :param max_downloaders: 最大同时下载
         """
         self.url = url
-        self.username = username
-        self.password = password
+        self.__username = username
+        self.__password = password
+        self.__tokenen = token
         self.mode = mode
 
         self.source_dir = source_dir
@@ -134,7 +133,7 @@ class Alist2Strm:
                 async with TaskGroup() as tg:
                     _create_task = tg.create_task
                     async with AlistClient(
-                        self.url, self.username, self.password
+                        self.url, self.__username, self.__password, self.__tokenen
                     ) as client:
                         async for path in client.iter_path(
                             dir_path=self.source_dir, is_detail=is_detail, filter=filter

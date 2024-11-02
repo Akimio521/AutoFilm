@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 from typing import Final
 from datetime import datetime
 
@@ -31,6 +28,7 @@ class Ani2Alist:
         url: str = "http://localhost:5244",
         username: str = "",
         password: str = "",
+        token: str = "",
         target_dir: str = "/Anime",
         rss_update: bool = True,
         year: int | None = None,
@@ -75,6 +73,7 @@ class Ani2Alist:
         self.__url = url
         self.__username = username
         self.__password = password
+        self.__token = token
         self.__target_dir = "/" + target_dir.strip("/")
 
         self.__year = None
@@ -119,7 +118,12 @@ class Ani2Alist:
         else:
             anime_dict = await self.get_season_anime_list
 
-        async with AlistClient(self.__url, self.__username, self.__password) as client:
+        async with AlistClient(
+            self.__url,
+            self.__username,
+            self.__password,
+            self.__token,
+        ) as client:
             storage: AlistStorage | None = next(
                 (
                     s

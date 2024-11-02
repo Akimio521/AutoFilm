@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 from json import dumps
 from typing import Callable, AsyncGenerator
 from time import time
@@ -24,21 +21,22 @@ class AlistClient(metaclass=Multiton):
         "Content-Type": "application/json",
     }
 
-    def __init__(self, url: str, username: str, password: str) -> None:
+    def __init__(
+        self,
+        url: str,
+        username: str,
+        password: str,
+        token: str = "",
+    ) -> None:
         """
         AlistClient 类初始化
 
         :param url: Alist 服务器地址
         :param username: Alist 用户名
         :param password: Alist 密码
+        :param token: Alist 永久令牌
         """
 
-        if not url.startswith("http"):
-            url = "https://" + url
-        self.url = url.rstrip("/")
-
-        self.__username = str(username)
-        self.___password = str(password)
         self.__dir = "/"
         self.__token = {
             "token": "",  # 令牌 token str
@@ -46,6 +44,19 @@ class AlistClient(metaclass=Multiton):
         }
         self.base_path = ""
         self.id = 0
+
+        if not url.startswith("http"):
+            url = "https://" + url
+        self.url = url.rstrip("/")
+
+        if token != "":
+            self.__token["token"] = token
+            self.__token["expires"] = -1
+        elif username != "" and password != "":
+            self.__username = str(username)
+            self.___password = str(password)
+        else:
+            raise ValueError("用户名及密码为空或令牌 Token 为空")
 
         self.sync_api_me()
 
@@ -81,8 +92,10 @@ class AlistClient(metaclass=Multiton):
         """
 
         if self.__token["expires"] == -1:
+            logger.debug("使用永久令牌")
             return self.__token["token"]
         else:
+            logger.debug("使用临时令牌")
             now_stamp = int(time())
 
             if self.__token["expires"] < now_stamp:  # 令牌过期需要重新更新
@@ -131,14 +144,14 @@ class AlistClient(metaclass=Multiton):
         resp = session.post(api_url, data=data)
 
         if resp.status_code != 200:
-            raise RuntimeError(f"登录请求发送失败，状态码：{resp.status_code}")
+            raise RuntimeError(f"更新令牌请求发送失败，状态码：{resp.status_code}")
 
         result = resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f'登录失败，错误信息：{result["message"]}')
+            raise RuntimeError(f'更新令牌，错误信息：{result["message"]}')
 
-        logger.debug(f"{self.username} 登录成功")
+        logger.debug(f"{self.username} 更新令牌成功")
         return result["data"]["token"]
 
     @Retry.sync_retry(
