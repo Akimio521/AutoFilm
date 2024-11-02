@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - app/*
 
 jobs:
   Dev-Docker-Builder:
