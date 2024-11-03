@@ -197,7 +197,7 @@ class Alist2Strm:
         if self.flatten_mode:
             local_path = self.target_dir / path.name
         else:
-            relative_path = path.path
+            relative_path = path.path.replace(self.source_dir, "", 1)
             if relative_path.startswith("/"):
                 relative_path = relative_path[1:]
             local_path = self.target_dir / relative_path
