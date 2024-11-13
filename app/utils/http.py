@@ -31,15 +31,19 @@ class RequestUtils:
         :param content_type: 请求内容类型
         :param accept_type: 请求接受类型
         """
+
         if headers:
             self.__headers = headers
         else:
-            self.__headers = {
-                "User-Agent": ua,
-                "Content-Type": content_type,
-                "Accept": accept_type,
-                "referer": referer,
-            }
+            self.__headers = {}
+            if ua is not None:
+                self.__headers["User-Agent"] = ua
+            if content_type is not None:
+                self.__headers["Content-Type"] = content_type
+            if accept_type is not None:
+                self.__headers["Accept"] = accept_type
+            if referer is not None:
+                self.__headers["Referer"] = referer
 
         if isinstance(cookies, str):
             self.__cookies = self.parse_cookie(cookies)
