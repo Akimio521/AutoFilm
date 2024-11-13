@@ -8,7 +8,6 @@ class RequestUtils:
     HTTP 异步请求工具类
     """
 
-    __proxies: dict = None  # 请求代理
     __timeout: int = 20  # 请求超时时间
 
     def __init__(
@@ -58,7 +57,7 @@ class RequestUtils:
 
         :param method: HTTP 方法，如 get, post, put 等
         :param url: 请求的 URL
-        :param kwargs: 其他请求参数，如 headers, cookies, proxies 等
+        :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
 
@@ -78,7 +77,7 @@ class RequestUtils:
 
         :param url: 请求的URL
         :param params: 请求的参数
-        :param kwargs: 其他请求参数，如headers, cookies, proxies等
+        :param kwargs: 其他请求参数，如headers, cookies 等
         :return: HTTP 响应对象
         """
         return await self.request(method="get", url=url, params=params, **kwargs)
@@ -92,7 +91,7 @@ class RequestUtils:
         :param url: 请求的URL
         :param data: 请求的数据
         :param json: 请求的JSON数据
-        :param kwargs: 其他请求参数，如 headers, cookies, proxies 等
+        :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
         return await self.request(
