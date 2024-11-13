@@ -41,11 +41,11 @@ class RequestUtils:
                 "Accept": accept_type,
                 "referer": referer,
             }
-        if cookies:
-            if isinstance(cookies, str):
-                self._cookies = self.parse_cookie(cookies)
-            else:
-                self._cookies = cookies
+
+        if isinstance(cookies, str):
+            self.__cookies = self.parse_cookie(cookies)
+        else:
+            self.__cookies = cookies
 
         if session:
             self.__session = session
@@ -63,8 +63,7 @@ class RequestUtils:
         """
 
         kwargs.setdefault("headers", self.__headers)
-        kwargs.setdefault("cookies", self._cookies)
-        kwargs.setdefault("proxies", self.__proxies)
+        kwargs.setdefault("cookies", self.__cookies)
         kwargs.setdefault("timeout", self.__timeout)
         kwargs.setdefault("verify", False)
         kwargs.setdefault("stream", False)
