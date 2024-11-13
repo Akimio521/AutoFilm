@@ -1,7 +1,5 @@
-from json import dumps
 from typing import Callable, AsyncGenerator
 from time import time
-import asyncio
 
 from aiohttp import ClientSession
 from requests import Session
@@ -137,11 +135,11 @@ class AlistClient(metaclass=Multiton):
         :return: 重新申请的登录令牌 token
         """
 
-        data = dumps({"username": self.username, "password": self.__password})
+        json = {"username": self.username, "password": self.__password}
         api_url = self.url + "/api/auth/login"
         session = Session()
         session.headers.update(self.__get_header)
-        resp = session.post(api_url, data=data)
+        resp = session.post(api_url, json=json)
 
         if resp.status_code != 200:
             raise RuntimeError(f"更新令牌请求发送失败，状态码：{resp.status_code}")
@@ -204,18 +202,16 @@ class AlistClient(metaclass=Multiton):
         logger.debug(f"获取目录 {dir_path_str} 下的文件列表")
 
         api_url = self.url + "/api/fs/list"
-        payload = dumps(
-            {
-                "path": dir_path_str,
-                "password": "",
-                "page": 1,
-                "per_page": 0,
-                "refresh": False,
-            }
-        )
+        json = {
+            "path": dir_path_str,
+            "password": "",
+            "page": 1,
+            "per_page": 0,
+            "refresh": False,
+        }
 
         self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url, data=payload)
+        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
 
         if resp.status != 200:
             raise RuntimeError(
@@ -265,17 +261,16 @@ class AlistClient(metaclass=Multiton):
             path_str = self.pwd
 
         api_url = self.url + "/api/fs/get"
-        payload = dumps(
-            {
-                "path": path_str,
-                "password": "",
-                "page": 1,
-                "per_page": 0,
-                "refresh": False,
-            }
-        )
+        json = {
+            "path": path_str,
+            "password": "",
+            "page": 1,
+            "per_page": 0,
+            "refresh": False,
+        }
+
         self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url, data=payload)
+        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
 
         if resp.status != 200:
             raise RuntimeError(
@@ -329,25 +324,23 @@ class AlistClient(metaclass=Multiton):
         :param storage: AlistStorage 对象
         """
         api_url = self.url + "/api/admin/storage/create"
-        payload = dumps(
-            {
-                "mount_path": storage.mount_path,
-                "order": storage.order,
-                "remark": storage.remark,
-                "cache_expiration": storage.cache_expiration,
-                "web_proxy": storage.web_proxy,
-                "webdav_policy": storage.webdav_policy,
-                "down_proxy_url": storage.down_proxy_url,
-                "enable_sign": storage.enable_sign,
-                "driver": storage.driver,
-                "order_by": storage.order_by,
-                "order_direction": storage.order_direction,
-                "addition": storage.raw_addition,
-            }
-        )
+        json = {
+            "mount_path": storage.mount_path,
+            "order": storage.order,
+            "remark": storage.remark,
+            "cache_expiration": storage.cache_expiration,
+            "web_proxy": storage.web_proxy,
+            "webdav_policy": storage.webdav_policy,
+            "down_proxy_url": storage.down_proxy_url,
+            "enable_sign": storage.enable_sign,
+            "driver": storage.driver,
+            "order_by": storage.order_by,
+            "order_direction": storage.order_direction,
+            "addition": storage.raw_addition,
+        }
 
         self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url)
+        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
         if resp.status != 200:
             raise RuntimeError(f"创建存储请求发送失败，状态码：{resp.status}")
         result = await resp.json()
@@ -368,30 +361,28 @@ class AlistClient(metaclass=Multiton):
         :param storage: AlistStorage 对象
         """
         api_url = self.url + "/api/admin/storage/update"
-        payload = dumps(
-            {
-                "id": storage.id,
-                "mount_path": storage.mount_path,
-                "order": storage.order,
-                "driver": storage.driver,
-                "cache_expiration": storage.cache_expiration,
-                "status": storage.status,
-                "addition": storage.raw_addition,
-                "remark": storage.remark,
-                "modified": storage.modified,
-                "disabled": storage.disabled,
-                "enable_sign": storage.enable_sign,
-                "order_by": storage.order_by,
-                "order_direction": storage.order_direction,
-                "extract_folder": storage.extract_folder,
-                "web_proxy": storage.web_proxy,
-                "webdav_policy": storage.webdav_policy,
-                "down_proxy_url": storage.down_proxy_url,
-            }
-        )
+        json = {
+            "id": storage.id,
+            "mount_path": storage.mount_path,
+            "order": storage.order,
+            "driver": storage.driver,
+            "cache_expiration": storage.cache_expiration,
+            "status": storage.status,
+            "addition": storage.raw_addition,
+            "remark": storage.remark,
+            "modified": storage.modified,
+            "disabled": storage.disabled,
+            "enable_sign": storage.enable_sign,
+            "order_by": storage.order_by,
+            "order_direction": storage.order_direction,
+            "extract_folder": storage.extract_folder,
+            "web_proxy": storage.web_proxy,
+            "webdav_policy": storage.webdav_policy,
+            "down_proxy_url": storage.down_proxy_url,
+        }
 
         self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url)
+        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
         if resp.status != 200:
             raise RuntimeError(f"更新存储请求发送失败，状态码：{resp.status}")
 
