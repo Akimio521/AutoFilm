@@ -12,7 +12,7 @@ class RequestUtils:
 
     def __init__(
         self,
-        headers: dict = None,
+        headers: dict | None = None,
         ua: str = None,
         cookies: str | dict | None = None,
         session: ClientSession = None,
