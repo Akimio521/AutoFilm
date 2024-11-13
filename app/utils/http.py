@@ -64,8 +64,7 @@ class RequestUtils:
         kwargs.setdefault("headers", self.__headers)
         kwargs.setdefault("cookies", self.__cookies)
         kwargs.setdefault("timeout", self.__timeout)
-        kwargs.setdefault("verify", False)
-        kwargs.setdefault("stream", False)
+
         if not self.__session:
             async with ClientSession() as __session:
                 return await __session.request(method=method, url=url, **kwargs)
