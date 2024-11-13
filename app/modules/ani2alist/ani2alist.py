@@ -6,7 +6,7 @@ from aiohttp import ClientSession
 from feedparser import parse
 
 from app.core import logger
-from app.utils import URLUtils
+from app.utils import RequestUtils, URLUtils
 from app.utils import AlistUrlTreeUtils, Retry
 from app.api import AlistClient, AlistStorage
 
@@ -205,36 +205,36 @@ class Ani2Alist:
             )
             async def parse_data(_url: str = url) -> dict:
                 logger.debug(f"请求地址：{_url}")
-                async with session.post(_url, json={}) as _resp:
-                    if _resp.status != 200:
-                        raise Exception(f"请求发送失败，状态码：{_resp.status}")
-                    _result = loads(await _resp.text())
+                _resp = await RequestUtils(session=session).post(_url)
+                if _resp.status != 200:
+                    raise Exception(f"请求发送失败，状态码：{_resp.status}")
+                _result = loads(await _resp.text())
 
-                    _anime_dict = {}
-                    for file in _result["files"]:
-                        mimeType: str = file["mimeType"]
-                        name: str = file["name"]
-                        quoted_name = URLUtils.encode(name)
+                _anime_dict = {}
+                for file in _result["files"]:
+                    mimeType: str = file["mimeType"]
+                    name: str = file["name"]
+                    quoted_name = URLUtils.encode(name)
 
-                        if mimeType in FILE_MINETYPE:
-                            size: int = file["size"]
-                            __url = _url + quoted_name + "?d=true"
-                            logger.debug(
-                                f"获取文件：{name}，文件大小：{int(size) / 1024 / 1024:.2f}MB，播放地址：{__url}"
-                            )
-                            _anime_dict[name] = [
-                                size,
-                                __url,
-                            ]
-                        elif mimeType == "application/vnd.google-apps.folder":
-                            logger.debug(f"获取目录：{name}")
-                            __url = _url + quoted_name + "/"
-                            _anime_dict[name] = await parse_data(__url)
-                        else:
-                            raise RuntimeError(
-                                f"无法识别类型：{mimeType}，文件详情：\n{file}"
-                            )
-                    return _anime_dict
+                    if mimeType in FILE_MINETYPE:
+                        size: int = file["size"]
+                        __url = _url + quoted_name + "?d=true"
+                        logger.debug(
+                            f"获取文件：{name}，文件大小：{int(size) / 1024 / 1024:.2f}MB，播放地址：{__url}"
+                        )
+                        _anime_dict[name] = [
+                            size,
+                            __url,
+                        ]
+                    elif mimeType == "application/vnd.google-apps.folder":
+                        logger.debug(f"获取目录：{name}")
+                        __url = _url + quoted_name + "/"
+                        _anime_dict[name] = await parse_data(__url)
+                    else:
+                        raise RuntimeError(
+                            f"无法识别类型：{mimeType}，文件详情：\n{file}"
+                        )
+                return _anime_dict
 
             logger.debug(f"获取ANI Open {folder} 动画列表成功")
             return await parse_data()
@@ -254,15 +254,15 @@ class Ani2Alist:
             number, unit = [string.strip() for string in size_str.split()]
             return int(float(number) * units[unit])
 
-        logger.debug(f"开始获取ANI Open RSS动画列表")
+        logger.debug(f"开始获取 ANI Open RSS 动画列表")
         url = f"https://{self.__rss_domain}/ani-download.xml"
         rss_anime_dict = {}
 
         async with ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    raise Exception(f"请求发送失败，状态码：{resp.status}")
-                feeds = parse(await resp.text())
+            resp = await RequestUtils(session=session).get(url)
+            if resp.status != 200:
+                raise Exception(f"请求发送失败，状态码：{resp.status}")
+            feeds = parse(await resp.text())
 
         for item in feeds.entries:
             rss_anime_dict[item.title] = [
@@ -270,5 +270,5 @@ class Ani2Alist:
                 item.link,
             ]
 
-        logger.debug(f"获取RSS动画列表成功")
+        logger.debug(f"获取 RSS 动画列表成功")
         return rss_anime_dict

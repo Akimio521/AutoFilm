@@ -6,7 +6,7 @@ from aiofile import async_open
 from aiohttp import ClientSession
 
 from app.core import logger
-from app.utils import Retry
+from app.utils import RequestUtils, Retry
 from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
 from app.api import AlistClient, AlistPath
 
@@ -176,13 +176,15 @@ class Alist2Strm:
             else:
                 async with self.__max_downloaders:
                     async with async_open(local_path, mode="wb") as file:
-                        async with self.session.get(path.download_url) as resp:
-                            if resp.status != 200:
-                                raise RuntimeError(
-                                    f"下载 {path.download_url} 失败，状态码：{resp.status}"
-                                )
-                            async for chunk in resp.content.iter_chunked(1024):
-                                await file.write(chunk)
+                        resp = await RequestUtils(session=self.session).get(
+                            path.download_url
+                        )
+                        if resp.status != 200:
+                            raise RuntimeError(
+                                f"下载 {path.download_url} 失败，状态码：{resp.status}"
+                            )
+                        async for chunk in resp.content.iter_chunked(1024):
+                            await file.write(chunk)
                     logger.info(f"{local_path.name} 下载成功")
         except Exception as e:
             raise RuntimeError(f"{local_path} 处理失败，详细信息：{e}")

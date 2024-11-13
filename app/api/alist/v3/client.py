@@ -7,7 +7,7 @@ from aiohttp import ClientSession
 from requests import Session
 
 from app.core import logger
-from app.utils import Retry, Multiton
+from app.utils import RequestUtils, Retry, Multiton
 from app.api.alist.v3.path import AlistPath
 from app.api.alist.v3.storage import AlistStorage
 
@@ -214,17 +214,15 @@ class AlistClient(metaclass=Multiton):
             }
         )
 
-        try:
-            self.__session.headers.update(self.__get_header_with_token)
-            async with self.__session.post(api_url, data=payload) as resp:
-                if resp.status != 200:
-                    raise RuntimeError(
-                        f"获取目录 {dir_path_str} 的文件列表请求发送失败，状态码：{resp.status}"
-                    )
+        self.__session.headers.update(self.__get_header_with_token)
+        resp = await RequestUtils(session=self.__session).post(api_url, data=payload)
 
-                result = await resp.json()
-        except asyncio.TimeoutError:
-            raise RuntimeError(f"获取目录 {dir_path_str} 的文件列表的请求超时")
+        if resp.status != 200:
+            raise RuntimeError(
+                f"获取目录 {dir_path_str} 的文件列表请求发送失败，状态码：{resp.status}"
+            )
+
+        result = await resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(
@@ -232,20 +230,15 @@ class AlistClient(metaclass=Multiton):
             )
 
         logger.debug(f"获取目录 {dir_path_str} 的文件列表成功")
-        try:
-            return [
-                AlistPath(
-                    server_url=self.url,
-                    base_path=self.base_path,
-                    path=dir_path_str + path["name"],
-                    **path,
-                )
-                for path in result["data"]["content"]
-            ]
-        except Exception as e:
-            raise RuntimeError(
-                f"返回目录 {dir_path_str} 的AlistPath对象列表失败，错误信息：{e}"
+        return [
+            AlistPath(
+                server_url=self.url,
+                base_path=self.base_path,
+                path=dir_path_str + path["name"],
+                **path,
             )
+            for path in result["data"]["content"]
+        ]
 
     @Retry.async_retry(
         RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
@@ -281,17 +274,14 @@ class AlistClient(metaclass=Multiton):
                 "refresh": False,
             }
         )
+        self.__session.headers.update(self.__get_header_with_token)
+        resp = await RequestUtils(session=self.__session).post(api_url, data=payload)
 
-        try:
-            self.__session.headers.update(self.__get_header_with_token)
-            async with self.__session.post(api_url, data=payload) as resp:
-                if resp.status != 200:
-                    raise RuntimeError(
-                        f"获取路径 {path_str} 详细信息请求发送失败，状态码：{resp.status}"
-                    )
-                result = await resp.json()
-        except asyncio.TimeoutError:
-            raise RuntimeError(f"获取路径 {path_str} 详细信息的请求超时")
+        if resp.status != 200:
+            raise RuntimeError(
+                f"获取路径 {path_str} 详细信息请求发送失败，状态码：{resp.status}"
+            )
+        result = await resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(
@@ -299,17 +289,12 @@ class AlistClient(metaclass=Multiton):
             )
 
         logger.debug(f"获取路径 {path_str} 详细信息成功")
-        try:
-            return AlistPath(
-                server_url=self.url,
-                base_path=self.base_path,
-                path=path_str,
-                **result["data"],
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"返回路径 {path_str} 的AlistPath对象失败，错误信息：{e}"
-            )
+        return AlistPath(
+            server_url=self.url,
+            base_path=self.base_path,
+            path=path_str,
+            **result["data"],
+        )
 
     @Retry.async_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
     async def async_api_admin_storage_list(self) -> list[AlistStorage]:
@@ -321,20 +306,18 @@ class AlistClient(metaclass=Multiton):
         api_url = self.url + "/api/admin/storage/list"
 
         self.__session.headers.update(self.__get_header_with_token)
-        async with self.__session.get(api_url) as resp:
-            if resp.status != 200:
-                raise RuntimeError(f"获取存储器列表请求发送失败，状态码：{resp.status}")
+        resp = await RequestUtils(session=self.__session).post(api_url)
 
-            result = await resp.json()
+        if resp.status != 200:
+            raise RuntimeError(f"获取存储器列表请求发送失败，状态码：{resp.status}")
+
+        result = await resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(f'获取存储器列表失败，详细信息：{result["message"]}')
 
         logger.debug("获取存储器列表成功")
-        try:
-            return [AlistStorage(**storage) for storage in result["data"]["content"]]
-        except Exception as e:
-            raise RuntimeError(f"返回 AlistStorage 对象列表失败，错误信息：{e}")
+        return [AlistStorage(**storage) for storage in result["data"]["content"]]
 
     @Retry.async_retry(
         RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
@@ -364,10 +347,10 @@ class AlistClient(metaclass=Multiton):
         )
 
         self.__session.headers.update(self.__get_header_with_token)
-        async with self.__session.post(api_url, data=payload) as resp:
-            if resp.status != 200:
-                raise RuntimeError(f"创建存储请求发送失败，状态码：{resp.status}")
-            result = await resp.json()
+        resp = await RequestUtils(session=self.__session).post(api_url)
+        if resp.status != 200:
+            raise RuntimeError(f"创建存储请求发送失败，状态码：{resp.status}")
+        result = await resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(f'创建存储失败，详细信息：{result["message"]}')
@@ -408,11 +391,11 @@ class AlistClient(metaclass=Multiton):
         )
 
         self.__session.headers.update(self.__get_header_with_token)
-        async with self.__session.post(api_url, data=payload) as resp:
-            if resp.status != 200:
-                raise RuntimeError(f"更新存储请求发送失败，状态码：{resp.status}")
+        resp = await RequestUtils(session=self.__session).post(api_url)
+        if resp.status != 200:
+            raise RuntimeError(f"更新存储请求发送失败，状态码：{resp.status}")
 
-            result = await resp.json()
+        result = await resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(f'更新存储器失败，详细信息：{result["message"]}')
