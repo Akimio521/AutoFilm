@@ -1,7 +1,6 @@
 PyYAML == 6.0.1
 click == 8.1.7
 feedparser == 6.0.11
-requests == 2.32.3
-aiohttp == 3.10.2
 APScheduler == 3.10.4
 aiofile == 3.8.8
+httpx[http2] == 0.27.2

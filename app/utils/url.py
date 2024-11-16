@@ -1,12 +1,11 @@
-from urllib.parse import quote
-
+from urllib.parse import quote, urlparse
 
 from app.extensions import SAFE_WORD
 
 
 class URLUtils:
     """
-    URL相关工具
+    URL 相关工具
     """
 
     @staticmethod
@@ -15,3 +14,37 @@ class URLUtils:
         URL编码
         """
         return quote(url, safe=SAFE_WORD)
+
+    @staticmethod
+    def get_resolve_url(url: str) -> tuple[str, str, int]:
+        """
+        从 URL 中解析协议、域名和端口号
+
+        未知端口号的情况下，端口号设为 -1
+        """
+        parsed_result = urlparse(url)
+
+        scheme = parsed_result.scheme
+        netloc = parsed_result.netloc
+
+        # 去除用户信息
+        if "@" in netloc:
+            netloc = netloc.split("@")[-1]
+
+        # 处理域名和端口
+        if ":" in netloc:
+            domain, port_str = netloc.rsplit(":", 1)
+            try:
+                port = int(port_str)
+            except ValueError:
+                port = -1  # 端口号解析失败，设为 0
+        else:
+            domain = netloc
+            if scheme == "http":
+                port = 80
+            elif scheme == "https":
+                port = 443
+            else:
+                port = -1  # 未知协议，端口号设为 0
+
+        return scheme, domain, port

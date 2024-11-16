@@ -1,11 +1,10 @@
 from typing import Callable, AsyncGenerator
 from time import time
 
-from aiohttp import ClientSession
-from requests import Session
+from httpx import get, post, Response
 
 from app.core import logger
-from app.utils import RequestUtils, Retry, Multiton
+from app.utils import HTTPClient, Multiton
 from app.api.alist.v3.path import AlistPath
 from app.api.alist.v3.storage import AlistStorage
 
@@ -35,7 +34,7 @@ class AlistClient(metaclass=Multiton):
         :param token: Alist 永久令牌
         """
 
-        self.__dir = "/"
+        self.__client = HTTPClient()
         self.__token = {
             "token": "",  # 令牌 token str
             "expires": 0,  # 令牌过期时间（时间戳，-1为永不过期） int
@@ -58,12 +57,41 @@ class AlistClient(metaclass=Multiton):
 
         self.sync_api_me()
 
-    async def __aenter__(self):
-        self.__session = ClientSession()
-        return self
+    async def close(self) -> None:
+        """
+        关闭 HTTP 客户端
+        """
+        await self.__client.close()
 
-    async def __aexit__(self, *_):
-        await self.__session.close()
+    async def __request(
+        self,
+        method: str,
+        url: str,
+        auth: bool = True,
+        **kwargs,
+    ) -> Response:
+        """
+        发送 HTTP 请求
+
+        :param method 请求方法
+        :param url 请求 url
+        :param auth header 中是否带有 alist 认证令牌
+        """
+
+        if auth:
+            headers = kwargs.get("headers", self.__HEADERS.copy())
+            headers["Authorization"] = self.__get_token
+            kwargs["headers"] = headers
+        return await self.__client.request(method, url, **kwargs)
+
+    async def __post(self, url: str, auth: bool = True, **kwargs) -> Response:
+        """
+        发送 POST 请求
+
+        :param url 请求 url
+        :param auth header 中是否带有 alist 认证令牌
+        """
+        return await self.__request("post", url, auth, **kwargs)
 
     @property
     def username(self) -> str:
@@ -97,50 +125,25 @@ class AlistClient(metaclass=Multiton):
             now_stamp = int(time())
 
             if self.__token["expires"] < now_stamp:  # 令牌过期需要重新更新
-                self.__token["token"] = self.sync_api_auth_login()
+                self.__token["token"] = self.api_auth_login()
                 self.__token["expires"] = (
                     now_stamp + 2 * 24 * 60 * 60 - 5 * 60
                 )  # 2天 - 5分钟（alist 令牌有效期为 2 天，提前 5 分钟刷新）
 
             return self.__token["token"]
 
-    @property
-    def __get_header(self) -> dict:
-        """
-        返回 header
-        直接返回类属性 __HEADERS.copy()
-
-        :return: header
-        """
-
-        return self.__HEADERS.copy()
-
-    @property
-    def __get_header_with_token(self) -> dict:
-        """
-        返回带有 token 的 header
-
-        :return: 带有 token 的 header
-        """
-
-        header = self.__get_header
-        header.update({"Authorization": self.__get_token})
-        return header
-
-    @Retry.sync_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret="")
-    def sync_api_auth_login(self) -> str:
+    def api_auth_login(self) -> str:
         """
         登录 Alist 服务器认证账户信息
 
         :return: 重新申请的登录令牌 token
         """
-
+        headers = self.__HEADERS.copy()
+        headers["Authorization"] = self.__get_token
+        resp = get(self.url + "/api/me", headers=headers)
         json = {"username": self.username, "password": self.__password}
-        api_url = self.url + "/api/auth/login"
-        session = Session()
-        session.headers.update(self.__get_header)
-        resp = session.post(api_url, json=json)
 
+        resp = post(self.url + "/api/auth/login", json=json)
         if resp.status_code != 200:
             raise RuntimeError(f"更新令牌请求发送失败，状态码：{resp.status_code}")
 
@@ -152,19 +155,15 @@ class AlistClient(metaclass=Multiton):
         logger.debug(f"{self.username} 更新令牌成功")
         return result["data"]["token"]
 
-    @Retry.sync_retry(
-        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
-    )
     def sync_api_me(self) -> None:
         """
         获取用户信息
         获取当前用户 base_path 和 id 并分别保存在 self.base_path 和 self.id 中
         """
 
-        api_url = self.url + "/api/me"
-        session = Session()
-        session.headers.update(self.__get_header_with_token)
-        resp = session.get(api_url)
+        headers = self.__HEADERS.copy()
+        headers["Authorization"] = self.__get_token
+        resp = get(self.url + "/api/me", headers=headers)
 
         if resp.status_code != 200:
             raise RuntimeError(f"获取用户信息请求发送失败，状态码：{resp.status_code}")
@@ -180,133 +179,99 @@ class AlistClient(metaclass=Multiton):
         except:
             raise RuntimeError("获取用户信息失败")
 
-    @Retry.async_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
-    async def async_api_fs_list(
-        self, path: AlistPath | str | None = None
-    ) -> list[AlistPath]:
+    async def async_api_fs_list(self, dir_path: str) -> list[AlistPath]:
         """
         获取文件列表
 
-        :param dir_path: 文件路径（默认为当前目录 self.pwd）
+        :param dir_path: 目录路径
         :return: AlistPath 对象列表
         """
-        if isinstance(path, AlistPath):
-            if path.is_dir:
-                dir_path_str = path.path
-            else:
-                dir_path_str = self.pwd
-        elif isinstance(path, str):
-            dir_path_str = path.rstrip("/") + "/"
-        else:
-            dir_path_str = self.pwd
-        logger.debug(f"获取目录 {dir_path_str} 下的文件列表")
 
-        api_url = self.url + "/api/fs/list"
+        logger.debug(f"获取目录 {dir_path} 下的文件列表")
+
         json = {
-            "path": dir_path_str,
+            "path": dir_path,
             "password": "",
             "page": 1,
             "per_page": 0,
             "refresh": False,
         }
 
-        self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
-
-        if resp.status != 200:
+        resp = await self.__post(self.url + "/api/fs/list", json=json)
+        if resp.status_code != 200:
             raise RuntimeError(
-                f"获取目录 {dir_path_str} 的文件列表请求发送失败，状态码：{resp.status}"
+                f"获取目录 {dir_path} 的文件列表请求发送失败，状态码：{resp.status_code}"
             )
 
-        result = await resp.json()
+        result = resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(
-                f'获取目录 {dir_path_str} 的文件列表失败，错误信息：{result["message"]}'
+                f'获取目录 {dir_path} 的文件列表失败，错误信息：{result["message"]}'
             )
 
-        logger.debug(f"获取目录 {dir_path_str} 的文件列表成功")
+        logger.debug(f"获取目录 {dir_path} 的文件列表成功")
+
         return [
             AlistPath(
                 server_url=self.url,
                 base_path=self.base_path,
-                path=dir_path_str + path["name"],
-                **path,
+                path=dir_path + "/" + alist_path["name"],
+                **alist_path,
             )
-            for path in result["data"]["content"]
+            for alist_path in result["data"]["content"]
         ]
 
-    @Retry.async_retry(
-        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
-    )
-    async def async_api_fs_get(
-        self, path: AlistPath | str | None = None
-    ) -> AlistPath | None:
+    async def async_api_fs_get(self, path: str) -> AlistPath:
         """
         获取文件/目录详细信息
 
-        :param path: 文件/目录路径/AlistPath 对象
+        :param path: 文件/目录路径
         :return: AlistPath 对象
         """
-        if isinstance(path, AlistPath):
-            path_str = path.path
-        elif isinstance(path, str):
-            path_str = path.rstrip("/") + "/"
-        elif path is None:
-            path_str = self.pwd
-        else:
-            logger.warning(
-                f"传入参数 path({type(path_str)}) 类型错误，使用当前目录 {self.__dir} 作为路径"
-            )
-            path_str = self.pwd
 
-        api_url = self.url + "/api/fs/get"
         json = {
-            "path": path_str,
+            "path": path,
             "password": "",
             "page": 1,
             "per_page": 0,
             "refresh": False,
         }
 
-        self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
-
-        if resp.status != 200:
+        resp = await self.__post(self.url + "/api/fs/get", json=json)
+        if resp.status_code != 200:
             raise RuntimeError(
-                f"获取路径 {path_str} 详细信息请求发送失败，状态码：{resp.status}"
+                f"获取路径 {path} 详细信息请求发送失败，状态码：{resp.status_code}"
             )
-        result = await resp.json()
+        result = resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(
-                f'获取路径 {path_str} 详细信息失败，详细信息：{result["message"]}'
+                f'获取路径 {path} 详细信息失败，详细信息：{result["message"]}'
             )
 
-        logger.debug(f"获取路径 {path_str} 详细信息成功")
+        logger.debug(f"获取路径 {path} 详细信息成功")
         return AlistPath(
             server_url=self.url,
             base_path=self.base_path,
-            path=path_str,
+            path=path,
             **result["data"],
         )
 
-    @Retry.async_retry(RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=[])
     async def async_api_admin_storage_list(self) -> list[AlistStorage]:
         """
         列出存储列表 需要管理员用户权限
 
         :return: AlistStorage 对象列表
         """
-        api_url = self.url + "/api/admin/storage/list"
 
-        self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url)
+        resp = await self.__post(self.url + "/api/admin/storage/list")
+        if resp.status_code != 200:
+            raise RuntimeError(
+                f"获取存储器列表请求发送失败，状态码：{resp.status_code}"
+            )
 
-        if resp.status != 200:
-            raise RuntimeError(f"获取存储器列表请求发送失败，状态码：{resp.status}")
-
-        result = await resp.json()
+        result = resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(f'获取存储器列表失败，详细信息：{result["message"]}')
@@ -314,16 +279,13 @@ class AlistClient(metaclass=Multiton):
         logger.debug("获取存储器列表成功")
         return [AlistStorage(**storage) for storage in result["data"]["content"]]
 
-    @Retry.async_retry(
-        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
-    )
     async def async_api_admin_storage_create(self, storage: AlistStorage) -> None:
         """
         创建存储 需要管理员用户权限
 
         :param storage: AlistStorage 对象
         """
-        api_url = self.url + "/api/admin/storage/create"
+
         json = {
             "mount_path": storage.mount_path,
             "order": storage.order,
@@ -339,11 +301,10 @@ class AlistClient(metaclass=Multiton):
             "addition": storage.raw_addition,
         }
 
-        self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
-        if resp.status != 200:
-            raise RuntimeError(f"创建存储请求发送失败，状态码：{resp.status}")
-        result = await resp.json()
+        resp = await self.__post(self.url + "/api/admin/storage/create", json=json)
+        if resp.status_code != 200:
+            raise RuntimeError(f"创建存储请求发送失败，状态码：{resp.status_code}")
+        result = resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(f'创建存储失败，详细信息：{result["message"]}')
@@ -351,16 +312,13 @@ class AlistClient(metaclass=Multiton):
         logger.debug("创建存储成功")
         return
 
-    @Retry.async_retry(
-        RuntimeError, tries=3, delay=3, backoff=1, logger=logger, ret=None
-    )
     async def sync_api_admin_storage_update(self, storage: AlistStorage) -> None:
         """
         更新存储，需要管理员用户权限
 
         :param storage: AlistStorage 对象
         """
-        api_url = self.url + "/api/admin/storage/update"
+
         json = {
             "id": storage.id,
             "mount_path": storage.mount_path,
@@ -381,12 +339,11 @@ class AlistClient(metaclass=Multiton):
             "down_proxy_url": storage.down_proxy_url,
         }
 
-        self.__session.headers.update(self.__get_header_with_token)
-        resp = await RequestUtils(session=self.__session).post(api_url, json=json)
-        if resp.status != 200:
-            raise RuntimeError(f"更新存储请求发送失败，状态码：{resp.status}")
+        resp = await self.__post(self.url + "/api/admin/storage/update", json=json)
+        if resp.status_code != 200:
+            raise RuntimeError(f"更新存储请求发送失败，状态码：{resp.status_code}")
 
-        result = await resp.json()
+        result = resp.json()
 
         if result["code"] != 200:
             raise RuntimeError(f'更新存储器失败，详细信息：{result["message"]}')
@@ -398,7 +355,7 @@ class AlistClient(metaclass=Multiton):
 
     async def iter_path(
         self,
-        dir_path: str | None = None,
+        dir_path: str,
         is_detail: bool = True,
         filter: Callable[[AlistPath], bool] = lambda x: True,
     ) -> AsyncGenerator[AlistPath, None]:
@@ -406,20 +363,11 @@ class AlistClient(metaclass=Multiton):
         异步路径列表生成器
         返回目录及其子目录的所有文件和目录的 AlistPath 对象
 
-        :param dir_path: 目录路径（默认为 self.pwd）
+        :param dir_path: 目录路径
         :param is_detail：是否获取详细信息（raw_url）
         :param filter: 匿名函数过滤器（默认不启用）
         :return: AlistPath 对象生成器
         """
-        if isinstance(dir_path, str):
-            dir_path = dir_path.rstrip("/")
-        elif dir_path is None:
-            dir_path = self.__dir
-        else:
-            logger.warning(
-                f"传入参数 dir_path({type(dir_path)}) 类型错误，使用当前目录 {self.__dir} 作为路径"
-            )
-            dir_path = self.__dir
 
         for path in await self.async_api_fs_list(dir_path):
             if path.is_dir:
@@ -433,21 +381,3 @@ class AlistClient(metaclass=Multiton):
                     yield await self.async_api_fs_get(path)
                 else:
                     yield path
-
-    def chdir(self, dir_path: str) -> None:
-        """
-        安全切换目录
-
-        :param dir: 目录
-        """
-        if dir_path == "/":
-            self.__dir = "/"
-        else:
-            self.__dir = "/" + dir_path.strip("/") + "/"
-
-    @property
-    def pwd(self) -> str:
-        """
-        获取当前目录
-        """
-        return self.__dir

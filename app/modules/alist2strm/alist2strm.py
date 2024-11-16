@@ -3,7 +3,6 @@ from os import PathLike
 from pathlib import Path
 
 from aiofile import async_open
-from aiohttp import ClientSession
 
 from app.core import logger
 from app.utils import RequestUtils, Retry
@@ -128,18 +127,15 @@ class Alist2Strm:
         self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
         async with self.__max_workers:
-            async with ClientSession() as session:
-                self.session = session
-                async with TaskGroup() as tg:
-                    _create_task = tg.create_task
-                    async with AlistClient(
-                        self.url, self.__username, self.__password, self.__tokenen
-                    ) as client:
-                        async for path in client.iter_path(
-                            dir_path=self.source_dir, is_detail=is_detail, filter=filter
-                        ):
-                            _create_task(self.__file_processer(path))
-            logger.info("Alist2Strm处理完成")
+            async with TaskGroup() as tg:
+                client = AlistClient(
+                    self.url, self.__username, self.__password, self.__tokenen
+                )
+                async for path in client.iter_path(
+                    dir_path=self.source_dir, is_detail=is_detail, filter=filter
+                ):
+                    tg.create_task(self.__file_processer(path))
+        logger.info("Alist2Strm处理完成")
 
         if self.sync_server:
             await self.__cleanup_local_files()
@@ -161,7 +157,7 @@ class Alist2Strm:
         elif self.mode == "AlistPath":
             content = path.path
         else:
-            raise ValueError(f"AlistStrm未知的模式 {self.mode}")
+            raise ValueError(f"AlistStrm 未知的模式 {self.mode}")
 
         try:
             _parent = local_path.parent
@@ -175,16 +171,7 @@ class Alist2Strm:
                 logger.info(f"{local_path.name} 创建成功")
             else:
                 async with self.__max_downloaders:
-                    async with async_open(local_path, mode="wb") as file:
-                        resp = await RequestUtils(session=self.session).get(
-                            path.download_url
-                        )
-                        if resp.status != 200:
-                            raise RuntimeError(
-                                f"下载 {path.download_url} 失败，状态码：{resp.status}"
-                            )
-                        async for chunk in resp.content.iter_chunked(1024):
-                            await file.write(chunk)
+                    await RequestUtils.download(path.download_url, local_path)
                     logger.info(f"{local_path.name} 下载成功")
         except Exception as e:
             raise RuntimeError(f"{local_path} 处理失败，详细信息：{e}")
