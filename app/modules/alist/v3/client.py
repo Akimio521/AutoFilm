@@ -383,3 +383,28 @@ class AlistClient(metaclass=Multiton):
                     yield await self.async_api_fs_get(path)
                 else:
                     yield path
+
+    async def get_storage_by_mount_path(
+        self, mount_path: str, create: bool = False, **kwargs
+    ) -> AlistStorage | None:
+        """
+        通过挂载路径获取存储器信息
+
+        :param mount_path: 挂载路径
+        :param create: 未找到存储器时是否创建
+        :param kwargs: 创建存储器 AlistStorge 时的参数
+        :return: AlistStorage 对象
+        """
+
+        for storage in await self.async_api_admin_storage_list():
+            if storage.mount_path == mount_path:
+                return storage
+        logger.debug(f"在 Alist 服务器上未找到存储器 {mount_path}")
+
+        if create:
+            kwargs["mount_path"] = mount_path
+            storage = AlistStorage(**kwargs)
+            await self.async_api_admin_storage_create(storage)
+            return storage
+
+        return None

@@ -117,48 +117,30 @@ class Ani2Alist:
             anime_dict = await self.get_season_anime_list
 
         client = AlistClient(self.__url, self.__username, self.__password, self.__token)
-        storage: AlistStorage | None = next(
-            (
-                s
-                for s in await client.async_api_admin_storage_list()
-                if s.mount_path == self.__target_dir
-            ),
-            None,
+        storage = await client.get_storage_by_mount_path(
+            mount_path=self.__target_dir,
+            create=True,
+            driver="UrlTree",
         )
-        if not storage:
-            logger.debug(
-                f"在 Alist 服务器上未找到存储器 {self.__target_dir}，开始创建存储器"
-            )
-            storage = AlistStorage(driver="UrlTree", mount_path=self.__target_dir)
-            await client.async_api_admin_storage_create(storage)
-            storage: AlistStorage | None = next(
-                (
-                    s
-                    for s in await client.async_api_admin_storage_list()
-                    if s.mount_path == self.__target_dir
-                ),
-                None,
-            )
+        if storage is None:
+            logger.error(f"未找到挂载路径：{self.__target_dir}，并且无法创建")
+            return
 
-        if storage:
-            logger.debug(f"发现存储器 {self.__target_dir}，开始更新番剧")
-            addition_dict = storage.addition2dict
-            url_dict = AlistUrlTreeUtils.structure2dict(
-                addition_dict.get("url_structure", {})
-            )
+        addition_dict = storage.addition2dict
+        url_dict = AlistUrlTreeUtils.structure2dict(
+            addition_dict.get("url_structure", {})
+        )
 
-            if url_dict.get(folder) is None:
-                url_dict[folder] = {}
+        if url_dict.get(folder) is None:
+            url_dict[folder] = {}
 
-            url_dict[folder] = merge_dicts(url_dict[folder], anime_dict)
+        url_dict[folder] = merge_dicts(url_dict[folder], anime_dict)
 
-            addition_dict["url_structure"] = AlistUrlTreeUtils.dict2structure(url_dict)
-            storage.set_addition_by_dict(addition_dict)
+        addition_dict["url_structure"] = AlistUrlTreeUtils.dict2structure(url_dict)
+        storage.set_addition_by_dict(addition_dict)
 
-            await client.sync_api_admin_storage_update(storage)
-            logger.info(f"ANI Open {folder} 更新完成")
-        else:
-            logger.error(f"创建存储器后未找到存储器：{self.__target_dir}")
+        await client.sync_api_admin_storage_update(storage)
+        logger.info(f"ANI Open {folder} 更新完成")
 
     @property
     def __get_folder(self) -> str:
