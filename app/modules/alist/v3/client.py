@@ -84,6 +84,15 @@ class AlistClient(metaclass=Multiton):
             kwargs["headers"] = headers
         return await self.__client.request(method, url, **kwargs)
 
+    async def __get(self, url: str, auth: bool = True, **kwargs) -> Response:
+        """
+        发送 GET 请求
+
+        :param url 请求 url
+        :param auth header 中是否带有 alist 认证令牌
+        """
+        return await self.__request("get", url, auth, **kwargs)
+
     async def __post(self, url: str, auth: bool = True, **kwargs) -> Response:
         """
         发送 POST 请求
@@ -138,11 +147,8 @@ class AlistClient(metaclass=Multiton):
 
         :return: 重新申请的登录令牌 token
         """
-        headers = self.__HEADERS.copy()
-        headers["Authorization"] = self.__get_token
-        resp = get(self.url + "/api/me", headers=headers)
-        json = {"username": self.username, "password": self.__password}
 
+        json = {"username": self.username, "password": self.__password}
         resp = post(self.url + "/api/auth/login", json=json)
         if resp.status_code != 200:
             raise RuntimeError(f"更新令牌请求发送失败，状态码：{resp.status_code}")
@@ -267,7 +273,7 @@ class AlistClient(metaclass=Multiton):
         :return: AlistStorage 对象列表
         """
 
-        resp = await self.__post(self.url + "/api/admin/storage/list")
+        resp = await self.__get(self.url + "/api/admin/storage/list")
         if resp.status_code != 200:
             raise RuntimeError(
                 f"获取存储器列表请求发送失败，状态码：{resp.status_code}"
@@ -328,7 +334,7 @@ class AlistClient(metaclass=Multiton):
             "driver": storage.driver,
             "cache_expiration": storage.cache_expiration,
             "status": storage.status,
-            "addition": storage.raw_addition,
+            "addition": storage.addition,
             "remark": storage.remark,
             "modified": storage.modified,
             "disabled": storage.disabled,
