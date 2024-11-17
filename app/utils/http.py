@@ -1,12 +1,13 @@
-from typing import Any
+from typing import Any, Literal, overload
 from pathlib import Path
 from os import makedirs
 from asyncio import TaskGroup, to_thread, get_event_loop
+from collections.abc import Coroutine
 from tempfile import TemporaryDirectory
 from shutil import copy
 from atexit import register
 
-from httpx import AsyncClient, Response, TimeoutException
+from httpx import AsyncClient, Client, Response, TimeoutException
 from aiofile import async_open
 
 from app.core import logger
@@ -29,82 +30,220 @@ class HTTPClient:
         """
 
         self.__new_async_client()
-        register(loop.run_until_complete, self.close())
+        self.__new_sync_client()
+        register(loop.run_until_complete, self.async_close())
         # register(print, "HTTP 客户端已关闭")
+        self.request()
+
+    def __new_sync_client(self):
+        """
+        创建新的同步 HTTP 客户端
+        """
+        self.__sync_client = Client(http2=True, follow_redirects=True, timeout=10)
 
     def __new_async_client(self):
-        self.__client = AsyncClient(http2=True, follow_redirects=True, timeout=10)
-
-    async def close(self):
         """
-        关闭 HTTP 客户端
+        创建新的异步 HTTP 客户端
         """
-        if self.__client:
-            await self.__client.aclose()
+        self.__async_client = AsyncClient(http2=True, follow_redirects=True, timeout=10)
 
-    @Retry.async_retry(TimeoutException, tries=3, delay=1, backoff=2)
-    async def request(self, method: str, url: str, **kwargs) -> Response:
+    def close_sync_client(self):
+        """
+        关闭同步 HTTP 客户端
+        """
+        if self.__sync_client:
+            self.__sync_client.close()
+
+    async def close_async_client(self):
+        """
+        关闭异步 HTTP 客户端
+        """
+        if self.__async_client:
+            await self.__async_client.aclose()
+
+    def sync_close(self) -> None:
+        """
+        同步关闭所有客户端
+        """
+        self.close_sync_client()
+        loop.run_until_complete(self.close_async_client())
+
+    async def async_close(self) -> None:
+        """
+        异步关闭所有客户端
+        """
+        self.close_sync_client()
+        await self.close_async_client()
+
+    @Retry.sync_retry(TimeoutException, tries=3, delay=1, backoff=2, logger=logger)
+    def _sync_request(self, method: str, url: str, **kwargs) -> Response:
+        """
+        发起同步 HTTP 请求
+        """
+        try:
+            return self.__sync_client.request(method, url, **kwargs)
+        except TimeoutException:
+            self.close_sync_client()
+            self.__new_sync_client()
+            raise TimeoutException
+
+    @Retry.async_retry(TimeoutException, tries=3, delay=1, backoff=2, logger=logger)
+    def _async_request(
+        self, method: str, url: str, **kwargs
+    ) -> Coroutine[Any, Any, Response]:
+        """
+        发起异步 HTTP 请求
+        """
+        try:
+            return self.__async_client.request(method, url, **kwargs)
+        except TimeoutException:
+            self.close_async_client()
+            self.__new_async_client()
+            raise TimeoutException
+
+    @overload
+    def request(
+        self, method: str, url: str, *, sync: Literal[True], **kwargs
+    ) -> Response: ...
+
+    @overload
+    def request(
+        self, method: str, url: str, *, sync: Literal[False] = False, **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发起 HTTP 请求
 
         :param method: HTTP 方法，如 get, post, put 等
         :param url: 请求的 URL
+        :param sync: 是否使用同步请求方式，默认为 False
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
+        if sync:
+            return self._sync_request(method, url, **kwargs)
+        else:
+            return self._async_request(method, url, **kwargs)
 
-        try:
-            return await self.__client.request(method, url, **kwargs)
-        except TimeoutException:
-            await self.__client.aclose()
-            self.__new_async_client()
-            raise TimeoutException
+    @overload
+    def head(self, url: str, *, sync: Literal[True], **kwargs) -> Response: ...
 
-    async def head(self, url: str, params: dict = {}, **kwargs) -> Response:
+    @overload
+    def head(
+        self, url: str, *, sync: Literal[False], **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
+
+    def head(
+        self,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        params: dict = {},
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 HEAD 请求
 
         :param url: 请求的 URL
+        :param sync: 是否使用同步请求方式，默认为 False
+        :param params: 请求的查询参数
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await self.request("head", url, params=params, **kwargs)
+        return self.request("head", url, sync=sync, params=params**kwargs)
 
-    async def get(self, url: str, params: dict = {}, **kwargs) -> Response:
+    @overload
+    def get(self, url: str, *, sync: Literal[True], **kwargs) -> Response: ...
+
+    @overload
+    def get(
+        self, url: str, *, sync: Literal[False], **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
+
+    def get(
+        self,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        params: dict = {},
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 GET 请求
 
         :param url: 请求的 URL
-        :param params: 请求的参数
+        :param sync: 是否使用同步请求方式，默认为 False
+        :param params: 请求的查询参数
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await self.request("get", url, params=params, **kwargs)
+        return self.request("get", url, sync=sync, params=params, **kwargs)
+
+    @overload
+    def post(self, url: str, *, sync: Literal[True], **kwargs) -> Response: ...
+
+    @overload
+    def post(
+        self, url: str, *, sync: Literal[False], **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
 
     async def post(
-        self, url: str, data: Any = None, json: dict = {}, **kwargs
-    ) -> Response:
+        self,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        data: Any = None,
+        json: dict = {},
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 POST 请求
 
         :param url: 请求的 URL
+        :param sync: 是否使用同步请求方式，默认为 False
         :param data: 请求的数据
         :param json: 请求的 JSON 数据
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await self.request("post", url, data=data, json=json, **kwargs)
+        return self.request("post", url, sync=sync, data=data, json=json, **kwargs)
 
-    async def put(self, url: str, data: Any = None, **kwargs) -> Response:
+    @overload
+    def put(self, url: str, *, sync: Literal[True], **kwargs) -> Response: ...
+
+    @overload
+    def put(
+        self, url: str, *, sync: Literal[False], **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
+
+    def put(
+        self,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        data: Any = None,
+        json: dict = {},
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 PUT 请求
 
         :param url: 请求的 URL
+        :param sync: 是否使用同步请求方式，默认为 False
         :param data: 请求的数据
+        :param json: 请求的 JSON 数据
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await self.request("put", url, data=data, **kwargs)
+        return self.request("put", url, sync=sync, data=data, json=json**kwargs)
 
     async def download(
         self,
@@ -115,14 +254,14 @@ class HTTPClient:
         **kwargs,
     ) -> None:
         """
-        下载文件
+        下载文件！！！仅支持异步下载！！！
 
         :param url: 文件的 URL
         :param file_path: 文件保存路径
         :param params: 请求参数
         :param kwargs: 其他请求参数，如 headers, cookies 等
         """
-        resp = await self.head(url, params=params, **kwargs)
+        resp = await self.head(url, sync=False, params=params, **kwargs)
 
         file_size = int(resp.headers.get("Content-Length", -1))
 
@@ -210,7 +349,8 @@ class HTTPClient:
 
 class RequestUtils:
     """
-    HTTP 异步请求工具类
+    HTTP 请求工具类
+    支持同步和异步请求
     """
 
     __clients: dict[str, HTTPClient] = {}
@@ -221,7 +361,7 @@ class RequestUtils:
         关闭所有 HTTP 客户端
         """
         for client in cls.__clients.values():
-            client.close()
+            client.sync_close()
 
     @classmethod
     def __get_client(cls, url: str) -> HTTPClient:
@@ -238,45 +378,113 @@ class RequestUtils:
             cls.__clients[key] = HTTPClient()
         return cls.__clients[key]
 
+    @overload
     @classmethod
-    async def request(cls, method: str, url: str, **kwargs) -> Response:
+    def request(
+        cls, method: str, url: str, sync: Literal[True], **kwargs
+    ) -> Response: ...
+
+    @overload
+    @classmethod
+    def request(
+        cls, method: str, url: str, sync: Literal[False] = False, **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
+
+    @classmethod
+    def request(
+        cls, method: str, url: str, sync: Literal[True, False] = False, **kwargs
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发起 HTTP 请求
         """
         client = cls.__get_client(url)
-        return await client.request(method, url, **kwargs)
+        return client.request(method, url, sync=sync, **kwargs)
+
+    @overload
+    @classmethod
+    def head(cls, url: str, sync: Literal[True], **kwargs) -> Response: ...
+
+    @overload
+    @classmethod
+    def head(
+        cls, url: str, sync: Literal[False] = False, **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
 
     @classmethod
-    async def head(cls, url: str, params: dict = {}, **kwargs) -> Response:
+    def head(
+        cls,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        params: dict = {},
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 HEAD 请求
 
         :param url: 请求的 URL
+        :param sync: 是否使用同步请求方式，默认为 False
+        :param params: 请求的查询参数
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await cls.request("head", url, params=params, **kwargs)
+        return cls.request("head", url, sync=sync, params=params, **kwargs)
+
+    @overload
+    @classmethod
+    def get(cls, url: str, *, sync: Literal[True], **kwargs) -> Response: ...
+
+    @overload
+    @classmethod
+    def get(
+        cls, url: str, *, sync: Literal[False] = False, **kwargs
+    ) -> Coroutine[Any, Any, Response]: ...
 
     @classmethod
-    async def get(cls, url: str, params: dict = {}, **kwargs) -> Response:
+    def get(
+        cls,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        params: dict = {},
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 GET 请求
 
         :param url: 请求的 URL
-        :param params: 请求的参数
+        :param params: 请求的查询参数
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await cls.request("get", url, params=params, **kwargs)
+        return cls.request("get", url, sync=sync, params=params, **kwargs)
 
+    @overload
     @classmethod
-    async def post(
+    def post(cls, url: str, *, sync: Literal[True], **kwargs) -> Response: ...
+
+    @overload
+    @classmethod
+    def post(
         cls,
         url: str,
+        *,
+        sync: Literal[False] = False,
         data: Any = None,
         json: dict = {},
         **kwargs,
-    ) -> Response:
+    ) -> Coroutine[Any, Any, Response]: ...
+
+    @classmethod
+    def post(
+        cls,
+        url: str,
+        *,
+        sync: Literal[True, False] = False,
+        data: Any = None,
+        json: dict = {},
+        **kwargs,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 POST 请求
 
@@ -286,10 +494,27 @@ class RequestUtils:
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await cls.request("post", url, data=data, json=json, **kwargs)
+        return cls.request("post", url, sync=sync, data=data, json=json, **kwargs)
+
+    @overload
+    @classmethod
+    def put(cls, url: str, *, sync: Literal[True], **kwargs) -> Response: ...
+
+    @overload
+    @classmethod
+    def put(
+        cls,
+        url: str,
+        *,
+        sync: Literal[False] = False,
+        data: Any = None,
+        **kwargs,
+    ) -> Coroutine[Any, Any, Response]: ...
 
     @classmethod
-    async def put(cls, url: str, data: Any = None, **kwargs) -> Response:
+    def put(
+        cls, url: str, *, sync: Literal[True, False] = False, data: Any = None, **kwargs
+    ) -> Response | Coroutine[Any, Any, Response]:
         """
         发送 PUT 请求
 
@@ -299,7 +524,7 @@ class RequestUtils:
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return await cls.request("put", url, data=data, **kwargs)
+        return cls.request("put", url, sync=sync, data=data, **kwargs)
 
     @classmethod
     async def download(
@@ -310,7 +535,7 @@ class RequestUtils:
         **kwargs,
     ) -> None:
         """
-        下载文件
+        下载文件！！！仅支持异步下载！！！
 
         :param url: 文件的 URL
         :param file_path: 文件保存路径
@@ -319,3 +544,7 @@ class RequestUtils:
         """
         client = cls.__get_client(url)
         await client.download(url, file_path, params=params, **kwargs)
+
+
+# 退出时关闭所有客户端
+register(RequestUtils.close)
