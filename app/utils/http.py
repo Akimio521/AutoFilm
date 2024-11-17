@@ -1,9 +1,10 @@
 from typing import Any
 from pathlib import Path
 from os import makedirs
-from asyncio import TaskGroup, to_thread
+from asyncio import TaskGroup, to_thread, get_event_loop
 from tempfile import TemporaryDirectory
 from shutil import copy
+from atexit import register
 
 from httpx import AsyncClient, Response, TimeoutException
 from aiofile import async_open
@@ -11,6 +12,8 @@ from aiofile import async_open
 from app.core import logger
 from app.utils.url import URLUtils
 from app.utils.retry import Retry
+
+loop = get_event_loop()
 
 
 class HTTPClient:
@@ -26,6 +29,8 @@ class HTTPClient:
         """
 
         self.__new_async_client()
+        register(loop.run_until_complete, self.close())
+        # register(print, "HTTP 客户端已关闭")
 
     def __new_async_client(self):
         self.__client = AsyncClient(http2=True, follow_redirects=True, timeout=10)
