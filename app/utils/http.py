@@ -8,6 +8,7 @@ from shutil import copy
 from httpx import AsyncClient, Response, TimeoutException
 from aiofile import async_open
 
+from app.core import logger
 from app.utils.url import URLUtils
 from app.utils.retry import Retry
 
@@ -124,15 +125,12 @@ class HTTPClient:
             temp_file = Path(temp_dir) / file_path.name
 
             if file_size == -1:
-                print("文件大小未知，直接下载")
+                logger.debug(f"{file_path.name} 文件大小未知，直接下载")
                 await self.__download_chunk(url, temp_file, 0, 0, **kwargs)
             else:
                 async with TaskGroup() as tg:
-                    print(f"开始分片下载:{file_size}")
-                    print(
-                        f"分片范围:{self.caculate_divisional_range(
-                        file_size, chunk_num=chunk_num
-                    )}"
+                    logger.debug(
+                        f"开始分片下载文件：{file_path.name}，分片数:{chunk_num}"
                     )
                     for start, end in self.caculate_divisional_range(
                         file_size, chunk_num=chunk_num
