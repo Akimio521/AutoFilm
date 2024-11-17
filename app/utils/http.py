@@ -552,7 +552,3 @@ class RequestUtils:
         """
         client = cls.__get_client(url)
         await client.download(url, file_path, params=params, **kwargs)
-
-
-# 退出时关闭所有客户端
-register(RequestUtils.close)
