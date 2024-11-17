@@ -1,88 +1,80 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 from json import loads, dumps
+from typing import Literal
+
+from pydantic import BaseModel, model_validator
 
 
-class AlistStorage:
+class AlistStorage(BaseModel):
     """
     Alist 存储器模型
     """
 
-    def __init__(
-        self,
-        id: int = 0,
-        status: str = "",
-        remark: str = "",
-        modified: str = "",
-        disabled: bool = False,
-        mount_path: str = "",
-        order: int = 0,
-        driver: str = "Local",
-        cache_expiration: int = 30,
-        addition: str = "{}",
-        enable_sign: bool = False,
-        order_by: str = "name",
-        order_direction: str = "asc",
-        extract_folder: str = "front",
-        web_proxy: bool = False,
-        webdav_policy: str = "native_proxy",
-        down_proxy_url: str = "",
-        **_,
-    ) -> None:
+    id: int = 0  # 存储器 ID
+    status: Literal["work", "disabled"] = "work"  # 存储器状态
+    remark: str = ""  # 备注
+    modified: str = ""  # 修改时间
+    disabled: bool = False  # 是否禁用
+    mount_path: str = ""  # 挂载路径
+    order: int = 0  # 排序
+    driver: str = "Local"  # 驱动器
+    cache_expiration: int = 30  # 缓存过期时间
+    addition: str = "{}"  # 附加信息
+    enable_sign: bool = False  # 是否启用签名
+    order_by: str = "name"  # 排序字段
+    order_direction: str = "asc"  # 排序方向
+    extract_folder: str = "front"  # 提取文件夹
+    web_proxy: bool = False  # 是否启用 Web 代理
+    webdav_policy: str = "native_proxy"  # WebDAV 策略
+    down_proxy_url: str = ""  # 下载代理 URL
+
+    def set_addition_by_dict(self, additon: dict) -> None:
         """
-        :param id: 存储器 ID
-        :param status: 状态
-        :param remark: 备注
-        :param modified: 修改时间
-        :param disabled: 是否禁用
-        :param mount_path: 挂载路径
-        :param order: 排序
-        :param driver: 驱动
-        :param cache_expiration: 缓存过期时间
-        :param addition: 附加信息
-        :param enable_sign: 是否启用
-        :param order_by: 排序方式
-        :param order_direction: 排序方向
-        :param extract_folder: 提取文件夹
-        :param web_proxy: 是否启用 Web 代理
-        :param webdav_policy: WebDAV 策略
-        :param down_proxy_url: 下载代理 URL
+        使用 Python 字典设置 Storage 附加信息
         """
-        self.id = id
-        self.mount_path = mount_path
-        self.order = order
-        self.driver = driver
-        self.cache_expiration = cache_expiration
-        self.status = status
-        self.__addition = addition
-        self.remark = remark
-        self.modified = modified
-        self.disabled = disabled
-        self.enable_sign = enable_sign
-        self.order_by = order_by
-        self.order_direction = order_direction
-        self.extract_folder = extract_folder
-        self.web_proxy = web_proxy
-        self.webdav_policy = webdav_policy
-        self.down_proxy_url = down_proxy_url
+        self.addition = dumps(additon)
 
     @property
-    def addition(self) -> dict:
+    def addition2dict(self) -> dict:
         """
-        将原本的 JSON 字符串转换为 Python 字典
+        获取 Storage 附加信息，返回Python 字典
         """
-        return loads(self.__addition)
-    
-    @property
-    def raw_addition(self) -> str:
-        """
-        返回原始的 JSON 字符串
-        """
-        return self.__addition
-    
-    def change_addition(self, dictionary: dict) -> None:
-        """
-        修改 Storage 附加信息
-        """
-        self.__addition = dumps(dictionary)
+        return loads(self.addition)
+
+    @model_validator(mode="before")
+    def check_status(cls, values: dict) -> dict:
+        status = values.get("status")
+        disabled = values.get("disabled")
+        if (disabled and status == "work") or (not disabled and status == "disabled"):
+            raise ValueError(f"存储器状态错误，{status=}, {disabled=}")
+        return values
+
+
+if __name__ == "__main__":
+    info = {
+        "id": 1,
+        "mount_path": "/lll",
+        "order": 0,
+        "driver": "Local",
+        "cache_expiration": 0,
+        "status": "work",
+        "addition": '{"root_folder_path":"/root/www","thumbnail":false,"thumb_cache_folder":"","show_hidden":true,"mkdir_perm":"777"}',
+        "remark": "",
+        "modified": "2023-07-19T09:46:38.868739912+08:00",
+        "disabled": False,
+        "enable_sign": False,
+        "order_by": "name",
+        "order_direction": "asc",
+        "extract_folder": "front",
+        "web_proxy": False,
+        "webdav_policy": "native_proxy",
+        "down_proxy_url": "",
+    }
+    storage = AlistStorage(**info)
+    print(storage)
+    print(storage.addition2dict)
+    storage.set_addition_by_dict({"test": 1})
+    print(storage.addition)
+    print(storage.addition2dict)
+    storage.addition = '{"test": 2}'
+    print(storage.addition)
+    print(storage.addition2dict)

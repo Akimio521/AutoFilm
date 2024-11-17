@@ -142,7 +142,7 @@ class Ani2Alist:
 
         if storage:
             logger.debug(f"发现存储器 {self.__target_dir}，开始更新番剧")
-            addition_dict = storage.addition
+            addition_dict = storage.addition2dict
             url_dict = AlistUrlTreeUtils.structure2dict(
                 addition_dict.get("url_structure", {})
             )
@@ -153,7 +153,7 @@ class Ani2Alist:
             url_dict[folder] = merge_dicts(url_dict[folder], anime_dict)
 
             addition_dict["url_structure"] = AlistUrlTreeUtils.dict2structure(url_dict)
-            storage.change_addition(addition_dict)
+            storage.set_addition_by_dict(addition_dict)
 
             await client.sync_api_admin_storage_update(storage)
             logger.info(f"ANI Open {folder} 更新完成")

@@ -1,74 +1,34 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 from re import sub
+from typing import Any
+
+from pydantic import BaseModel
 
 from app.utils import URLUtils
 
 
-class AlistPath:
+class AlistPath(BaseModel):
     """
     Alist 文件/目录对象
     """
 
-    def __init__(
-        self,
-        server_url: str,
-        base_path: str,
-        path: str,
-        name: str,
-        size: int,
-        is_dir: bool,
-        modified: str | None = None,
-        created: str | None = None,
-        sign: str = "",
-        thumb: str | None = None,
-        type: str | None = None,
-        hashinfo: str | None = None,
-        hash_info: str | None = None,
-        raw_url: str | None = None,
-        readme: str | None = None,
-        header: dict | None = None,
-        provider: str | None = None,
-        **_,
-    ):
-        """
-        Alist 文件/目录对象
-        :param server_url: Alist 服务器地址
-        :param base_path: Alist 服务器基础路径
-        :param path: 文件/目录路径
-        :param name: 文件/目录名称
-        :param size: 文件大小
-        :param is_dir: 是否为目录
-        :param modified: 最后修改时间
-        :param created: 创建时间
-        :param sign: 签名
-        :param thumb: 缩略图
-        :param type: 文件类型
-        :param hashinfo: Hash 信息
-        :param hash_info: Hash 信息
-        :param raw_url: 原始地址
-        :param readme: 说明
-        :param header: 头信息
-        :param provider: 存储器提供者
-        """
-        self.server_url = server_url
-        self.base_path = base_path.rstrip("/") + "/"
-        self.path = path.rstrip("/")
-        self.name = name
-        self.size = size
-        self.is_dir = is_dir
-        self.modified = modified
-        self.created = created
-        self.sign = sign
-        self.thumb = thumb if thumb else None
-        self.type = type
-        self.hashinfo = hashinfo if hashinfo else None
-        self.hash_info = hash_info
-        self.raw_url = raw_url
-        self.readme = readme
-        self.header = header
-        self.provider = provider
+    server_url: str  # 服务器地址
+    base_path: str  # 基础路径（用于计算文件/目录在 Alist 服务器上的绝对地址）
+    path: str  # 文件/目录路径
+    name: str  # 文件/目录名称
+    size: int  # 文件大小
+    is_dir: bool  # 是否为目录
+    modified: str = ""  # 修改时间
+    created: str = ""  # 创建时间
+    sign: str = ""  # 签名
+    thumb: str = ""  # 缩略图
+    type: int = ""  # 类型
+    hashinfo: str = "null"  # 哈希信息
+    hash_info: str | None = None  # 哈希信息
+    raw_url: str = ""  # 原始地址
+    readme: str = ""  # Readme 地址
+    header: str = ""  # 头部信息
+    provider: str = ""  # 提供者
+    related: Any = None  # 相关信息
 
     @property
     def abs_path(self):
@@ -105,3 +65,39 @@ class AlistPath:
             return ""
         else:
             return "." + self.name.split(".")[-1]
+
+
+if __name__ == "__main__":
+    result = {
+        "code": 200,
+        "message": "success",
+        "data": {
+            "content": [
+                {
+                    "name": "Alist V3.md",
+                    "size": 1592,
+                    "is_dir": False,
+                    "modified": "2024-05-17T13:47:55.4174917+08:00",
+                    "created": "2024-05-17T13:47:47.5725906+08:00",
+                    "sign": "",
+                    "thumb": "",
+                    "type": 4,
+                    "hashinfo": "null",
+                    "hash_info": None,
+                }
+            ],
+            "total": 1,
+            "readme": "",
+            "header": "",
+            "write": True,
+            "provider": "Local",
+        },
+    }
+    for item in result["data"]["content"]:
+        path = AlistPath(
+            server_url="https://alist.nn.ci",
+            base_path="/",
+            path="/",
+            **item,
+        )
+        print(path)
