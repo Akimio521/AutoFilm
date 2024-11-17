@@ -20,7 +20,6 @@ loop = get_event_loop()
 class HTTPClient:
     """
     HTTP 客户端类
-
     """
 
     # 最小流式下载文件大小，128MB
@@ -204,7 +203,7 @@ class HTTPClient:
         self, url: str, *, sync: Literal[False], **kwargs
     ) -> Coroutine[Any, Any, Response]: ...
 
-    async def post(
+    def post(
         self,
         url: str,
         *,
