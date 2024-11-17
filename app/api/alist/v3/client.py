@@ -212,7 +212,7 @@ class AlistClient(metaclass=Multiton):
 
         logger.debug(f"获取目录 {dir_path} 的文件列表成功")
 
-        if result["data"]["content"]["total"] == 0:
+        if result["data"]["total"] == 0:
             return []
         return [
             AlistPath(
