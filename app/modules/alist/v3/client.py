@@ -5,8 +5,8 @@ from httpx import get, post, Response
 
 from app.core import logger
 from app.utils import HTTPClient, Multiton
-from app.api.alist.v3.path import AlistPath
-from app.api.alist.v3.storage import AlistStorage
+from app.modules.alist.v3.path import AlistPath
+from app.modules.alist.v3.storage import AlistStorage
 
 
 class AlistClient(metaclass=Multiton):

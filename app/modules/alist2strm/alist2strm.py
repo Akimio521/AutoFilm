@@ -7,7 +7,7 @@ from aiofile import async_open
 from app.core import logger
 from app.utils import RequestUtils, Retry
 from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
-from app.api import AlistClient, AlistPath
+from app.modules.alist import AlistClient, AlistPath
 
 
 class Alist2Strm:
