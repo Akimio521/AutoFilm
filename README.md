@@ -58,8 +58,8 @@
 - [x] Alist 永久令牌
 - [ ] 实用 API 触发任务
 - [ ] 通知功能
-~~- [ ] 对接 TMDB 实现分类、重命名、刮削等功能~~
-> 已经向 [MoviePilot](https://github.com/jxxghp/MoviePilot) 提交支持对 Alist 服务器文件的操作功能的 PR，目前已经合并进入主线分支，可以直接使用 MoviePilot 直接刮削
+- [ ] ~~对接 TMDB 实现分类、重命名、刮削等功能~~
+    > 已经向 [MoviePilot](https://github.com/jxxghp/MoviePilot) 提交支持对 Alist 服务器文件的操作功能的 PR，目前已经合并进入主线分支，可以直接使用 MoviePilot 直接刮削
 
 # 更新日志
 - 2024.11.8：v1.2.5，Alist2Strm 模块新增同步功能；优化 AlistClient，减少 token 申请；支持使用永久令牌；优化日志功能
