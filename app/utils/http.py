@@ -10,7 +10,7 @@ from atexit import register
 from httpx import AsyncClient, Client, Response, TimeoutException
 from aiofile import async_open
 
-from app.core import logger
+from app.core import settings, logger
 from app.utils.url import URLUtils
 from app.utils.retry import Retry
 
@@ -20,9 +20,16 @@ loop = get_event_loop()
 class HTTPClient:
     """
     HTTP 客户端类
+
     """
 
-    __mini_stream_size: int = 128 * 1024 * 1024  # 最小流式下载文件大小，128MB
+    # 最小流式下载文件大小，128MB
+    MINI_STREAM_SIZE: int = 128 * 1024 * 1024
+    # 默认请求头
+    HEADERS: dict[str, str] = {
+        "User-Agent": f"AutoFilm/{settings.APP_VERSION}",
+        "Accept": "application/json",
+    }
 
     def __init__(self):
         """
@@ -128,6 +135,8 @@ class HTTPClient:
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
+        headers = kwargs.get("headers", self.HEADERS)
+        kwargs["headers"] = headers
         if sync:
             return self._sync_request(method, url, **kwargs)
         else:
@@ -311,7 +320,7 @@ class HTTPClient:
             headers["Range"] = f"bytes={start}-{end}"
             kwargs["headers"] = headers
 
-        resp = await self.get(url, **kwargs)
+        resp = await self.get(url, sync=False, **kwargs)
         async with async_open(file_path, "ab") as file:
             file.seek(start)
             async for chunk in resp.aiter_bytes(iter_chunked_size):
@@ -329,7 +338,7 @@ class HTTPClient:
         :param chunk_num: 分片数
         :return: 分片范围
         """
-        if file_size < HTTPClient.__mini_stream_size or chunk_num <= 1:
+        if file_size < HTTPClient.MINI_STREAM_SIZE or chunk_num <= 1:
             return [(0, file_size - 1)]
 
         step = file_size // chunk_num  # 计算每个分片的基本大小
