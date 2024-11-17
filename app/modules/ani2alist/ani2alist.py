@@ -5,8 +5,8 @@ from feedparser import parse
 
 from app.core import logger
 from app.utils import RequestUtils, URLUtils
-from app.utils import AlistUrlTreeUtils, Retry
-from app.modules.alist import AlistClient, AlistStorage
+from app.utils import AlistUrlTreeUtils
+from app.modules.alist import AlistClient
 
 VIDEO_MINETYPE: Final = frozenset(("video/mp4", "video/x-matroska"))
 SUBTITLE_MINETYPE: Final = frozenset(("application/octet-stream",))
@@ -207,7 +207,6 @@ class Ani2Alist:
         return await parse_data()
 
     @property
-    @Retry.async_retry(Exception, tries=3, delay=3, backoff=2, logger=logger, ret={})
     async def get_rss_anime_dict(self) -> dict:
         """
         获取 RSS 动画列表
@@ -223,17 +222,56 @@ class Ani2Alist:
 
         logger.debug(f"开始获取 ANI Open RSS 动画列表")
         url = f"https://{self.__rss_domain}/ani-download.xml"
-        rss_anime_dict = {}
 
         resp = await RequestUtils.get(url)
         if resp.status_code != 200:
             raise Exception(f"请求发送失败，状态码：{resp.status_code}")
-        feeds = parse(await resp.text())
+        # print(type(resp.text()), "\n", resp.text())
+        feeds = parse(resp.text)
 
-        for item in feeds.entries:
-            rss_anime_dict[item.title] = [
-                convert_size_to_bytes(item.anime_size),
-                item.link,
+        rss_anime_dict = {}
+        for entry in feeds.entries:
+            """
+            print(type(entry))
+            print(entry)
+
+            type: <class 'feedparser.util.FeedParserDict'>
+            {
+                "title": "[ANi] FAIRY TAIL 魔導少年 百年任務 - 18 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+                "title_detail": {
+                    "type": "text/plain",
+                    "language": None,
+                    "base": "",
+                    "value": "[ANi] FAIRY TAIL 魔導少年 百年任務 - 18 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+                },
+                "links": [
+                    {
+                        "rel": "alternate",
+                        "type": "text/html",
+                        "href": "https://resources.ani.rip/2024-7/%5BANi%5D%20FAIRY%20TAIL%20%E9%AD%94%E5%B0%8E%E5%B0%91%E5%B9%B4%20%E7%99%BE%E5%B9%B4%E4%BB%BB%E5%8B%99%20-%2018%20%5B1080P%5D%5BBaha%5D%5BWEB-DL%5D%5BAAC%20AVC%5D%5BCHT%5D.mp4?d=true",
+                    }
+                ],
+                "link": "https://resources.ani.rip/2024-7/%5BANi%5D%20FAIRY%20TAIL%20%E9%AD%94%E5%B0%8E%E5%B0%91%E5%B9%B4%20%E7%99%BE%E5%B9%B4%E4%BB%BB%E5%8B%99%20-%2018%20%5B1080P%5D%5BBaha%5D%5BWEB-DL%5D%5BAAC%20AVC%5D%5BCHT%5D.mp4?d=true",
+                "id": "https://resources.ani.rip/2024-7/%5BANi%5D%20FAIRY%20TAIL%20%E9%AD%94%E5%B0%8E%E5%B0%91%E5%B9%B4%20%E7%99%BE%E5%B9%B4%E4%BB%BB%E5%8B%99%20-%2018%20%5B1080P%5D%5BBaha%5D%5BWEB-DL%5D%5BAAC%20AVC%5D%5BCHT%5D.mp4?d=true",
+                "guidislink": False,
+                "published": "Sun, 10 Nov 2024 09:01:47 GMT",
+                "published_parsed": time.struct_time(
+                    tm_year=2024,
+                    tm_mon=11,
+                    tm_mday=10,
+                    tm_hour=9,
+                    tm_min=1,
+                    tm_sec=47,
+                    tm_wday=6,
+                    tm_yday=315,
+                    tm_isdst=0,
+                ),
+                "anime_size": "473.0 MB",
+            }
+            """
+            rss_anime_dict[entry.title] = [
+                convert_size_to_bytes(entry.anime_size),
+                entry.link,
             ]
 
         logger.debug(f"获取 RSS 动画列表成功")
