@@ -5,7 +5,8 @@ from time import sleep
 from app.core.log import logger
 from app.utils.singleton import Singleton
 
-T = TypeVar("T")
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
 
 
 class Retry(metaclass=Singleton):
@@ -27,8 +28,8 @@ class Retry(metaclass=Singleton):
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
-        ret: T = None,
-    ) -> Callable[..., T]:
+        ret: T2 = None,
+    ) -> Callable[..., Callable[..., T1 | T2]]:
         """
         同步重试装饰器
 
@@ -39,8 +40,8 @@ class Retry(metaclass=Singleton):
         :param ret: 默认返回
         """
 
-        def deco_retry(f: Callable[..., T]) -> Callable[..., T]:
-            def f_retry(*args, **kwargs) -> T:
+        def deco_retry(f: Callable[..., T1]) -> Callable[..., T1 | T2]:
+            def f_retry(*args, **kwargs) -> T1 | T2:
                 mtries, mdelay = tries, delay
                 while mtries > 1:
                     try:
@@ -65,8 +66,8 @@ class Retry(metaclass=Singleton):
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
-        ret: T = None,
-    ) -> Callable[..., T]:
+        ret: T1 = None,
+    ) -> Callable[..., Callable[..., T1 | T2]]:
         """
         异步重试装饰器
 
@@ -77,8 +78,8 @@ class Retry(metaclass=Singleton):
         :param ret: 默认返回
         """
 
-        def deco_retry(f: Callable[..., T]) -> Callable[..., T]:
-            async def f_retry(*args, **kwargs) -> T:
+        def deco_retry(f: Callable[..., T1]) -> Callable[..., T1 | T2]:
+            async def f_retry(*args, **kwargs) -> T1 | T2:
                 mtries, mdelay = tries, delay
                 while mtries > 1:
                     try:
