@@ -18,7 +18,7 @@ class Retry(metaclass=Singleton):
 
     @staticmethod
     def sync_retry(
-        ExceptionToCheck: Any,
+        exception: Exception,
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
@@ -27,7 +27,7 @@ class Retry(metaclass=Singleton):
         """
         同步重试装饰器
 
-        :param ExceptionToCheck: 需要捕获的异常
+        :param exception: 需要捕获的异常
         :param tries: 重试次数
         :param delay: 延迟时间
         :param backoff: 延迟倍数
@@ -40,7 +40,7 @@ class Retry(metaclass=Singleton):
                 while mtries > 1:
                     try:
                         return f(*args, **kwargs)
-                    except ExceptionToCheck as _e:
+                    except exception as _e:
                         msg = f"{_e}，{mdelay}秒后重试 ..."
                         logger.warning(msg)
                         sleep(mdelay)
@@ -56,7 +56,7 @@ class Retry(metaclass=Singleton):
 
     @staticmethod
     def async_retry(
-        ExceptionToCheck: Any,
+        exception: Exception,
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
@@ -65,7 +65,7 @@ class Retry(metaclass=Singleton):
         """
         异步重试装饰器
 
-        :param ExceptionToCheck: 需要捕获的异常
+        :param exception: 需要捕获的异常
         :param tries: 重试次数
         :param delay: 延迟时间
         :param backoff: 延迟倍数
@@ -78,7 +78,7 @@ class Retry(metaclass=Singleton):
                 while mtries > 1:
                     try:
                         return await f(*args, **kwargs)
-                    except ExceptionToCheck as _e:
+                    except exception as _e:
                         msg = f"{_e}，{mdelay}秒后重试 ..."
                         logger.warning(msg)
                         await async_sleep(mdelay)
