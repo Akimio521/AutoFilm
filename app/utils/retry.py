@@ -1,9 +1,8 @@
 from asyncio import sleep as async_sleep
 from typing import Any, TypeVar, Callable
 from time import sleep
-from logging import Logger
 
-from app.core.log import LoggerManager
+from app.core.log import logger
 from app.utils.singleton import Singleton
 
 TRIES = 3
@@ -23,7 +22,6 @@ class Retry(metaclass=Singleton):
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
-        logger: LoggerManager | Logger | None = None,
         ret: T = None,
     ) -> Callable[..., T]:
         """
@@ -33,7 +31,6 @@ class Retry(metaclass=Singleton):
         :param tries: 重试次数
         :param delay: 延迟时间
         :param backoff: 延迟倍数
-        :param logger: 日志对象（Logger）
         :param ret: 默认返回
         """
 
@@ -45,16 +42,12 @@ class Retry(metaclass=Singleton):
                         return f(*args, **kwargs)
                     except ExceptionToCheck as _e:
                         msg = f"{_e}，{mdelay}秒后重试 ..."
-                        if logger:
-                            logger.warning(msg)
-                        else:
-                            print(msg)
+                        logger.warning(msg)
                         sleep(mdelay)
                         mtries -= 1
                         mdelay *= backoff
                         e = _e
-                if logger:
-                    logger.warning(f"{e}，超出最大重试次数！")
+                logger.error(f"{e}，超出最大重试次数！")
                 return ret
 
             return f_retry
@@ -67,7 +60,6 @@ class Retry(metaclass=Singleton):
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
-        logger: LoggerManager | Logger | None = None,
         ret: T = None,
     ) -> Callable[..., T]:
         """
@@ -77,7 +69,6 @@ class Retry(metaclass=Singleton):
         :param tries: 重试次数
         :param delay: 延迟时间
         :param backoff: 延迟倍数
-        :param logger: 日志对象（Logger）
         :param ret: 默认返回
         """
 
@@ -89,16 +80,13 @@ class Retry(metaclass=Singleton):
                         return await f(*args, **kwargs)
                     except ExceptionToCheck as _e:
                         msg = f"{_e}，{mdelay}秒后重试 ..."
-                        if logger:
-                            logger.warning(msg)
-                        else:
-                            print(msg)
+                        logger.warning(msg)
                         await async_sleep(mdelay)
                         mtries -= 1
                         mdelay *= backoff
                         e = _e
-                if logger:
-                    logger.warning(f"{e}，超出最大重试次数！")
+                logger.error(f"{e}，超出最大重试次数！")
+
                 return ret
 
             return f_retry

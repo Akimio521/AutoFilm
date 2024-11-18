@@ -141,7 +141,7 @@ class Alist2Strm:
             await self.__cleanup_local_files()
             logger.info("清理过期的 .strm 文件完成")
 
-    @Retry.async_retry(Exception, tries=3, delay=3, backoff=2, logger=logger)
+    @Retry.async_retry(Exception, tries=3, delay=3, backoff=2)
     async def __file_processer(self, path: AlistPath) -> None:
         """
         异步保存文件至本地

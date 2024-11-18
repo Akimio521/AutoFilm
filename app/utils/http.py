@@ -81,7 +81,7 @@ class HTTPClient:
         self.close_sync_client()
         await self.close_async_client()
 
-    @Retry.sync_retry(TimeoutException, tries=3, delay=1, backoff=2, logger=logger)
+    @Retry.sync_retry(TimeoutException, tries=3, delay=1, backoff=2)
     def _sync_request(self, method: str, url: str, **kwargs) -> Response:
         """
         发起同步 HTTP 请求
@@ -93,7 +93,7 @@ class HTTPClient:
             self.__new_sync_client()
             raise TimeoutException
 
-    @Retry.async_retry(TimeoutException, tries=3, delay=1, backoff=2, logger=logger)
+    @Retry.async_retry(TimeoutException, tries=3, delay=1, backoff=2)
     def _async_request(
         self, method: str, url: str, **kwargs
     ) -> Coroutine[Any, Any, Response]:
