@@ -61,7 +61,7 @@ class AlistClient(metaclass=Multiton):
         """
         关闭 HTTP 客户端
         """
-        await self.__client.close()
+        await self.__client.async_close()
 
     async def __request(
         self,
