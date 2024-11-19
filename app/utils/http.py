@@ -113,7 +113,7 @@ class HTTPClient:
     @overload
     def request(
         self, method: str, url: str, *, sync: Literal[False] = False, **kwargs
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     def request(
         self,
@@ -122,7 +122,7 @@ class HTTPClient:
         *,
         sync: Literal[True, False] = False,
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发起 HTTP 请求
 
@@ -145,7 +145,7 @@ class HTTPClient:
     @overload
     def head(
         self, url: str, *, sync: Literal[False], **kwargs
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     def head(
         self,
@@ -154,7 +154,7 @@ class HTTPClient:
         sync: Literal[True, False] = False,
         params: dict = {},
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 HEAD 请求
 
@@ -172,7 +172,7 @@ class HTTPClient:
     @overload
     def get(
         self, url: str, *, sync: Literal[False], **kwargs
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     def get(
         self,
@@ -181,7 +181,7 @@ class HTTPClient:
         sync: Literal[True, False] = False,
         params: dict = {},
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 GET 请求
 
@@ -209,7 +209,7 @@ class HTTPClient:
         data: Any = None,
         json: dict = {},
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 POST 请求
 
@@ -228,7 +228,7 @@ class HTTPClient:
     @overload
     def put(
         self, url: str, *, sync: Literal[False], **kwargs
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     def put(
         self,
@@ -238,7 +238,7 @@ class HTTPClient:
         data: Any = None,
         json: dict = {},
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 PUT 请求
 
@@ -394,12 +394,12 @@ class RequestUtils:
     @classmethod
     def request(
         cls, method: str, url: str, sync: Literal[False] = False, **kwargs
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     @classmethod
     def request(
         cls, method: str, url: str, sync: Literal[True, False] = False, **kwargs
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发起 HTTP 请求
         """
@@ -414,7 +414,7 @@ class RequestUtils:
     @classmethod
     def head(
         cls, url: str, sync: Literal[False] = False, **kwargs
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     @classmethod
     def head(
@@ -424,7 +424,7 @@ class RequestUtils:
         sync: Literal[True, False] = False,
         params: dict = {},
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 HEAD 请求
 
@@ -444,7 +444,7 @@ class RequestUtils:
     @classmethod
     def get(
         cls, url: str, *, sync: Literal[False] = False, **kwargs
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     @classmethod
     def get(
@@ -454,7 +454,7 @@ class RequestUtils:
         sync: Literal[True, False] = False,
         params: dict = {},
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 GET 请求
 
@@ -479,7 +479,7 @@ class RequestUtils:
         data: Any = None,
         json: dict = {},
         **kwargs,
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     @classmethod
     def post(
@@ -490,7 +490,7 @@ class RequestUtils:
         data: Any = None,
         json: dict = {},
         **kwargs,
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 POST 请求
 
@@ -515,12 +515,12 @@ class RequestUtils:
         sync: Literal[False] = False,
         data: Any = None,
         **kwargs,
-    ) -> Coroutine[Any, Any, Response] | None: ...
+    ) -> Coroutine[Any, Any, Response | None]: ...
 
     @classmethod
     def put(
         cls, url: str, *, sync: Literal[True, False] = False, data: Any = None, **kwargs
-    ) -> Response | Coroutine[Any, Any, Response] | None:
+    ) -> Response | None | Coroutine[Any, Any, Response | None]:
         """
         发送 PUT 请求
 
