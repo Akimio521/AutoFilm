@@ -5,8 +5,6 @@ from asyncio import TaskGroup, to_thread, get_event_loop
 from collections.abc import Coroutine
 from tempfile import TemporaryDirectory
 from shutil import copy
-from atexit import register
-
 from httpx import AsyncClient, Client, Response, TimeoutException
 from aiofile import async_open
 
@@ -37,9 +35,6 @@ class HTTPClient:
 
         self.__new_async_client()
         self.__new_sync_client()
-        register(loop.run_until_complete, self.async_close())
-        # register(print, "HTTP 客户端已关闭")
-        self.request()
 
     def __new_sync_client(self):
         """
