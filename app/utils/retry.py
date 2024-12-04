@@ -1,6 +1,7 @@
 from asyncio import sleep as async_sleep
 from typing import TypeVar, Callable
 from time import sleep
+from functools import wraps
 
 from app.core.log import logger
 from app.utils.singleton import Singleton
@@ -41,19 +42,22 @@ class Retry(metaclass=Singleton):
         """
 
         def deco_retry(f: Callable[..., T1]) -> Callable[..., T1 | T2]:
+
+            @wraps
             def f_retry(*args, **kwargs) -> T1 | T2:
-                mtries, mdelay = tries, delay
-                while mtries > 1:
+                remaining_retries = tries
+                while remaining_retries > 0:
                     try:
                         return f(*args, **kwargs)
-                    except exception as _e:
-                        logger.warning(cls.WARNING_MSG.format(_e, mdelay))
-                        sleep(mdelay)
-                        mtries -= 1
-                        mdelay *= backoff
-                        e = _e
-                logger.error(cls.ERROR_MSG.format(e))
-                return ret
+                    except exception as e:
+                        remaining_retries -= 1
+                        if remaining_retries >= 0:
+                            _delay = (tries - remaining_retries) * backoff * delay
+                            logger.warning(cls.WARNING_MSG.format(e, _delay))
+                            sleep(_delay)
+                        else:
+                            logger.error(cls.ERROR_MSG.format(e))
+                            return ret
 
             return f_retry
 
@@ -79,20 +83,22 @@ class Retry(metaclass=Singleton):
         """
 
         def deco_retry(f: Callable[..., T1]) -> Callable[..., T1 | T2]:
+
+            @wraps
             async def f_retry(*args, **kwargs) -> T1 | T2:
-                mtries, mdelay = tries, delay
-                while mtries > 1:
+                remaining_retries = tries
+                while remaining_retries > 0:
                     try:
                         return await f(*args, **kwargs)
-                    except exception as _e:
-                        logger.warning(cls.WARNING_MSG.format(_e, mdelay))
-                        await async_sleep(mdelay)
-                        mtries -= 1
-                        mdelay *= backoff
-                        e = _e
-                logger.error(cls.ERROR_MSG.format(e))
-
-                return ret
+                    except exception as e:
+                        remaining_retries -= 1
+                        if remaining_retries >= 0:
+                            _delay = (tries - remaining_retries) * backoff * delay
+                            logger.warning(cls.WARNING_MSG.format(e, _delay))
+                            await async_sleep(_delay)
+                        else:
+                            logger.error(cls.ERROR_MSG.format(e))
+                            return ret
 
             return f_retry
 
