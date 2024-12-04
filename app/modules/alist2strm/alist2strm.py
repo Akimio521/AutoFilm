@@ -160,9 +160,7 @@ class Alist2Strm:
             raise ValueError(f"AlistStrm 未知的模式 {self.mode}")
 
         try:
-            _parent = local_path.parent
-            if not _parent.exists():
-                await to_thread(_parent.mkdir, parents=True, exist_ok=True)
+            await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
 
             logger.debug(f"开始处理 {local_path}")
             if local_path.suffix == ".strm":
