@@ -5,6 +5,8 @@ from asyncio import TaskGroup, to_thread
 from collections.abc import Coroutine
 from tempfile import TemporaryDirectory
 from shutil import copy
+from weakref import WeakSet
+
 from httpx import AsyncClient, Client, Response, TimeoutException
 from aiofile import async_open
 
@@ -339,9 +341,10 @@ class RequestUtils:
     """
 
     __clients: dict[str, HTTPClient] = {}
+    __client_list: WeakSet[HTTPClient] = WeakSet()
 
     @classmethod
-    def __get_client(cls, url: str) -> HTTPClient:
+    def get_client(cls, url: str) -> HTTPClient:
         """
         获取 HTTP 客户端
 
@@ -349,11 +352,16 @@ class RequestUtils:
         :return: HTTP 客户端
         """
 
-        _, domain, port = URLUtils.get_resolve_url(url)
-        key = f"{domain}:{port}"
-        if key not in cls.__clients:
-            cls.__clients[key] = HTTPClient()
-        return cls.__clients[key]
+        if url:
+            _, domain, port = URLUtils.get_resolve_url(url)
+            key = f"{domain}:{port}"
+            if key not in cls.__clients:
+                cls.__clients[key] = HTTPClient()
+            return cls.__clients[key]
+
+        client = HTTPClient()
+        cls.__client_list.add(client)
+        return client
 
     @overload
     @classmethod
@@ -374,7 +382,7 @@ class RequestUtils:
         """
         发起 HTTP 请求
         """
-        client = cls.__get_client(url)
+        client = cls.get_client(url)
         return client.request(method, url, sync=sync, **kwargs)
 
     @overload
@@ -519,5 +527,5 @@ class RequestUtils:
         :param params: 请求参数
         :param kwargs: 其他请求参数，如 headers, cookies 等
         """
-        client = cls.__get_client(url)
+        client = cls.get_client(url)
         await client.download(url, file_path, params=params, **kwargs)
