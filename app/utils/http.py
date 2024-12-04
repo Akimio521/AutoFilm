@@ -1,7 +1,7 @@
 from typing import Any, Literal, overload
 from pathlib import Path
 from os import makedirs
-from asyncio import TaskGroup, to_thread, get_event_loop
+from asyncio import TaskGroup, to_thread
 from collections.abc import Coroutine
 from tempfile import TemporaryDirectory
 from shutil import copy
@@ -11,8 +11,6 @@ from aiofile import async_open
 from app.core import settings, logger
 from app.utils.url import URLUtils
 from app.utils.retry import Retry
-
-loop = get_event_loop()
 
 
 class HTTPClient:
@@ -145,7 +143,7 @@ class HTTPClient:
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return self.request("head", url, sync=sync, params=params,**kwargs)
+        return self.request("head", url, sync=sync, params=params, **kwargs)
 
     @overload
     def get(self, url: str, *, sync: Literal[True], **kwargs) -> Response | None: ...
