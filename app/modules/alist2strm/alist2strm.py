@@ -115,7 +115,7 @@ class Alist2Strm:
 
         if not self.mode in ["AlistURL", "RawURL", "AlistPath"]:
             logger.warning(
-                f"Alist2Strm的模式 {self.mode} 不存在，已设置为默认模式AlistURL"
+                f"Alist2Strm 的模式 {self.mode} 不存在，已设置为默认模式 AlistURL"
             )
             self.mode = "AlistURL"
 
@@ -135,7 +135,7 @@ class Alist2Strm:
                     dir_path=self.source_dir, is_detail=is_detail, filter=filter
                 ):
                     tg.create_task(self.__file_processer(path))
-        logger.info("Alist2Strm处理完成")
+        logger.info("Alist2Strm 处理完成")
 
         if self.sync_server:
             await self.__cleanup_local_files()
