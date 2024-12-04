@@ -5,7 +5,7 @@ from pathlib import Path
 from aiofile import async_open
 
 from app.core import logger
-from app.utils import RequestUtils, Retry
+from app.utils import RequestUtils
 from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
 from app.modules.alist import AlistClient, AlistPath
 
@@ -141,7 +141,6 @@ class Alist2Strm:
             await self.__cleanup_local_files()
             logger.info("清理过期的 .strm 文件完成")
 
-    @Retry.async_retry(Exception, tries=3, delay=3, backoff=2)
     async def __file_processer(self, path: AlistPath) -> None:
         """
         异步保存文件至本地
@@ -159,20 +158,17 @@ class Alist2Strm:
         else:
             raise ValueError(f"AlistStrm 未知的模式 {self.mode}")
 
-        try:
-            await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
+        await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
 
-            logger.debug(f"开始处理 {local_path}")
-            if local_path.suffix == ".strm":
-                async with async_open(local_path, mode="w", encoding="utf-8") as file:
-                    await file.write(content)
-                logger.info(f"{local_path.name} 创建成功")
-            else:
-                async with self.__max_downloaders:
-                    await RequestUtils.download(path.download_url, local_path)
-                    logger.info(f"{local_path.name} 下载成功")
-        except Exception as e:
-            raise RuntimeError(f"{local_path} 处理失败，详细信息：{e}")
+        logger.debug(f"开始处理 {local_path}")
+        if local_path.suffix == ".strm":
+            async with async_open(local_path, mode="w", encoding="utf-8") as file:
+                await file.write(content)
+            logger.info(f"{local_path.name} 创建成功")
+        else:
+            async with self.__max_downloaders:
+                await RequestUtils.download(path.download_url, local_path)
+                logger.info(f"{local_path.name} 下载成功")
 
     def __get_local_path(self, path: AlistPath) -> Path:
         """
