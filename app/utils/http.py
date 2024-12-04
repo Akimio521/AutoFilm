@@ -48,33 +48,19 @@ class HTTPClient:
         """
         self.__async_client = AsyncClient(http2=True, follow_redirects=True, timeout=10)
 
-    def close_sync_client(self):
+    def close_sync_client(self) -> None:
         """
         关闭同步 HTTP 客户端
         """
         if self.__sync_client:
             self.__sync_client.close()
 
-    async def close_async_client(self):
+    async def close_async_client(self) -> None:
         """
         关闭异步 HTTP 客户端
         """
         if self.__async_client:
             await self.__async_client.aclose()
-
-    def sync_close(self) -> None:
-        """
-        同步关闭所有客户端
-        """
-        self.close_sync_client()
-        loop.run_until_complete(self.close_async_client())
-
-    async def async_close(self) -> None:
-        """
-        异步关闭所有客户端
-        """
-        self.close_sync_client()
-        await self.close_async_client()
 
     @Retry.sync_retry(TimeoutException, tries=3, delay=1, backoff=2)
     def _sync_request(self, method: str, url: str, **kwargs) -> Response | None:
@@ -96,7 +82,7 @@ class HTTPClient:
         try:
             return await self.__async_client.request(method, url, **kwargs)
         except TimeoutException:
-            self.close_async_client()
+            await self.close_async_client()
             self.__new_async_client()
             raise TimeoutException
 
@@ -355,14 +341,6 @@ class RequestUtils:
     """
 
     __clients: dict[str, HTTPClient] = {}
-
-    @classmethod
-    def close(cls):
-        """
-        关闭所有 HTTP 客户端
-        """
-        for client in cls.__clients.values():
-            client.sync_close()
 
     @classmethod
     def __get_client(cls, url: str) -> HTTPClient:
