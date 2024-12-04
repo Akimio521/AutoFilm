@@ -1,7 +1,8 @@
 from asyncio import sleep as async_sleep
-from typing import TypeVar, Callable
+from typing import TypeVar, Callable, Any
 from time import sleep
 from functools import wraps
+from collections.abc import Coroutine
 
 from app.core.log import logger
 from app.utils.singleton import Singleton
@@ -41,14 +42,14 @@ class Retry(metaclass=Singleton):
         :param ret: 默认返回
         """
 
-        def deco_retry(f: Callable[..., T1]) -> Callable[..., T1 | T2]:
+        def inner(func: Callable[..., T1]) -> Callable[..., T1 | T2]:
 
             @wraps
-            def f_retry(*args, **kwargs) -> T1 | T2:
+            def warpper(*args, **kwargs) -> T1 | T2:
                 remaining_retries = tries
                 while remaining_retries > 0:
                     try:
-                        return f(*args, **kwargs)
+                        return func(*args, **kwargs)
                     except exception as e:
                         remaining_retries -= 1
                         if remaining_retries >= 0:
@@ -59,9 +60,9 @@ class Retry(metaclass=Singleton):
                             logger.error(cls.ERROR_MSG.format(e))
                             return ret
 
-            return f_retry
+            return warpper
 
-        return deco_retry
+        return inner
 
     @classmethod
     def async_retry(
@@ -71,7 +72,7 @@ class Retry(metaclass=Singleton):
         delay: int = DELAY,
         backoff: int = BACKOFF,
         ret: T1 = None,
-    ) -> Callable[..., Callable[..., T1 | T2]]:
+    ) -> Callable[..., Callable[..., Coroutine[Any, Any, T1 | T2]]]:
         """
         异步重试装饰器
 
@@ -82,14 +83,16 @@ class Retry(metaclass=Singleton):
         :param ret: 默认返回
         """
 
-        def deco_retry(f: Callable[..., T1]) -> Callable[..., T1 | T2]:
+        def inner(
+            func: Callable[..., T1]
+        ) -> Callable[..., Coroutine[Any, Any, T1 | T2]]:
 
             @wraps
-            async def f_retry(*args, **kwargs) -> T1 | T2:
+            async def warpper(*args, **kwargs) -> T1 | T2:
                 remaining_retries = tries
                 while remaining_retries > 0:
                     try:
-                        return await f(*args, **kwargs)
+                        return await func(*args, **kwargs)
                     except exception as e:
                         remaining_retries -= 1
                         if remaining_retries >= 0:
@@ -100,6 +103,6 @@ class Retry(metaclass=Singleton):
                             logger.error(cls.ERROR_MSG.format(e))
                             return ret
 
-            return f_retry
+            return warpper
 
-        return deco_retry
+        return inner
