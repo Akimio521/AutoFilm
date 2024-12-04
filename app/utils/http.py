@@ -145,7 +145,7 @@ class HTTPClient:
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return self.request("head", url, sync=sync, params=params**kwargs)
+        return self.request("head", url, sync=sync, params=params,**kwargs)
 
     @overload
     def get(self, url: str, *, sync: Literal[True], **kwargs) -> Response | None: ...
@@ -230,7 +230,7 @@ class HTTPClient:
         :param kwargs: 其他请求参数，如 headers, cookies 等
         :return: HTTP 响应对象
         """
-        return self.request("put", url, sync=sync, data=data, json=json**kwargs)
+        return self.request("put", url, sync=sync, data=data, json=json, **kwargs)
 
     async def download(
         self,
