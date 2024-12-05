@@ -4,8 +4,8 @@ from os.path import dirname
 
 path.append(dirname(dirname(__file__)))
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type:ignore
+from apscheduler.triggers.cron import CronTrigger  # type:ignore
 
 from app.core import settings, logger
 from app.extensions import LOGO

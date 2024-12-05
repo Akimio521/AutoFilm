@@ -1,7 +1,7 @@
 from typing import Final
 from datetime import datetime
 
-from feedparser import parse
+from feedparser import parse  # type:ignore
 
 from app.core import logger
 from app.utils import RequestUtils, URLUtils
