@@ -1,5 +1,5 @@
 import logging
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
 from pathlib import Path
 
@@ -82,20 +82,6 @@ class TRFileHandler(TimedRotatingFileHandler):
         return (self.log_dir / f"{current_date}.log").as_posix()
 
 
-def get_filehandler(
-    log_dir: Path,
-    is_dev: bool = False,
-    encoding: str = "utf-8",
-) -> logging.FileHandler:
-    """
-    获取文件处理器
-    """
-    if is_dev:
-        return logging.FileHandler(log_dir / "dev.log", encoding=encoding)
-    else:
-        return TRFileHandler(log_dir, encoding=encoding)
-
-
 class LoggerManager:
     """
     日志管理器
@@ -125,8 +111,8 @@ class LoggerManager:
         console_handler.setFormatter(console_formatter)
         self.__logger.addHandler(console_handler)
 
-        file_handler = get_filehandler(settings.LOG_DIR, settings.DEBUG)
-        file_handler.setLevel(logging.INFO)
+        file_handler = TRFileHandler(log_dir=settings.LOG_DIR, encoding="utf-8")
+        file_handler.setLevel(level)
         file_handler.setFormatter(file_formatter)
         self.__logger.addHandler(file_handler)
 
