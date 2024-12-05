@@ -2,7 +2,7 @@ from asyncio import to_thread, Semaphore, TaskGroup
 import functools
 from os import PathLike
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 from aiofile import async_open
 
@@ -20,7 +20,7 @@ class Alist2Strm:
         username: str = "",
         password: str = "",
         token: str = "",
-        source_dir: str = "/",
+        source_dir: Union[str, List[str]] = "/",
         target_dir: str | PathLike = "",
         flatten_mode: bool = False,
         subtitle: bool = False,
