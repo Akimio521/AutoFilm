@@ -1,6 +1,8 @@
 from asyncio import to_thread, Semaphore, TaskGroup
+import functools
 from os import PathLike
 from pathlib import Path
+from typing import List
 
 from aiofile import async_open
 
@@ -57,7 +59,10 @@ class Alist2Strm:
         self.__tokenen = token
         self.mode = mode
 
-        self.source_dir = source_dir
+        if not isinstance(source_dir, list):
+            source_dir = [source_dir]
+
+        self.source_dir: List[str] = source_dir
         self.target_dir = Path(target_dir)
 
         self.flatten_mode = flatten_mode
@@ -88,7 +93,7 @@ class Alist2Strm:
         处理主体
         """
 
-        def filter(path: AlistPath) -> bool:
+        def filter(path: AlistPath, source_dir="") -> bool:
             """
             过滤器
             根据 Alist2Strm 配置判断是否需要处理该文件
@@ -104,7 +109,7 @@ class Alist2Strm:
                 logger.debug(f"文件 {path.name} 不在处理列表中")
                 return False
 
-            local_path = self.__get_local_path(path)
+            local_path = self.__get_local_path(path, source_dir=source_dir)
             self.processed_local_paths.add(local_path)
 
             if not self.overwrite and local_path.exists():
@@ -126,28 +131,34 @@ class Alist2Strm:
 
         self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
-        async with self.__max_workers:
-            async with TaskGroup() as tg:
-                client = AlistClient(
-                    self.url, self.__username, self.__password, self.__tokenen
-                )
-                async for path in client.iter_path(
-                    dir_path=self.source_dir, is_detail=is_detail, filter=filter
-                ):
-                    tg.create_task(self.__file_processer(path))
+        for source_dir in self.source_dir:
+            async with self.__max_workers:
+                async with TaskGroup() as tg:
+                    client = AlistClient(
+                        self.url, self.__username, self.__password, self.__tokenen
+                    )
+                    async for path in client.iter_path(
+                        dir_path=source_dir,
+                        is_detail=is_detail,
+                        filter=functools.partial(filter, source_dir=source_dir),
+                    ):
+                        tg.create_task(
+                            self.__file_processer(path, source_dir=source_dir)
+                        )
+
         logger.info("Alist2Strm 处理完成")
 
         if self.sync_server:
             await self.__cleanup_local_files()
             logger.info("清理过期的 .strm 文件完成")
 
-    async def __file_processer(self, path: AlistPath) -> None:
+    async def __file_processer(self, path: AlistPath, source_dir="") -> None:
         """
         异步保存文件至本地
 
         :param path: AlistPath 对象
         """
-        local_path = self.__get_local_path(path)
+        local_path = self.__get_local_path(path, source_dir=source_dir)
 
         if self.mode == "AlistURL":
             content = path.download_url
@@ -170,7 +181,7 @@ class Alist2Strm:
                 await RequestUtils.download(path.download_url, local_path)
                 logger.info(f"{local_path.name} 下载成功")
 
-    def __get_local_path(self, path: AlistPath) -> Path:
+    def __get_local_path(self, path: AlistPath, source_dir="") -> Path:
         """
         根据给定的 AlistPath 对象和当前的配置，计算出本地文件路径。
 
@@ -180,7 +191,7 @@ class Alist2Strm:
         if self.flatten_mode:
             local_path = self.target_dir / path.name
         else:
-            relative_path = path.path.replace(self.source_dir, "", 1)
+            relative_path = path.path.replace(source_dir, "", 1)
             if relative_path.startswith("/"):
                 relative_path = relative_path[1:]
             local_path = self.target_dir / relative_path
