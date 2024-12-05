@@ -344,7 +344,7 @@ class RequestUtils:
     __client_list: WeakSet[HTTPClient] = WeakSet()
 
     @classmethod
-    def get_client(cls, url: str) -> HTTPClient:
+    def get_client(cls, url: str = "") -> HTTPClient:
         """
         获取 HTTP 客户端
 

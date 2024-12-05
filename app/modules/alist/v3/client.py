@@ -4,7 +4,7 @@ from time import time
 from httpx import Response
 
 from app.core import logger
-from app.utils import HTTPClient, Multiton
+from app.utils import RequestUtils, Multiton
 from app.modules.alist.v3.path import AlistPath
 from app.modules.alist.v3.storage import AlistStorage
 
@@ -30,7 +30,7 @@ class AlistClient(metaclass=Multiton):
         :param token: Alist 永久令牌
         """
 
-        self.__client = HTTPClient()
+        self.__client = RequestUtils.get_client()
         self.__token = {
             "token": "",  # 令牌 token str
             "expires": 0,  # 令牌过期时间（时间戳，-1为永不过期） int
@@ -52,12 +52,6 @@ class AlistClient(metaclass=Multiton):
             raise ValueError("用户名及密码为空或令牌 Token 为空")
 
         self.sync_api_me()
-
-    async def close(self) -> None:
-        """
-        关闭 HTTP 客户端
-        """
-        await self.__client.async_close()
 
     async def __request(
         self,
