@@ -44,7 +44,7 @@ class Retry(metaclass=Singleton):
 
         def inner(func: Callable[..., T1]) -> Callable[..., T1 | T2]:
 
-            @wraps
+            @wraps(func)
             def warpper(*args, **kwargs) -> T1 | T2:
                 remaining_retries = tries
                 while remaining_retries > 0:
@@ -87,7 +87,7 @@ class Retry(metaclass=Singleton):
             func: Callable[..., T1]
         ) -> Callable[..., Coroutine[Any, Any, T1 | T2]]:
 
-            @wraps
+            @wraps(func)
             async def warpper(*args, **kwargs) -> T1 | T2:
                 remaining_retries = tries
                 while remaining_retries > 0:
