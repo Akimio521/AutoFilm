@@ -30,6 +30,7 @@ class Alist2Strm:
         max_workers: int = 50,
         max_downloaders: int = 5,
         sync_server: bool = False,
+        sync_ignore: str = "",
         **_,
     ) -> None:
         """
@@ -50,6 +51,7 @@ class Alist2Strm:
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_workers: 最大并发数
         :param max_downloaders: 最大同时下载
+        :param sync_ignore: 同步时忽略的文件后缀，使用西文半角逗号进行分割，默认为空
         """
         self.url = url
         self.__username = username
@@ -80,8 +82,9 @@ class Alist2Strm:
         self.overwrite = overwrite
         self.__max_workers = Semaphore(max_workers)
         self.__max_downloaders = Semaphore(max_downloaders)
-
         self.sync_server = sync_server
+        # 将 sync_ignore 字符串转换为集合，用于快速查找
+        self.sync_ignore = frozenset(sync_ignore.lower().split(",")) if sync_ignore else frozenset()
 
     async def run(self) -> None:
         """
@@ -193,6 +196,7 @@ class Alist2Strm:
     async def __cleanup_local_files(self) -> None:
         """
         删除服务器中已删除的本地的 .strm 文件及其关联文件
+        如果文件后缀在 sync_ignore 中，则不会被删除
         """
         logger.info("开始清理本地文件")
 
@@ -204,6 +208,11 @@ class Alist2Strm:
         files_to_delete = set(all_local_files) - self.processed_local_paths
 
         for file_path in files_to_delete:
+            # 检查文件后缀是否在忽略列表中
+            if file_path.suffix.lower().lstrip(".") in self.sync_ignore:
+                logger.debug(f"文件 {file_path} 在忽略列表中，跳过删除")
+                continue
+                
             try:
                 if file_path.exists():
                     await to_thread(file_path.unlink)
