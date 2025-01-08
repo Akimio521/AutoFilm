@@ -17,8 +17,10 @@ Alist2StrmList:
     mode: AlistURL                    # Strm 文件中的内容（可选项：AlistURL、RawURL、AlistPath）
     overwrite: False                  # 覆盖模式，本地路径存在同名文件时是否重新生成/下载该文件（可选，默认 False）
     sync_server: True                 # 是否同步服务器（可选，默认为 True）
+    sync_ignore:                      # 同步时忽略的文件正则表达式列表（可选，默认为空）
+      - .*\.nfo$                      # 忽略所有 .nfo 文件
+      - .*\.jpg$                      # 忽略所有 .jpg 文件
     other_ext:                        # 自定义下载后缀，使用西文半角逗号进行分割，（可选，默认为空）
-    sync_ignore: nfo,jpg              # 同步时忽略的文件后缀，使用西文半角逗号进行分割（可选，默认为空）
     max_workers: 50                   # 最大并发数，减轻对 Alist 服务器的负载（可选，默认 50）
     max_downloaders: 5                # 最大同时下载文件数（可选，默认 5）
     
