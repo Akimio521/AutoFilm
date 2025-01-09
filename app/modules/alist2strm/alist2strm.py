@@ -213,7 +213,7 @@ class Alist2Strm:
 
         for file_path in files_to_delete:
             # 检查文件是否匹配忽略正则表达式
-            if self.sync_ignore_pattern and self.sync_ignore_pattern.match(
+            if self.sync_ignore_pattern and self.sync_ignore_pattern.search(
                 file_path.name
             ):
                 logger.debug(f"文件 {file_path.name} 在忽略列表中，跳过删除")
