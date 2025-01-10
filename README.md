@@ -56,12 +56,13 @@
 - [x] 增加 Docker 镜像
 - [x] 本地同步网盘
 - [x] Alist 永久令牌
-- [ ] 实用 API 触发任务
+- [ ] 使用 API 触发任务
 - [ ] 通知功能
 - [ ] ~~对接 TMDB 实现分类、重命名、刮削等功能~~
     > 已经向 [MoviePilot](https://github.com/jxxghp/MoviePilot) 提交支持对 Alist 服务器文件的操作功能的 PR，目前已经合并进入主线分支，可以直接使用 MoviePilot 直接刮削
 
 # 更新日志
+- 2025.1.10: v1.2.6 使用 RequestUtils 作为全局统一的 HTTP 请求出口、更新 Docker 镜像底包、Alist2Strm 新增同步忽略功能
 - 2024.11.8：v1.2.5，Alist2Strm 模块新增同步功能；优化 AlistClient，减少 token 申请；支持使用永久令牌；优化日志功能
 - 2024.8.26：v1.2.4，完善 URL 中文字符编码问题；提高 Python3.11 兼容性；Alist2Strm 的 mode 选项
 - 2024.7.17：v1.2.2，增加 Ani2Strm 模块
