@@ -1,6 +1,7 @@
 from asyncio import to_thread, Semaphore, TaskGroup
 from os import PathLike
 from pathlib import Path
+from re import compile as re_compile
 
 from aiofile import async_open
 
@@ -30,6 +31,7 @@ class Alist2Strm:
         max_workers: int = 50,
         max_downloaders: int = 5,
         sync_server: bool = False,
+        sync_ignore: str | None = None,
         **_,
     ) -> None:
         """
@@ -50,6 +52,7 @@ class Alist2Strm:
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_workers: 最大并发数
         :param max_downloaders: 最大同时下载
+        :param sync_ignore: 同步时忽略的文件正则表达式
         """
         self.url = url
         self.__username = username
@@ -80,8 +83,12 @@ class Alist2Strm:
         self.overwrite = overwrite
         self.__max_workers = Semaphore(max_workers)
         self.__max_downloaders = Semaphore(max_downloaders)
-
         self.sync_server = sync_server
+
+        if sync_ignore:
+            self.sync_ignore_pattern = re_compile(sync_ignore)
+        else:
+            self.sync_ignore_pattern = None
 
     async def run(self) -> None:
         """
@@ -193,6 +200,7 @@ class Alist2Strm:
     async def __cleanup_local_files(self) -> None:
         """
         删除服务器中已删除的本地的 .strm 文件及其关联文件
+        如果文件后缀在 sync_ignore 中，则不会被删除
         """
         logger.info("开始清理本地文件")
 
@@ -204,6 +212,13 @@ class Alist2Strm:
         files_to_delete = set(all_local_files) - self.processed_local_paths
 
         for file_path in files_to_delete:
+            # 检查文件是否匹配忽略正则表达式
+            if self.sync_ignore_pattern and self.sync_ignore_pattern.search(
+                file_path.name
+            ):
+                logger.debug(f"文件 {file_path.name} 在忽略列表中，跳过删除")
+                continue
+
             try:
                 if file_path.exists():
                     await to_thread(file_path.unlink)
