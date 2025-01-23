@@ -1,3 +1,4 @@
+from asyncio import get_event_loop
 from asyncio import to_thread, Semaphore, TaskGroup
 from os import PathLike
 from pathlib import Path
@@ -12,6 +13,15 @@ from app.modules.alist import AlistClient, AlistPath
 
 
 class Alist2Strm:
+
+    # 添加手动运行 Alist2Strm 的选项
+    def run_manual(self) -> None:
+        """
+        手动运行 Alist2Strm 任务
+        """
+        logger.info(f"手动启动 Alist2Strm 任务")
+        loop = get_event_loop()
+        loop.run_until_complete(self.run())
 
     def __init__(
         self,
