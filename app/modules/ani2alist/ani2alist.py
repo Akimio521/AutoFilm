@@ -42,6 +42,7 @@ class Ani2Alist:
         :param origin: Alist 服务器地址，默认为 "http://localhost:5244"
         :param username: Alist 用户名，默认为空
         :param password: Alist 密码，默认为空
+        :param token: Alist Token，默认为空
         :param target_dir: 挂载到 Alist 服务器上目录，默认为 "/Anime"
         :param rss_update: 使用 RSS 追更最新番剧，默认为 True
         :param year: 动画年份，默认为空
@@ -51,22 +52,20 @@ class Ani2Alist:
         :param key_word: 自定义关键字，默认为空
         """
 
-        def is_time_valid(year: int, month: int) -> bool:
+        def is_time_valid(year: int, month: int) -> tuple[bool, str]:
             """
             判断时间是否合理
+            :return: (是否合理, 错误信息)
             """
             current_date = datetime.now()
             if (year, month) == (2019, 4):
-                logger.warning("2019-4 季度暂无数据")
-                return False
+                return False, "2019-4 季度暂无数据"
             elif (year, month) < (2019, 1):
-                logger.warning("ANI Open 项目仅支持2019年1月及其之后的数据")
-                return False
+                return False, "ANI Open 项目仅支持2019年1月及其之后的数据"
             elif (year, month) > (current_date.year, current_date.month):
-                logger.warning("传入的年月晚于当前时间")
-                return False
+                return False, "传入的年月晚于当前时间"
             else:
-                return True
+                return True, ""
 
         self.__url = url
         self.__username = username
@@ -85,10 +84,13 @@ class Ani2Alist:
             logger.debug(f"使用自定义关键字：{key_word}")
             self.__key_word = key_word
         elif year and month:
-            if is_time_valid(year, month):
+            is_valid, msg = is_time_valid(year, month)
+            if is_valid:
                 logger.debug(f"传入季度：{year}-{month}")
                 self.__year = year
                 self.__month = month
+            else:
+                logger.error(f"时间验证出错，默认使用当前季度：{msg}")
         elif year or month:
             logger.warning("未传入完整时间参数，默认使用当前季度")
         else:
