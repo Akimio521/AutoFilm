@@ -130,7 +130,7 @@ class Ani2Alist:
 
         addition_dict = storage.addition2dict
         url_dict = AlistUrlTreeUtils.structure2dict(
-            addition_dict.get("url_structure", {})
+            addition_dict.get("url_structure", "")
         )
 
         if url_dict.get(folder) is None:
