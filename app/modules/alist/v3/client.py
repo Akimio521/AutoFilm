@@ -295,7 +295,7 @@ class AlistClient(metaclass=Multiton):
             "driver": storage.driver,
             "order_by": storage.order_by,
             "order_direction": storage.order_direction,
-            "addition": storage.raw_addition,
+            "addition": storage.addition,
         }
 
         resp = await self.__post(self.url + "/api/admin/storage/create", json=json)
