@@ -17,8 +17,8 @@ class AlistClient(metaclass=Multiton):
     def __init__(
         self,
         url: str,
-        username: str,
-        password: str,
+        username: str = "",
+        password: str = "",
         token: str = "",
     ) -> None:
         """
@@ -29,6 +29,9 @@ class AlistClient(metaclass=Multiton):
         :param password: Alist 密码
         :param token: Alist 永久令牌
         """
+
+        if (username == "" or password == "") and token == "":
+            raise ValueError("用户名及密码为空或令牌 Token 为空")
 
         self.__client = RequestUtils.get_client()
         self.__token = {
