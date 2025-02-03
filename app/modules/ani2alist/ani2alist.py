@@ -200,6 +200,24 @@ class Ani2Alist:
         更新 RSS 动画列表
         """
 
+        def handle_recursive(url_dict: dict, entry) -> None:
+            """
+            处理 RSS 数据，解析 URL 多级目录
+            """
+            parents = entry.link.split("/")[3:]  # 拆分多级目录
+            current_dict = url_dict
+            for index in range(len(parents)):
+                name = URLUtils.decode(parents[index])
+                if index == len(parents) - 1:
+                    current_dict[entry.title] = [
+                        convert_size_to_bytes(entry.anime_size),
+                        entry.link,
+                    ]
+                else:
+                    if name not in current_dict:
+                        current_dict[name] = {}
+                    current_dict = current_dict[name]
+
         def convert_size_to_bytes(size_str: str) -> int:
             """
             将带单位的大小转换为字节
@@ -252,7 +270,4 @@ class Ani2Alist:
                 "anime_size": "473.0 MB",
             }
             """
-            url_dict["RSS"][entry.title] = [
-                convert_size_to_bytes(entry.anime_size),
-                entry.link,
-            ]
+            handle_recursive(url_dict, entry)
