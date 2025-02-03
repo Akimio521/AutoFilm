@@ -204,10 +204,10 @@ class Ani2Alist:
             """
             处理 RSS 数据，解析 URL 多级目录
             """
-            parents = entry.link.split("/")[3:]  # 拆分多级目录
+            parents = URLUtils.decode(entry.link).split("/")[3:]  # 拆分多级目录
             current_dict = url_dict
             for index in range(len(parents)):
-                name = URLUtils.decode(parents[index])
+                name = parents[index]
                 if index == len(parents) - 1:
                     current_dict[entry.title] = [
                         convert_size_to_bytes(entry.anime_size),
