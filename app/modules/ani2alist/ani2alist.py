@@ -67,10 +67,7 @@ class Ani2Alist:
             else:
                 return True, ""
 
-        self.__url = url
-        self.__username = username
-        self.__password = password
-        self.__token = token
+        self.client = AlistClient(url, username, password, token)
         self.__target_dir = "/" + target_dir.strip("/")
 
         self.__year = None
@@ -118,8 +115,7 @@ class Ani2Alist:
         else:
             anime_dict = await self.get_season_anime_list
 
-        client = AlistClient(self.__url, self.__username, self.__password, self.__token)
-        storage = await client.get_storage_by_mount_path(
+        storage = await self.client.get_storage_by_mount_path(
             mount_path=self.__target_dir,
             create=True,
             driver="UrlTree",
@@ -141,7 +137,7 @@ class Ani2Alist:
         addition_dict["url_structure"] = AlistUrlTreeUtils.dict2structure(url_dict)
         storage.set_addition_by_dict(addition_dict)
 
-        await client.sync_api_admin_storage_update(storage)
+        await self.client.sync_api_admin_storage_update(storage)
         logger.info(f"ANI Open {folder} 更新完成")
 
     @property

@@ -54,10 +54,8 @@ class Alist2Strm:
         :param max_downloaders: 最大同时下载
         :param sync_ignore: 同步时忽略的文件正则表达式
         """
-        self.url = url
-        self.__username = username
-        self.__password = password
-        self.__tokenen = token
+
+        self.client = AlistClient(url, username, password, token)
         self.mode = mode
 
         self.source_dir = source_dir
@@ -135,10 +133,7 @@ class Alist2Strm:
 
         async with self.__max_workers:
             async with TaskGroup() as tg:
-                client = AlistClient(
-                    self.url, self.__username, self.__password, self.__tokenen
-                )
-                async for path in client.iter_path(
+                async for path in self.client.iter_path(
                     dir_path=self.source_dir, is_detail=is_detail, filter=filter
                 ):
                     tg.create_task(self.__file_processer(path))
