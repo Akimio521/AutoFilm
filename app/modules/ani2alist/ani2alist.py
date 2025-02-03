@@ -52,28 +52,13 @@ class Ani2Alist:
         :param key_word: 自定义关键字，默认为空
         """
 
-        def is_time_valid(year: int, month: int) -> tuple[bool, str]:
-            """
-            判断时间是否合理
-            :return: (是否合理, 错误信息)
-            """
-            current_date = datetime.now()
-            if (year, month) == (2019, 4):
-                return False, "2019-4 季度暂无数据"
-            elif (year, month) < (2019, 1):
-                return False, "ANI Open 项目仅支持2019年1月及其之后的数据"
-            elif (year, month) > (current_date.year, current_date.month):
-                return False, "传入的年月晚于当前时间"
-            else:
-                return True, ""
-
         self.client = AlistClient(url, username, password, token)
         self.__target_dir = "/" + target_dir.strip("/")
 
-        self.__year = None
-        self.__month = None
-        self.__key_word = None
-        self.__rss_update = rss_update
+        self.__year: int | None = None
+        self.__month: int | None = None
+        self.__key_word: str | None = None
+        self.__rss_update: bool = rss_update
 
         if rss_update:
             logger.debug("使用 RSS 追更最新番剧")
@@ -81,22 +66,22 @@ class Ani2Alist:
             logger.debug(f"使用自定义关键字：{key_word}")
             self.__key_word = key_word
         elif year and month:
-            is_valid, msg = is_time_valid(year, month)
-            if is_valid:
-                logger.debug(f"传入季度：{year}-{month}")
-                self.__year = year
-                self.__month = month
-            else:
-                logger.error(f"时间验证出错，默认使用当前季度：{msg}")
+            self.__year = year
+            self.__month = month
         elif year or month:
             logger.warning("未传入完整时间参数，默认使用当前季度")
         else:
-            logger.debug("未传入时间参数，默认使用当前季度")
+            logger.info("未传入时间参数，默认使用当前季度")
 
         self.__src_domain = src_domain.strip()
         self.__rss_domain = rss_domain.strip()
 
     async def run(self) -> None:
+        is_valid, error_msg = self.__is_time_valid()
+        if not is_valid:
+            logger.error(error_msg)
+            return
+
         def merge_dicts(target_dict: dict, source_dict: dict) -> dict:
             for key, value in source_dict.items():
                 if key not in target_dict:
@@ -159,6 +144,25 @@ class Ani2Alist:
         for _month in range(month, 0, -1):
             if _month in ANI_SEASION:
                 return f"{year}-{_month}"
+
+    def __is_time_valid(self) -> tuple[bool, str]:
+        """
+        判断时间是否合理
+        :return: (是否合理, 错误信息)
+        """
+        if self.__rss_update:
+            return True, ""
+        if self.__year is None and self.__month is None:
+            return True, ""
+        current_date = datetime.now()
+        if (self.__year, self.__month) == (2019, 4):
+            return False, "2019-4季度暂无数据"
+        elif (self.__year, self.__month) < (2019, 1):
+            return False, "ANI Open 项目仅支持2019年1月及其之后的数据"
+        elif (self.__year, self.__month) > (current_date.year, current_date.month):
+            return False, "传入的年月晚于当前时间"
+        else:
+            return True, ""
 
     @property
     async def get_season_anime_list(self) -> dict:
