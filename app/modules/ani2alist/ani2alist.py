@@ -77,28 +77,10 @@ class Ani2Alist:
         self.__rss_domain = rss_domain.strip()
 
     async def run(self) -> None:
-        is_valid, error_msg = self.__is_time_valid()
+        is_valid, error_msg = self.__is_valid()
         if not is_valid:
             logger.error(error_msg)
             return
-
-        def merge_dicts(target_dict: dict, source_dict: dict) -> dict:
-            for key, value in source_dict.items():
-                if key not in target_dict:
-                    target_dict[key] = value
-                elif isinstance(target_dict[key], dict) and isinstance(value, dict):
-                    merge_dicts(target_dict[key], value)
-                else:
-                    target_dict[key] = value
-            return target_dict
-
-        folder = self.__get_folder
-        logger.info(f"开始更新 ANI Open {folder} 番剧")
-
-        if self.__rss_update:
-            anime_dict = await self.get_rss_anime_dict
-        else:
-            anime_dict = await self.get_season_anime_list
 
         storage = await self.client.get_storage_by_mount_path(
             mount_path=self.__target_dir,
@@ -114,40 +96,25 @@ class Ani2Alist:
             addition_dict.get("url_structure", "")
         )
 
-        if url_dict.get(folder) is None:
-            url_dict[folder] = {}
-
-        url_dict[folder] = merge_dicts(url_dict[folder], anime_dict)
+        await self.__update_url_dicts(url_dict)
 
         addition_dict["url_structure"] = AlistUrlTreeUtils.dict2structure(url_dict)
         storage.set_addition_by_dict(addition_dict)
 
         await self.client.sync_api_admin_storage_update(storage)
-        logger.info(f"ANI Open {folder} 更新完成")
 
-    @property
-    def __get_folder(self) -> str:
+    async def __update_url_dicts(self, url_dict: dict):
         """
-        根据 self.__year 和 self.__month 以及关键字 self.__key_word 返回文件夹名
+        更新 URL 字典
         """
-        if self.__key_word:
-            return self.__key_word
-
-        current_date = datetime.now()
-        if self.__year and self.__month:
-            year = self.__year
-            month = self.__month
+        if self.__rss_update:
+            await self.update_rss_anime_dict(url_dict)
         else:
-            year = current_date.year
-            month = current_date.month
+            await self.update_season_anime_dict(url_dict)
 
-        for _month in range(month, 0, -1):
-            if _month in ANI_SEASION:
-                return f"{year}-{_month}"
-
-    def __is_time_valid(self) -> tuple[bool, str]:
+    def __is_valid(self) -> tuple[bool, str]:
         """
-        判断时间是否合理
+        判断参数是否合理
         :return: (是否合理, 错误信息)
         """
         if self.__rss_update:
@@ -164,16 +131,34 @@ class Ani2Alist:
         else:
             return True, ""
 
-    @property
-    async def get_season_anime_list(self) -> dict:
+    async def update_season_anime_dict(self, url_dict: dict):
         """
-        获取指定季度的动画列表
+        更新指定季度/关键字的动画列表
         """
-        folder = self.__get_folder
-        logger.debug(f"开始获取 ANI Open {folder} 动画列表")
-        url = URLUtils.encode(f"https://{self.__src_domain}/{folder}/")
 
-        async def parse_data(_url: str = url) -> dict:
+        def get_key() -> str:
+            """
+            根据 self.__year 和 self.__month 以及关键字 self.__key_word 返回关键字
+            """
+            if self.__key_word:
+                return self.__key_word
+
+            if self.__year and self.__month:
+                year = self.__year
+                month = self.__month
+            else:
+                current_date = datetime.now()
+                year = current_date.year
+                month = current_date.month
+
+            for _month in range(month, 0, -1):
+                if _month in ANI_SEASION:
+                    return f"{year}-{_month}"
+
+        async def update_data(_url: str, _url_dict: dict):
+            """
+            用于递归更新解析数据
+            """
             logger.debug(f"请求地址：{_url}")
             _resp = await RequestUtils.post(_url)
             if _resp.status_code != 200:
@@ -181,7 +166,6 @@ class Ani2Alist:
 
             _result = _resp.json()
 
-            _anime_dict = {}
             for file in _result["files"]:
                 mimeType: str = file["mimeType"]
                 name: str = file["name"]
@@ -193,25 +177,27 @@ class Ani2Alist:
                     logger.debug(
                         f"获取文件：{name}，文件大小：{int(size) / 1024 / 1024:.2f}MB，播放地址：{__url}"
                     )
-                    _anime_dict[name] = [
+                    _url_dict[name] = [
                         size,
                         __url,
                     ]
                 elif mimeType == "application/vnd.google-apps.folder":
                     logger.debug(f"获取目录：{name}")
-                    __url = _url + quoted_name + "/"
-                    _anime_dict[name] = await parse_data(__url)
+                    if name not in _url_dict:
+                        _url_dict[name] = {}
+                    await update_data(_url + quoted_name + "/", _url_dict[name])
                 else:
-                    raise RuntimeError(f"无法识别类型：{mimeType}，文件详情：\n{file}")
-            return _anime_dict
+                    logger.warning(f"无法识别类型：{mimeType}，文件详情：{file}")
 
-        logger.debug(f"获取 ANI Open {folder} 动画列表成功")
-        return await parse_data()
+        key = get_key()
+        if key not in url_dict:
+            url_dict[key] = {}
+        await update_data(f"https://{self.__src_domain}/{key}/", url_dict[key])
+        return
 
-    @property
-    async def get_rss_anime_dict(self) -> dict:
+    async def update_rss_anime_dict(self, url_dict: dict):
         """
-        获取 RSS 动画列表
+        更新 RSS 动画列表
         """
 
         def convert_size_to_bytes(size_str: str) -> int:
@@ -222,16 +208,11 @@ class Ani2Alist:
             number, unit = [string.strip() for string in size_str.split()]
             return int(float(number) * units[unit])
 
-        logger.debug(f"开始获取 ANI Open RSS 动画列表")
-        url = f"https://{self.__rss_domain}/ani-download.xml"
-
-        resp = await RequestUtils.get(url)
+        resp = await RequestUtils.get(f"https://{self.__rss_domain}/ani-download.xml")
         if resp.status_code != 200:
             raise Exception(f"请求发送失败，状态码：{resp.status_code}")
-        # print(type(resp.text()), "\n", resp.text())
         feeds = parse(resp.text)
 
-        rss_anime_dict = {}
         for entry in feeds.entries:
             """
             print(type(entry))
@@ -271,10 +252,7 @@ class Ani2Alist:
                 "anime_size": "473.0 MB",
             }
             """
-            rss_anime_dict[entry.title] = [
+            url_dict["RSS"][entry.title] = [
                 convert_size_to_bytes(entry.anime_size),
                 entry.link,
             ]
-
-        logger.debug(f"获取 RSS 动画列表成功")
-        return rss_anime_dict
