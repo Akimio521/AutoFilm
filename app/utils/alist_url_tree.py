@@ -33,7 +33,15 @@ class AlistUrlTreeUtils(metaclass=Singleton):
 
                 else:
                     parts = line.strip().split(":")
-                    if len(parts) == 4:
+                    if len(parts) == 5:
+                        key, value1, value2, value3 = (
+                            parts[0].strip(),
+                            parts[1].strip(),
+                            parts[2].strip(),
+                            ":".join(parts[3:]).strip(),
+                        )
+                        result_dict[key] = [value1, value2, value3]
+                    elif len(parts) == 4:
                         key, value1, value2 = (
                             parts[0].strip(),
                             parts[1].strip(),
@@ -67,7 +75,7 @@ class AlistUrlTreeUtils(metaclass=Singleton):
                 if isinstance(value, str):
                     result_str += " " * indent + f"{key}:{value}\n"
                 elif isinstance(value, list):
-                    result_str += " " * indent + f"{key}:{value[0]}:{value[1]}\n"
+                    result_str += " " * indent + f"{key}:{':'.join(value)}\n"
                 elif isinstance(value, dict):
                     result_str += " " * indent + f"{key}:\n"
                     result_str += parse_dict(value, indent + 2)

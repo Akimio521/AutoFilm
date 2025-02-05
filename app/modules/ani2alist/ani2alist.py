@@ -155,6 +155,13 @@ class Ani2Alist:
                 if _month in ANI_SEASION:
                     return f"{year}-{_month}"
 
+        def __parse2timestamp(time_str: str) -> int:
+            """
+            将 RSS 订阅中时间字符串转换为时间戳
+            """
+            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+            return int(dt.timestamp())
+
         async def update_data(_url: str, _url_dict: dict):
             """
             用于递归更新解析数据
@@ -172,13 +179,17 @@ class Ani2Alist:
                 quoted_name = URLUtils.encode(name)
 
                 if mimeType in FILE_MINETYPE:
-                    size: int = file["size"]
+                    size: str = file["size"]
+                    modifed_time_stamp: str = str(
+                        __parse2timestamp(file["modifiedTime"])
+                    )
                     __url = _url + quoted_name + "?d=true"
                     logger.debug(
                         f"获取文件：{name}，文件大小：{int(size) / 1024 / 1024:.2f}MB，播放地址：{__url}"
                     )
                     _url_dict[name] = [
                         size,
+                        modifed_time_stamp,
                         __url,
                     ]
                 elif mimeType == "application/vnd.google-apps.folder":
@@ -200,6 +211,13 @@ class Ani2Alist:
         更新 RSS 动画列表
         """
 
+        def __parse2timestamp(time_str: str) -> int:
+            """
+            将 RSS 订阅中时间字符串转换为时间戳
+            """
+            dt = datetime.strptime(time_str, "%a, %d %b %Y %H:%M:%S %Z")
+            return int(dt.timestamp())
+
         def handle_recursive(url_dict: dict, entry) -> None:
             """
             处理 RSS 数据，解析 URL 多级目录
@@ -210,7 +228,8 @@ class Ani2Alist:
                 name = parents[index]
                 if index == len(parents) - 1:
                     current_dict[entry.title] = [
-                        convert_size_to_bytes(entry.anime_size),
+                        str(convert_size_to_bytes(entry.anime_size)),
+                        str(__parse2timestamp(entry.published)),
                         entry.link,
                     ]
                 else:
