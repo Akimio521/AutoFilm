@@ -1,5 +1,6 @@
 from re import sub
 from typing import Any
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -65,6 +66,27 @@ class AlistPath(BaseModel):
             return ""
         else:
             return "." + self.name.split(".")[-1]
+
+    def __parse_timestamp(self, time_str: str) -> int:
+        """
+        解析时间字符串得到时间的时间戳
+        """
+        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S%z")
+        return int(dt.timestamp())
+
+    @property
+    def modified_timestamp(self) -> int:
+        """
+        获得修改时间的时间戳（秒级）
+        """
+        return self.__parse_timestamp(self.modified)
+
+    @property
+    def created_timestamp(self) -> int:
+        """
+        获得创建时间的时间戳（秒级）
+        """
+        return self.__parse_timestamp(self.created)
 
 
 if __name__ == "__main__":
