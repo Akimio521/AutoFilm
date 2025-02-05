@@ -115,7 +115,7 @@ class Alist2Strm:
             if not self.overwrite and local_path.exists():
                 if path.suffix in self.download_exts:
                     local_path_stat = local_path.stat()
-                    if int(local_path_stat.st_mtime) < path.modified_timestamp:
+                    if local_path_stat.st_mtime < path.modified_timestamp:
                         logger.debug(
                             f"文件 {local_path.name} 已过期，需要重新处理 {path.path}"
                         )

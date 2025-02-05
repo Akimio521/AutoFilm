@@ -67,24 +67,24 @@ class AlistPath(BaseModel):
         else:
             return "." + self.name.split(".")[-1]
 
-    def __parse_timestamp(self, time_str: str) -> int:
+    def __parse_timestamp(self, time_str: str) -> float:
         """
         解析时间字符串得到时间的时间戳
         """
-        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S%z")
-        return int(dt.timestamp())
+        dt = datetime.fromisoformat(time_str)
+        return dt.timestamp()
 
     @property
-    def modified_timestamp(self) -> int:
+    def modified_timestamp(self) -> float:
         """
-        获得修改时间的时间戳（秒级）
+        获得修改时间的时间戳
         """
         return self.__parse_timestamp(self.modified)
 
     @property
-    def created_timestamp(self) -> int:
+    def created_timestamp(self) -> float:
         """
-        获得创建时间的时间戳（秒级）
+        获得创建时间的时间戳
         """
         return self.__parse_timestamp(self.created)
 
