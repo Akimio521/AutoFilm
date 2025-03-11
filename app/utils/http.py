@@ -69,10 +69,10 @@ class HTTPClient:
         """
         try:
             return self.__sync_client.request(method, url, **kwargs)
-        except TimeoutException:
+        except TimeoutException as e:
             self.close_sync_client()
             self.__new_sync_client()
-            raise TimeoutException
+            raise TimeoutException(f"HTTP 请求超时：{e}")
 
     @Retry.async_retry(TimeoutException, tries=3, delay=1, backoff=2)
     async def _async_request(self, method: str, url: str, **kwargs) -> Response | None:
@@ -81,10 +81,10 @@ class HTTPClient:
         """
         try:
             return await self.__async_client.request(method, url, **kwargs)
-        except TimeoutException:
+        except TimeoutException as e:
             await self.close_async_client()
             self.__new_async_client()
-            raise TimeoutException
+            raise TimeoutException(f"HTTP 请求超时：{e}")
 
     @overload
     def request(
