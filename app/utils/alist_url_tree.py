@@ -12,6 +12,7 @@ class AlistUrlTreeUtils(metaclass=Singleton):
         将能够被 Alist 地址树识别的文本转换为字典，支持键值对中包含两个冒号的情况
         """
         lines = text.strip().split("\n")
+        current_folder: str = ""
 
         def parse_lines(
             start_index: int = 0, indent_level: int = 0
