@@ -5,7 +5,7 @@ from feedparser import parse  # type:ignore
 
 from app.core import logger
 from app.utils import RequestUtils, URLUtils
-from app.utils import AlistUrlTreeUtils
+from app.utils import AlistUtils
 from app.modules.alist import AlistClient
 
 VIDEO_MINETYPE: Final = frozenset(("video/mp4", "video/x-matroska"))
@@ -92,13 +92,11 @@ class Ani2Alist:
             return
 
         addition_dict = storage.addition2dict
-        url_dict = AlistUrlTreeUtils.structure2dict(
-            addition_dict.get("url_structure", "")
-        )
+        url_dict = AlistUtils.structure2dict(addition_dict.get("url_structure", ""))
 
         await self.__update_url_dicts(url_dict)
 
-        addition_dict["url_structure"] = AlistUrlTreeUtils.dict2structure(url_dict)
+        addition_dict["url_structure"] = AlistUtils.dict2structure(url_dict)
         storage.set_addition_by_dict(addition_dict)
 
         await self.client.sync_api_admin_storage_update(storage)
