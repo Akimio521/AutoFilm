@@ -1,13 +1,18 @@
 from json import loads, dumps
 from typing import Literal
+from types import FunctionType
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class AlistStorage(BaseModel):
     """
     Alist 存储器模型
     """
+
+    model_config = ConfigDict(
+        ignored_types=(FunctionType, type(lambda: None))  # 覆盖 Cython 类型
+    )
 
     id: int = 0  # 存储器 ID
     status: Literal["work", "disabled"] = "work"  # 存储器状态
