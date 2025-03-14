@@ -1,5 +1,5 @@
 from asyncio import sleep as async_sleep
-from typing import TypeVar, Callable, Any
+from typing import TypeVar, Callable, Type, Any
 from time import sleep
 from functools import wraps
 from collections.abc import Coroutine
@@ -26,7 +26,7 @@ class Retry(metaclass=Singleton):
     @classmethod
     def sync_retry(
         cls,
-        exception: Exception,
+        exception: Type[Exception],
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
@@ -43,7 +43,6 @@ class Retry(metaclass=Singleton):
         """
 
         def inner(func: Callable[..., T1]) -> Callable[..., T1 | T2]:
-
             @wraps(func)
             def wrapper(*args, **kwargs) -> T1 | T2:
                 remaining_retries = tries
@@ -67,7 +66,7 @@ class Retry(metaclass=Singleton):
     @classmethod
     def async_retry(
         cls,
-        exception: Exception,
+        exception: Type[Exception],
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
@@ -84,9 +83,8 @@ class Retry(metaclass=Singleton):
         """
 
         def inner(
-            func: Callable[..., T1]
+            func: Callable[..., T1],
         ) -> Callable[..., Coroutine[Any, Any, T1 | T2]]:
-
             @wraps(func)
             async def wrapper(*args, **kwargs) -> T1 | T2:
                 remaining_retries = tries
