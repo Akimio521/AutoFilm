@@ -1,3 +1,4 @@
+from asyncio import get_event_loop
 from asyncio import to_thread, Semaphore, TaskGroup
 from os import PathLike
 from pathlib import Path
@@ -12,6 +13,15 @@ from app.modules.alist import AlistClient, AlistPath
 
 
 class Alist2Strm:
+
+    # 添加手动运行 Alist2Strm 的选项
+    def run_manual(self) -> None:
+        """
+        手动运行 Alist2Strm 任务
+        """
+        logger.info(f"手动启动 Alist2Strm 任务")
+        loop = get_event_loop()
+        loop.run_until_complete(self.run())
 
     def __init__(
         self,
@@ -199,9 +209,10 @@ class Alist2Strm:
                 relative_path = relative_path[1:]
             local_path = self.target_dir / relative_path
 
-        if path.suffix.lower() in VIDEO_EXTS:
+        ext = path.suffix.lower()
+        # 修改:当后缀在other_ext里时会被下载而不是转换为strm
+        if ext in VIDEO_EXTS and ext.lstrip('.') not in self.download_exts:
             local_path = local_path.with_suffix(".strm")
-
         return local_path
 
     async def __cleanup_local_files(self) -> None:
