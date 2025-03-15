@@ -174,7 +174,7 @@ class AlistClient(metaclass=Multiton):
         try:
             self.base_path: str = result["data"]["base_path"]
             self.id: int = result["data"]["id"]
-        except:
+        except Exception:
             raise RuntimeError("获取用户信息失败")
 
     async def async_api_fs_list(self, dir_path: str) -> list[AlistPath]:
