@@ -4,18 +4,27 @@ ENV TZ=Asia/Shanghai
 VOLUME ["/config", "/logs", "/media"]
 
 RUN apk update && \
-    apk upgrade && \
-    apk add bash build-base linux-headers --no-cache 
+    apk add --no-cache \
+    build-base \
+    linux-headers
 
 COPY requirements.txt requirements.txt
 
-RUN pip install --upgrade pip && \
+# 安装构建依赖
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
-    rm -rf requirements.txt
+    pip install --no-cache-dir cython setuptools
+
+COPY app ./app
+
+RUN cd app && \
+    python setup.py && \
+    rm -rf build && \
+    cd .. 
 
 RUN apk del build-base linux-headers && \
-    rm -rf /tep /var/lib/apt/lists /var/tmp
+    find app -type f \( -name "*.py" ! -name "main.py" ! -name "__init__.py" -o -name "*.c" \) -delete && \
+    rm -rf /tmp/* && \
+    pip uninstall -y cython setuptools
 
-COPY app /app
-
-CMD python /app/main.py
+CMD ["python", "/app/main.py"]
