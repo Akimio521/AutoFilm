@@ -25,6 +25,7 @@ RUN cd app && \
 RUN apk del build-base linux-headers && \
     find app -type f \( -name "*.py" ! -name "main.py" ! -name "__init__.py" -o -name "*.c" \) -delete && \
     rm -rf /tmp/* && \
+    rm requirements.txt && \
     pip uninstall -y cython setuptools
 
 CMD ["python", "/app/main.py"]
