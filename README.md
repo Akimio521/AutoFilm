@@ -27,6 +27,7 @@
 [Strm文件优点](#Strm文件优点) •
 [TODO LIST](#todo-list) •
 [更新日志](#更新日志) •
+[贡献者](#贡献者) •
 [Star History](#star-history)
 
 </div>
@@ -72,6 +73,11 @@
 - 2024.5.29：v1.0.2，优化运行逻辑；Docker 部署，自动打包 Docker 镜像
 - 2024.2.1：v1.0.0，完全重构 AutoFilm ，不再兼容 v0.1 ；实现多线程，大幅度提升任务处理速度
 - 2024.1.28：v0.1.1，初始版本持续迭代
+
+# 贡献者
+<a href="https://github.com/Akimio521/AutoFilm/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Akimio521/AutoFilm" />
+</a>
 
 # Star History
 <a href="https://github.com/Akimio521/AutoFilm/stargazers">
