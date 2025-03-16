@@ -105,7 +105,7 @@ class Alist2Strm:
             if path.is_dir:
                 return False
 
-            if not path.suffix.lower() in self.process_file_exts:
+            if path.suffix.lower() not in self.process_file_exts:
                 logger.debug(f"文件 {path.name} 不在处理列表中")
                 return False
 
@@ -130,7 +130,7 @@ class Alist2Strm:
 
             return True
 
-        if not self.mode in ["AlistURL", "RawURL", "AlistPath"]:
+        if self.mode not in ["AlistURL", "RawURL", "AlistPath"]:
             logger.warning(
                 f"Alist2Strm 的模式 {self.mode} 不存在，已设置为默认模式 AlistURL"
             )
