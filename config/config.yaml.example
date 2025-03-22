@@ -38,7 +38,7 @@ Alist2StrmList:
     overwrite: False
     sync_server: True
     sync_ignore:
-    other_ext: zip,md
+    other_ext: .zip,.md
     max_workers: 5
 
 Ani2AlistList:
