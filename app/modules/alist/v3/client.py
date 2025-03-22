@@ -378,7 +378,7 @@ class AlistClient(metaclass=Multiton):
 
             if filter(path):
                 if is_detail:
-                    yield await self.async_api_fs_get(path)
+                    yield await self.async_api_fs_get(path.path)
                 else:
                     yield path
 
