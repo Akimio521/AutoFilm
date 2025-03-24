@@ -12,7 +12,6 @@ from app.modules.alist import AlistClient, AlistPath
 
 
 class Alist2Strm:
-
     def __init__(
         self,
         url: str = "http://localhost:5244",
@@ -144,11 +143,15 @@ class Alist2Strm:
         self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
         async with self.__max_workers:
-            async with TaskGroup() as tg:
-                async for path in self.client.iter_path(
-                    dir_path=self.source_dir, is_detail=is_detail, filter=filter
-                ):
-                    tg.create_task(self.__file_processer(path))
+            try:
+                async with TaskGroup() as tg:
+                    async for path in self.client.iter_path(
+                        dir_path=self.source_dir, is_detail=is_detail, filter=filter
+                    ):
+                        tg.create_task(self.__file_processer(path))
+            except Exception as e:
+                logger.error(f"Alist2Strm 运行异常：{e}")
+                return
         logger.info("Alist2Strm 处理完成")
 
         if self.sync_server:
