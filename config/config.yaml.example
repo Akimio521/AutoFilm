@@ -21,6 +21,7 @@ Alist2StrmList:
     other_ext:                        # 自定义下载后缀，使用西文半角逗号进行分割，（可选，默认为空）
     max_workers: 50                   # 最大并发数，减轻对 Alist 服务器的负载（可选，默认 50）
     max_downloaders: 5                # 最大同时下载文件数（可选，默认 5）
+    # wait_time: 0.2                   # 遍历请求间隔时间，避免被风控，单位为秒，默认为 0
 
   - id: 电影
     cron: 0 0 7 * *

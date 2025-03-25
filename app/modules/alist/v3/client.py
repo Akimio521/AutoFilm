@@ -1,3 +1,4 @@
+from asyncio import sleep
 from typing import Callable, AsyncGenerator
 from time import time
 
@@ -356,6 +357,7 @@ class AlistClient(metaclass=Multiton):
     async def iter_path(
         self,
         dir_path: str,
+        wait_time: float,
         is_detail: bool = True,
         filter: Callable[[AlistPath], bool] = lambda x: True,
     ) -> AsyncGenerator[AlistPath, None]:
@@ -364,15 +366,17 @@ class AlistClient(metaclass=Multiton):
         返回目录及其子目录的所有文件和目录的 AlistPath 对象
 
         :param dir_path: 目录路径
+        :param wait_time: 每轮遍历等待时间（单位秒）,
         :param is_detail：是否获取详细信息（raw_url）
         :param filter: 匿名函数过滤器（默认不启用）
         :return: AlistPath 对象生成器
         """
 
         for path in await self.async_api_fs_list(dir_path):
+            await sleep(wait_time)
             if path.is_dir:
                 async for child_path in self.iter_path(
-                    dir_path=path.path, is_detail=is_detail, filter=filter
+                    dir_path=path.path, wait_time=wait_time, is_detail=is_detail, filter=filter
                 ):
                     yield child_path
 
