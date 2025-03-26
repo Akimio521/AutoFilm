@@ -1,4 +1,4 @@
-from asyncio import to_thread, Semaphore, TaskGroup
+from asyncio import to_thread, Semaphore, TaskGroup, sleep
 from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
@@ -29,7 +29,7 @@ class Alist2Strm:
         other_ext: str = "",
         max_workers: int = 50,
         max_downloaders: int = 5,
-        wait_time: float = 0.0,
+        wait_time: float | int = 0,
         sync_server: bool = False,
         sync_ignore: str | None = None,
         **_,
@@ -84,7 +84,6 @@ class Alist2Strm:
         self.__max_downloaders = Semaphore(max_downloaders)
         self.wait_time = wait_time
         self.sync_server = sync_server
-
         if sync_ignore:
             self.sync_ignore_pattern = re_compile(sync_ignore)
         else:
@@ -149,7 +148,7 @@ class Alist2Strm:
             try:
                 async with TaskGroup() as tg:
                     async for path in self.client.iter_path(
-                        dir_path=self.source_dir, wait_time=self.wait_time, is_detail=is_detail, filter=filter
+                        dir_path=self.source_dir, is_detail=is_detail, filter=filter
                     ):
                         tg.create_task(self.__file_processer(path))
             except Exception as e:
