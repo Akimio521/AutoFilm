@@ -357,7 +357,7 @@ class AlistClient(metaclass=Multiton):
     async def iter_path(
         self,
         dir_path: str,
-        wait_time: float,
+        wait_time: float | int,
         is_detail: bool = True,
         filter: Callable[[AlistPath], bool] = lambda x: True,
     ) -> AsyncGenerator[AlistPath, None]:

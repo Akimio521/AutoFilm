@@ -29,7 +29,7 @@ class Alist2Strm:
         other_ext: str = "",
         max_workers: int = 50,
         max_downloaders: int = 5,
-        wait_time: float = 0.0,
+        wait_time: float | int = 0,
         sync_server: bool = False,
         sync_ignore: str | None = None,
         **_,
