@@ -29,6 +29,7 @@ class Alist2Strm:
         other_ext: str = "",
         max_workers: int = 50,
         max_downloaders: int = 5,
+        wait_time: float | int = 0,
         sync_server: bool = False,
         sync_ignore: str | None = None,
         **_,
@@ -51,6 +52,7 @@ class Alist2Strm:
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_workers: 最大并发数
         :param max_downloaders: 最大同时下载
+        :param wait_time: 遍历请求间隔时间，单位为秒，默认为 0
         :param sync_ignore: 同步时忽略的文件正则表达式
         """
 
@@ -80,6 +82,7 @@ class Alist2Strm:
         self.overwrite = overwrite
         self.__max_workers = Semaphore(max_workers)
         self.__max_downloaders = Semaphore(max_downloaders)
+        self.wait_time = wait_time
         self.sync_server = sync_server
 
         if sync_ignore:
@@ -146,7 +149,7 @@ class Alist2Strm:
             try:
                 async with TaskGroup() as tg:
                     async for path in self.client.iter_path(
-                        dir_path=self.source_dir, is_detail=is_detail, filter=filter
+                        dir_path=self.source_dir, wait_time=self.wait_time, is_detail=is_detail, filter=filter
                     ):
                         tg.create_task(self.__file_processer(path))
             except Exception as e:
