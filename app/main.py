@@ -1,4 +1,4 @@
-from asyncio import get_event_loop
+import asyncio
 from sys import path
 from os.path import dirname
 
@@ -10,6 +10,7 @@ from apscheduler.triggers.cron import CronTrigger  # type:ignore
 from app.core import settings, logger
 from app.extensions import LOGO
 from app.modules import Alist2Strm, Ani2Alist
+from app.modules.telegram_bot import TelegramBot
 
 
 def print_logo() -> None:
@@ -58,6 +59,18 @@ if __name__ == "__main__":
     else:
         logger.warning("未检测到 Ani2Alist 模块配置")
 
+    # Initialize and run Telegram bot if configured
+    telegram_bot = None
+    if hasattr(settings, 'TelegramBot') and settings.TelegramBot.get('token'):
+        logger.info("检测到 Telegram Bot 配置，正在启动")
+        telegram_bot = TelegramBot(**settings.TelegramBot)
+        # Add Telegram bot to event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.create_task(telegram_bot.start())
+    else:
+        logger.info("未检测到 Telegram Bot 配置")
+
     scheduler.start()
     logger.info("AutoFilm 启动完成")
 
@@ -65,3 +78,7 @@ if __name__ == "__main__":
         get_event_loop().run_forever()
     except (KeyboardInterrupt, SystemExit):
         logger.info("AutoFilm 程序退出！")
+        if telegram_bot:
+            # Stop the Telegram bot if it was started
+            loop = get_event_loop()
+            loop.run_until_complete(telegram_bot.stop())
