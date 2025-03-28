@@ -1,7 +1,7 @@
-import asyncio
+from asyncio import get_event_loop
 from sys import path
 from os.path import dirname
-
+import asyncio
 path.append(dirname(dirname(__file__)))
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type:ignore
