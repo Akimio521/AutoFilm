@@ -1,11 +1,11 @@
-from typing import Dict, List, Callable, Awaitable, Any, Optional, Union, Tuple, Set
+from typing import Dict, List, Callable, Awaitable, Any, Optional, Union, Tuple, Set, TypeVar
 import asyncio
 import time
 from functools import partial
 from datetime import datetime
 import re
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 from telegram.constants import ParseMode
 
@@ -14,7 +14,7 @@ from app.utils import Singleton
 from app.modules import Alist2Strm, Ani2Alist
 
 
-class TelegramBot(metaclass=Singleton) :
+class TelegramBot(metaclass=Singleton):
     """
     Telegram Bot for AutoFilm
     提供 Telegram 远程控制功能
@@ -23,18 +23,19 @@ class TelegramBot(metaclass=Singleton) :
     def __init__(
             self,
             token: str,
-            allowed_users: List[int] = None,
-            proxy_url: str = None,
-            admin_users: List[int] = None,
-            **_
-    ) -> None :
+            allowed_users: Optional[List[int]] = None,
+            proxy_url: Optional[str] = None,
+            admin_users: Optional[List[int]] = None,
+            **kwargs
+    ) -> None:
         """
         Initialize TelegramBot
 
         :param token: Telegram Bot Token
-        :param allowed_users: List of allowed Telegram user IDs (optional)
-        :param proxy_url: Proxy URL for Telegram API (optional)
-        :param admin_users: List of admin user IDs with extra privileges (optional)
+        :param allowed_users: List of allowed Telegram user IDs
+        :param proxy_url: Proxy URL for Telegram API
+        :param admin_users: List of admin user IDs with extra privileges
+        :param kwargs: Additional arguments not used by this class
         """
         self.token = token
         self.allowed_users = allowed_users or []
@@ -42,7 +43,7 @@ class TelegramBot(metaclass=Singleton) :
         self.proxy_url = proxy_url
 
         # 保证管理员也在允许用户列表中
-        if self.admin_users :
+        if self.admin_users:
             self.allowed_users = list(set(self.allowed_users + self.admin_users))
 
         # 存储正在运行的任务
@@ -58,7 +59,7 @@ class TelegramBot(metaclass=Singleton) :
 
         # 创建应用
         app_kwargs = {}
-        if proxy_url :
+        if proxy_url:
             app_kwargs["proxy_url"] = proxy_url
 
         self.application = Application.builder().token(token).build()
@@ -86,25 +87,33 @@ class TelegramBot(metaclass=Singleton) :
 
         logger.info("Telegram Bot initialized successfully")
 
-    async def start(self) -> None :
-        """Start the Telegram Bot"""
+    async def start(self) -> None:
+        """
+        Start the Telegram Bot
+        
+        启动Telegram机器人，初始化应用并开始轮询更新
+        """
         logger.info("Starting Telegram Bot...")
         await self.application.initialize()
         await self.application.start()
         await self.application.updater.start_polling()
         logger.info("Telegram Bot started successfully")
 
-    async def stop(self) -> None :
-        """Stop the Telegram Bot"""
+    async def stop(self) -> None:
+        """
+        Stop the Telegram Bot
+        
+        停止Telegram机器人，取消所有运行中的任务并关闭应用
+        """
         logger.info("Stopping Telegram Bot...")
 
         # 取消所有运行中的任务
-        for task_id, (task, task_name, _, _) in list(self.running_tasks.items()) :
-            if not task.done() :
+        for task_id, (task, task_name, _, _) in list(self.running_tasks.items()):
+            if not task.done():
                 task.cancel()
-                try :
+                try:
                     await task
-                except asyncio.CancelledError :
+                except asyncio.CancelledError:
                     pass
 
         await self.application.updater.stop()
@@ -112,19 +121,34 @@ class TelegramBot(metaclass=Singleton) :
         await self.application.shutdown()
         logger.info("Telegram Bot stopped successfully")
 
-    def _is_user_allowed(self, user_id: int) -> bool :
-        """Check if user is allowed to use the bot"""
-        if not self.allowed_users :
+    def _is_user_allowed(self, user_id: int) -> bool:
+        """
+        Check if user is allowed to use the bot
+        
+        :param user_id: Telegram用户ID
+        :return: 如果用户被允许使用机器人则为True，否则为False
+        """
+        if not self.allowed_users:
             return True
         return user_id in self.allowed_users
 
-    def _is_admin(self, user_id: int) -> bool :
-        """Check if user is an admin"""
+    def _is_admin(self, user_id: int) -> bool:
+        """
+        Check if user is an admin
+        
+        :param user_id: Telegram用户ID
+        :return: 如果用户是管理员则为True，否则为False
+        """
         return user_id in self.admin_users
 
-    def _update_session(self, user_id: int, **kwargs) -> None :
-        """Update user session data"""
-        if user_id not in self.user_sessions :
+    def _update_session(self, user_id: int, **kwargs) -> None:
+        """
+        Update user session data
+        
+        :param user_id: Telegram用户ID
+        :param kwargs: 要更新的会话数据键值对
+        """
+        if user_id not in self.user_sessions:
             self.user_sessions[user_id] = {}
 
         self.user_sessions[user_id].update(
@@ -132,10 +156,15 @@ class TelegramBot(metaclass=Singleton) :
             **kwargs
         )
 
-    async def _start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /start command"""
+    async def _start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /start command
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
@@ -160,10 +189,15 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /help command"""
+    async def _help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /help command
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
@@ -189,10 +223,15 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _menu_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /menu command"""
+    async def _menu_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /menu command
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
@@ -208,8 +247,12 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    def _get_main_menu_keyboard(self) -> List[List[InlineKeyboardButton]] :
-        """Get main menu keyboard buttons"""
+    def _get_main_menu_keyboard(self) -> List[List[InlineKeyboardButton]]:
+        """
+        Get main menu keyboard buttons
+        
+        :return: 主菜单的按钮列表
+        """
         keyboard = [
             [InlineKeyboardButton("🔄 更新任务", callback_data="menu_update")],
             [InlineKeyboardButton("📊 任务状态", callback_data="menu_status")],
@@ -219,15 +262,20 @@ class TelegramBot(metaclass=Singleton) :
         ]
 
         # 如果有管理员权限，添加管理员菜单
-        if self.admin_users :
+        if self.admin_users:
             keyboard.append([InlineKeyboardButton("⚙️ 管理选项", callback_data="menu_admin")])
 
         return keyboard
 
-    async def _update_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /update command"""
+    async def _update_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /update command
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
@@ -244,14 +292,18 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    def _get_update_menu_keyboard(self) -> List[List[InlineKeyboardButton]] :
-        """Get update menu keyboard buttons"""
+    def _get_update_menu_keyboard(self) -> List[List[InlineKeyboardButton]]:
+        """
+        Get update menu keyboard buttons
+        
+        :return: 更新菜单的按钮列表
+        """
         keyboard = []
 
         # 添加 Alist2Strm 任务
-        if settings.AlistServerList :
+        if settings.AlistServerList:
             keyboard.append([InlineKeyboardButton("✅ 更新全部 Alist2Strm", callback_data="update_all_alist2strm")])
-            for server in settings.AlistServerList :
+            for server in settings.AlistServerList:
                 server_id = server.get("id", "未命名")
                 keyboard.append([
                     InlineKeyboardButton(f"🎬 更新 Alist2Strm: {server_id}",
@@ -259,9 +311,9 @@ class TelegramBot(metaclass=Singleton) :
                 ])
 
         # 添加 Ani2Alist 任务
-        if settings.Ani2AlistList :
+        if settings.Ani2AlistList:
             keyboard.append([InlineKeyboardButton("✅ 更新全部 Ani2Alist", callback_data="update_all_ani2alist")])
-            for server in settings.Ani2AlistList :
+            for server in settings.Ani2AlistList:
                 server_id = server.get("id", "未命名")
                 keyboard.append([
                     InlineKeyboardButton(f"📺 更新 Ani2Alist: {server_id}",
@@ -269,7 +321,7 @@ class TelegramBot(metaclass=Singleton) :
                 ])
 
         # 添加所有任务
-        if settings.AlistServerList and settings.Ani2AlistList :
+        if settings.AlistServerList and settings.Ani2AlistList:
             keyboard.append([InlineKeyboardButton("🔄 更新所有任务", callback_data="update_all")])
 
         # 返回主菜单按钮
@@ -277,17 +329,22 @@ class TelegramBot(metaclass=Singleton) :
 
         return keyboard
 
-    async def _status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /status command"""
+    async def _status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /status command
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
         # 更新用户会话
         self._update_session(user.id, current_menu="status")
 
-        if not self.running_tasks :
+        if not self.running_tasks:
             keyboard = [[InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -301,15 +358,15 @@ class TelegramBot(metaclass=Singleton) :
         status_text = "📊 *任务状态*\n\n当前运行的任务：\n\n"
         now = time.time()
 
-        for task_id, (task, task_name, user_id, start_time) in self.running_tasks.items() :
+        for task_id, (task, task_name, user_id, start_time) in self.running_tasks.items():
             status = "🔄 运行中" if not task.done() else "✅ 已完成"
             duration = now - start_time
             duration_text = self._format_duration(duration)
 
             # 查找用户名
             username = "未知用户"
-            for chat_id, session in self.user_sessions.items() :
-                if chat_id == user_id :
+            for chat_id, session in self.user_sessions.items():
+                if chat_id == user_id:
                     username = session.get("username", "未知用户")
                     break
 
@@ -327,17 +384,22 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _history_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /history command"""
+    async def _history_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /history command
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
         # 更新用户会话
         self._update_session(user.id, current_menu="history")
 
-        if not self.task_history :
+        if not self.task_history:
             keyboard = [[InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -349,11 +411,11 @@ class TelegramBot(metaclass=Singleton) :
             return
 
         # 最多显示最近的 10 条记录
-        recent_history = self.task_history[-10 :]
+        recent_history = self.task_history[-10:]
 
         history_text = "📝 *任务历史记录*\n\n最近的任务：\n\n"
 
-        for i, record in enumerate(reversed(recent_history), 1) :
+        for i, record in enumerate(reversed(recent_history), 1):
             task_name = record["task_name"]
             status = record["status"]
             duration = record["duration"]
@@ -379,17 +441,22 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _cancel_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /cancel command"""
+    async def _cancel_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /cancel command
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
         # 更新用户会话
         self._update_session(user.id, current_menu="cancel")
 
-        if not self.running_tasks :
+        if not self.running_tasks:
             keyboard = [[InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -402,13 +469,13 @@ class TelegramBot(metaclass=Singleton) :
 
         # 创建取消选项键盘
         keyboard = []
-        for task_id, (task, task_name, _, _) in self.running_tasks.items() :
-            if not task.done() :
+        for task_id, (task, task_name, _, _) in self.running_tasks.items():
+            if not task.done():
                 keyboard.append([
                     InlineKeyboardButton(f"❌ 取消: {task_name}", callback_data=f"cancel_{task_id}")
                 ])
 
-        if keyboard :
+        if keyboard:
             keyboard.append([InlineKeyboardButton("❌ 取消所有任务", callback_data="cancel_all")])
             keyboard.append([InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")])
 
@@ -418,7 +485,7 @@ class TelegramBot(metaclass=Singleton) :
                 reply_markup=reply_markup,
                 parse_mode=ParseMode.MARKDOWN
             )
-        else :
+        else:
             keyboard = [[InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -428,14 +495,19 @@ class TelegramBot(metaclass=Singleton) :
                 parse_mode=ParseMode.MARKDOWN
             )
 
-    async def _admin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle /admin command (admin only)"""
+    async def _admin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle /admin command (admin only)
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
-        if not self._is_admin(user.id) :
+        if not self._is_admin(user.id):
             await update.message.reply_text("🚫 此命令仅限管理员使用。")
             return
 
@@ -456,10 +528,15 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _text_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle regular text messages"""
+    async def _text_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle regular text messages
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         user = update.effective_user
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await update.message.reply_text("🚫 您没有权限使用此机器人。")
             return
 
@@ -485,12 +562,17 @@ class TelegramBot(metaclass=Singleton) :
             reply_markup=reply_markup
         )
 
-    async def _button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None :
-        """Handle button callbacks"""
+    async def _button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle button callbacks
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文
+        """
         query = update.callback_query
         user = query.from_user
 
-        if not self._is_user_allowed(user.id) :
+        if not self._is_user_allowed(user.id):
             await query.answer("🚫 您没有权限使用此功能。")
             return
 
@@ -504,7 +586,7 @@ class TelegramBot(metaclass=Singleton) :
         await query.answer()
 
         # 主菜单导航
-        if callback_data == "main_menu" :
+        if callback_data == "main_menu":
             # 更新用户会话
             self._update_session(user.id, current_menu="main")
 
@@ -519,65 +601,70 @@ class TelegramBot(metaclass=Singleton) :
             return
 
         # 菜单导航
-        if callback_data.startswith("menu_") :
-            menu_type = callback_data[5 :]  # 去掉 "menu_" 前缀
+        if callback_data.startswith("menu_"):
+            menu_type = callback_data[5:]  # 去掉 "menu_" 前缀
 
-            if menu_type == "update" :
+            if menu_type == "update":
                 await self._handle_menu_update(query, user.id)
-            elif menu_type == "status" :
+            elif menu_type == "status":
                 await self._handle_menu_status(query, user.id)
-            elif menu_type == "history" :
+            elif menu_type == "history":
                 await self._handle_menu_history(query, user.id)
-            elif menu_type == "cancel" :
+            elif menu_type == "cancel":
                 await self._handle_menu_cancel(query, user.id)
-            elif menu_type == "help" :
+            elif menu_type == "help":
                 await self._handle_menu_help(query, user.id)
-            elif menu_type == "admin" :
+            elif menu_type == "admin":
                 await self._handle_menu_admin(query, user.id)
             return
 
         # 刷新状态
-        if callback_data == "refresh_status" :
+        if callback_data == "refresh_status":
             await self._handle_menu_status(query, user.id)
             return
 
         # 管理员功能
-        if callback_data.startswith("admin_") :
-            if not self._is_admin(user.id) :
+        if callback_data.startswith("admin_"):
+            if not self._is_admin(user.id):
                 await query.edit_message_text("🚫 此功能仅限管理员使用。")
                 return
 
-            admin_action = callback_data[6 :]  # 去掉 "admin_" 前缀
+            admin_action = callback_data[6:]  # 去掉 "admin_" 前缀
 
-            if admin_action == "list_users" :
+            if admin_action == "list_users":
                 await self._handle_admin_list_users(query)
-            elif admin_action == "system_status" :
+            elif admin_action == "system_status":
                 await self._handle_admin_system_status(query)
             return
 
         # 更新命令
-        if callback_data == "update_all" :
+        if callback_data == "update_all":
             await self._run_all_tasks(query, user.id)
-        elif callback_data == "update_all_alist2strm" :
+        elif callback_data == "update_all_alist2strm":
             await self._run_all_alist2strm(query, user.id)
-        elif callback_data == "update_all_ani2alist" :
+        elif callback_data == "update_all_ani2alist":
             await self._run_all_ani2alist(query, user.id)
-        elif callback_data.startswith("update_alist2strm_") :
-            server_id = callback_data[len("update_alist2strm_") :]
+        elif callback_data.startswith("update_alist2strm_"):
+            server_id = callback_data[len("update_alist2strm_"):]
             await self._run_alist2strm(query, server_id, user.id)
-        elif callback_data.startswith("update_ani2alist_") :
-            server_id = callback_data[len("update_ani2alist_") :]
+        elif callback_data.startswith("update_ani2alist_"):
+            server_id = callback_data[len("update_ani2alist_"):]
             await self._run_ani2alist(query, server_id, user.id)
 
         # 取消命令
-        elif callback_data == "cancel_all" :
+        elif callback_data == "cancel_all":
             await self._cancel_all_tasks(query, user.id)
-        elif callback_data.startswith("cancel_") :
-            task_id = callback_data[len("cancel_") :]
+        elif callback_data.startswith("cancel_"):
+            task_id = callback_data[len("cancel_"):]
             await self._cancel_task(query, task_id, user.id)
 
-    async def _handle_menu_update(self, query, user_id: int) -> None :
-        """Handle update menu selection"""
+    async def _handle_menu_update(self, query: CallbackQuery, user_id: int) -> None:
+        """
+        Handle update menu selection
+        
+        :param query: Telegram回调查询对象
+        :param user_id: 用户ID
+        """
         # 更新用户会话
         self._update_session(user_id, current_menu="update")
 
@@ -590,12 +677,17 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _handle_menu_status(self, query, user_id: int) -> None :
-        """Handle status menu selection"""
+    async def _handle_menu_status(self, query: CallbackQuery, user_id: int) -> None:
+        """
+        Handle status menu selection
+        
+        :param query: Telegram回调查询对象
+        :param user_id: 用户ID
+        """
         # 更新用户会话
         self._update_session(user_id, current_menu="status")
 
-        if not self.running_tasks :
+        if not self.running_tasks:
             keyboard = [[InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -609,15 +701,15 @@ class TelegramBot(metaclass=Singleton) :
         status_text = "📊 *任务状态*\n\n当前运行的任务：\n\n"
         now = time.time()
 
-        for task_id, (task, task_name, task_user_id, start_time) in self.running_tasks.items() :
+        for task_id, (task, task_name, task_user_id, start_time) in self.running_tasks.items():
             status = "🔄 运行中" if not task.done() else "✅ 已完成"
             duration = now - start_time
             duration_text = self._format_duration(duration)
 
             # 查找用户名
             username = "未知用户"
-            for chat_id, session in self.user_sessions.items() :
-                if chat_id == task_user_id :
+            for chat_id, session in self.user_sessions.items():
+                if chat_id == task_user_id:
                     username = session.get("username", "未知用户")
                     break
 
@@ -635,12 +727,17 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _handle_menu_history(self, query, user_id: int) -> None :
-        """Handle history menu selection"""
+    async def _handle_menu_history(self, query: CallbackQuery, user_id: int) -> None:
+        """
+        Handle history menu selection
+        
+        :param query: Telegram回调查询对象
+        :param user_id: 用户ID
+        """
         # 更新用户会话
         self._update_session(user_id, current_menu="history")
 
-        if not self.task_history :
+        if not self.task_history:
             keyboard = [[InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -682,8 +779,13 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _handle_menu_cancel(self, query, user_id: int) -> None:
-        """Handle cancel menu selection"""
+    async def _handle_menu_cancel(self, query: CallbackQuery, user_id: int) -> None:
+        """
+        Handle cancel menu selection
+        
+        :param query: Telegram回调查询对象
+        :param user_id: 用户ID
+        """
         # 更新用户会话
         self._update_session(user_id, current_menu="cancel")
 
@@ -726,8 +828,13 @@ class TelegramBot(metaclass=Singleton) :
                 parse_mode=ParseMode.MARKDOWN
             )
 
-    async def _handle_menu_help(self, query, user_id: int) -> None:
-        """Handle help menu selection"""
+    async def _handle_menu_help(self, query: CallbackQuery, user_id: int) -> None:
+        """
+        Handle help menu selection
+        
+        :param query: Telegram回调查询对象
+        :param user_id: 用户ID
+        """
         # 更新用户会话
         self._update_session(user_id, current_menu="help")
 
@@ -753,8 +860,13 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _handle_menu_admin(self, query, user_id: int) -> None:
-        """Handle admin menu selection"""
+    async def _handle_menu_admin(self, query: CallbackQuery, user_id: int) -> None:
+        """
+        Handle admin menu selection
+        
+        :param query: Telegram回调查询对象
+        :param user_id: 用户ID
+        """
         if not self._is_admin(user_id):
             keyboard = [[InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -783,8 +895,12 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _handle_admin_list_users(self, query) -> None:
-        """Handle admin list users action"""
+    async def _handle_admin_list_users(self, query: CallbackQuery) -> None:
+        """
+        Handle admin list users action
+        
+        :param query: Telegram回调查询对象
+        """
         user_text = "👥 *当前活跃用户*\n\n"
 
         if not self.user_sessions:
@@ -816,8 +932,12 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _handle_admin_system_status(self, query) -> None:
-        """Handle admin system status action"""
+    async def _handle_admin_system_status(self, query: CallbackQuery) -> None:
+        """
+        Handle admin system status action
+        
+        :param query: Telegram回调查询对象
+        """
         import platform
         import psutil  # 确保已安装 psutil 库
 
@@ -873,7 +993,7 @@ class TelegramBot(metaclass=Singleton) :
 
     async def _run_task(
         self,
-        callback_query,
+        callback_query: CallbackQuery,
         task_func: Callable[..., Awaitable[Any]],
         task_args: Dict[str, Any],
         task_name: str,
@@ -881,12 +1001,12 @@ class TelegramBot(metaclass=Singleton) :
     ) -> None:
         """
         Run a task and manage its lifecycle
-
-        :param callback_query: The callback query from the button press
-        :param task_func: The async function to run
-        :param task_args: Arguments for the function
-        :param task_name: A descriptive name for the task
-        :param user_id: The ID of the user who initiated the task
+        
+        :param callback_query: Telegram回调查询对象
+        :param task_func: 要运行的异步函数
+        :param task_args: 函数的参数字典
+        :param task_name: 任务的描述性名称
+        :param user_id: 发起任务的用户ID
         """
         # 创建唯一任务 ID
         task_id = f"{task_name}_{id(task_func)}"
@@ -909,7 +1029,7 @@ class TelegramBot(metaclass=Singleton) :
         start_time = time.time()
 
         # 创建并启动任务
-        async def wrapped_task():
+        async def wrapped_task() -> None:
             try:
                 await callback_query.edit_message_text(
                     f"🔄 *任务运行中*\n\n任务 {task_name} 正在运行...\n\n开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
@@ -989,8 +1109,14 @@ class TelegramBot(metaclass=Singleton) :
         task = asyncio.create_task(wrapped_task())
         self.running_tasks[task_id] = (task, task_name, user_id, start_time)
 
-    async def _run_alist2strm(self, callback_query, server_id: str, user_id: int) -> None:
-        """Run a specific Alist2Strm task"""
+    async def _run_alist2strm(self, callback_query: CallbackQuery, server_id: str, user_id: int) -> None:
+        """
+        Run a specific Alist2Strm task
+        
+        :param callback_query: Telegram回调查询对象
+        :param server_id: Alist2Strm服务器的ID
+        :param user_id: 发起任务的用户ID
+        """
         for server in settings.AlistServerList:
             if server.get("id") == server_id:
                 task_func = Alist2Strm(**server).run
@@ -1008,8 +1134,14 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _run_ani2alist(self, callback_query, server_id: str, user_id: int) -> None:
-        """Run a specific Ani2Alist task"""
+    async def _run_ani2alist(self, callback_query: CallbackQuery, server_id: str, user_id: int) -> None:
+        """
+        Run a specific Ani2Alist task
+        
+        :param callback_query: Telegram回调查询对象
+        :param server_id: Ani2Alist服务器的ID
+        :param user_id: 发起任务的用户ID
+        """
         for server in settings.Ani2AlistList:
             if server.get("id") == server_id:
                 task_func = Ani2Alist(**server).run
@@ -1027,8 +1159,13 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _run_all_alist2strm(self, callback_query, user_id: int) -> None:
-        """Run all Alist2Strm tasks"""
+    async def _run_all_alist2strm(self, callback_query: CallbackQuery, user_id: int) -> None:
+        """
+        Run all Alist2Strm tasks
+        
+        :param callback_query: Telegram回调查询对象
+        :param user_id: 发起任务的用户ID
+        """
         if not settings.AlistServerList:
             await callback_query.edit_message_text(
                 "⚠️ *配置错误*\n\n没有配置 Alist2Strm 任务。",
@@ -1041,7 +1178,7 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-        async def run_all_alist2strm():
+        async def run_all_alist2strm() -> None:
             for server in settings.AlistServerList:
                 server_id = server.get("id", "未命名")
                 try:
@@ -1060,8 +1197,13 @@ class TelegramBot(metaclass=Singleton) :
             user_id=user_id
         )
 
-    async def _run_all_ani2alist(self, callback_query, user_id: int) -> None:
-        """Run all Ani2Alist tasks"""
+    async def _run_all_ani2alist(self, callback_query: CallbackQuery, user_id: int) -> None:
+        """
+        Run all Ani2Alist tasks
+        
+        :param callback_query: Telegram回调查询对象
+        :param user_id: 发起任务的用户ID
+        """
         if not settings.Ani2AlistList:
             await callback_query.edit_message_text(
                 "⚠️ *配置错误*\n\n没有配置 Ani2Alist 任务。",
@@ -1074,7 +1216,7 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-        async def run_all_ani2alist():
+        async def run_all_ani2alist() -> None:
             for server in settings.Ani2AlistList:
                 server_id = server.get("id", "未命名")
                 try:
@@ -1093,8 +1235,13 @@ class TelegramBot(metaclass=Singleton) :
             user_id=user_id
         )
 
-    async def _run_all_tasks(self, callback_query, user_id: int) -> None:
-        """Run all tasks (Alist2Strm and Ani2Alist)"""
+    async def _run_all_tasks(self, callback_query: CallbackQuery, user_id: int) -> None:
+        """
+        Run all tasks (Alist2Strm and Ani2Alist)
+        
+        :param callback_query: Telegram回调查询对象
+        :param user_id: 发起任务的用户ID
+        """
         if not settings.AlistServerList and not settings.Ani2AlistList:
             await callback_query.edit_message_text(
                 "⚠️ *配置错误*\n\n没有配置任何任务。",
@@ -1107,7 +1254,7 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-        async def run_all_tasks():
+        async def run_all_tasks() -> None:
             # 运行 Alist2Strm 任务
             for server in settings.AlistServerList:
                 server_id = server.get("id", "未命名")
@@ -1138,8 +1285,14 @@ class TelegramBot(metaclass=Singleton) :
             user_id=user_id
         )
 
-    async def _cancel_task(self, callback_query, task_id: str, user_id: int) -> None:
-        """Cancel a specific task"""
+    async def _cancel_task(self, callback_query: CallbackQuery, task_id: str, user_id: int) -> None:
+        """
+        Cancel a specific task
+        
+        :param callback_query: Telegram回调查询对象
+        :param task_id: 要取消的任务ID
+        :param user_id: 发起取消的用户ID
+        """
         if task_id not in self.running_tasks:
             await callback_query.edit_message_text(
                 "⚠️ *任务不存在*\n\n指定的任务不存在或已完成。",
@@ -1182,8 +1335,13 @@ class TelegramBot(metaclass=Singleton) :
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def _cancel_all_tasks(self, callback_query, user_id: int) -> None:
-        """Cancel all running tasks"""
+    async def _cancel_all_tasks(self, callback_query: CallbackQuery, user_id: int) -> None:
+        """
+        Cancel all running tasks
+        
+        :param callback_query: Telegram回调查询对象
+        :param user_id: 发起取消的用户ID
+        """
         if not self.running_tasks:
             await callback_query.edit_message_text(
                 "ℹ️ *没有任务*\n\n当前没有正在运行的任务。",
@@ -1229,7 +1387,12 @@ class TelegramBot(metaclass=Singleton) :
         )
 
     async def _error_handler(self, update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Log errors caused by updates."""
+        """
+        Log errors caused by updates.
+        
+        :param update: 从Telegram接收的更新对象
+        :param context: 处理上下文，包含错误信息
+        """
         logger.error(f"Telegram Bot error: {context.error}")
 
         # 如果是回调查询，通知用户
@@ -1245,7 +1408,12 @@ class TelegramBot(metaclass=Singleton) :
                 pass
 
     def _format_duration(self, seconds: float) -> str:
-        """Format a duration in seconds to a human-readable string"""
+        """
+        Format a duration in seconds to a human-readable string
+        
+        :param seconds: 秒数
+        :return: 格式化后的人类可读时间字符串
+        """
         if seconds < 60:
             return f"{seconds:.1f} 秒"
         elif seconds < 3600:
@@ -1261,6 +1429,8 @@ class TelegramBot(metaclass=Singleton) :
     async def run(self) -> None:
         """
         Run the Telegram bot (keeps running until explicitly stopped)
+        
+        运行Telegram机器人，直到被明确停止
         """
         try:
             await self.start()
