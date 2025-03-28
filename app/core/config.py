@@ -95,6 +95,12 @@ class SettingManager:
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
             ani2alist_list = safe_load(file).get("Ani2AlistList", [])
         return ani2alist_list
+        
+    @property
+    def TelegramBot(self) -> dict[str, any]:
+        with self.CONFIG.open(mode="r", encoding="utf-8") as file:
+            telegram_bot = safe_load(file).get("TelegramBot", {})
+        return telegram_bot
 
 
 settings = SettingManager()
