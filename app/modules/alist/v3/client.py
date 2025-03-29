@@ -313,7 +313,7 @@ class AlistClient(metaclass=Multiton):
         logger.debug("创建存储成功")
         return
 
-    async def sync_api_admin_storage_update(self, storage: AlistStorage) -> None:
+    async def async_api_admin_storage_update(self, storage: AlistStorage) -> None:
         """
         更新存储，需要管理员用户权限
 

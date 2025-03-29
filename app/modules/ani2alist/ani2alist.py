@@ -99,7 +99,7 @@ class Ani2Alist:
         addition_dict["url_structure"] = AlistUtils.dict2structure(url_dict)
         storage.set_addition_by_dict(addition_dict)
 
-        await self.client.sync_api_admin_storage_update(storage)
+        await self.client.async_api_admin_storage_update(storage)
 
     async def __update_url_dicts(self, url_dict: dict):
         """
