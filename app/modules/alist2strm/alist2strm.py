@@ -145,21 +145,19 @@ class Alist2Strm:
 
         self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
-        async with self.__max_workers:
-            try:
-                async with TaskGroup() as tg:
-                    async for path in self.client.iter_path(
-                        dir_path=self.source_dir, wait_time=self.wait_time, is_detail=is_detail, filter=filter
-                    ):
-                        tg.create_task(self.__file_processer(path))
-            except Exception as e:
-                logger.error(f"Alist2Strm 运行异常：{e}")
-                return
-        logger.info("Alist2Strm 处理完成")
+        async with self.__max_workers, TaskGroup() as tg:
+            async for path in self.client.iter_path(
+                dir_path=self.source_dir,
+                wait_time=self.wait_time,
+                is_detail=is_detail,
+                filter=filter,
+            ):
+                tg.create_task(self.__file_processer(path))
 
         if self.sync_server:
             await self.__cleanup_local_files()
             logger.info("清理过期的 .strm 文件完成")
+        logger.info("Alist2Strm 处理完成")
 
     async def __file_processer(self, path: AlistPath) -> None:
         """
