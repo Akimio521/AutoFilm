@@ -1,5 +1,6 @@
 from pathlib import Path
 from yaml import safe_load
+from typing import Any
 
 from app.version import APP_VERSION
 
@@ -85,13 +86,13 @@ class SettingManager:
             return self.LOG_DIR / "AutoFilm.log"
 
     @property
-    def AlistServerList(self) -> list[dict[str, any]]:
+    def AlistServerList(self) -> list[dict[str, Any]]:
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
             alist_server_list = safe_load(file).get("Alist2StrmList", [])
         return alist_server_list
 
     @property
-    def Ani2AlistList(self) -> list[dict[str, any]]:
+    def Ani2AlistList(self) -> list[dict[str, Any]]:
         with self.CONFIG.open(mode="r", encoding="utf-8") as file:
             ani2alist_list = safe_load(file).get("Ani2AlistList", [])
         return ani2alist_list
