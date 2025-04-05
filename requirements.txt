@@ -6,3 +6,5 @@ aiofile == 3.8.8
 httpx[http2] == 0.27.2
 pydantic == 2.9.2
 pypinyin == 0.53.0
+python-telegram-bot
+psutil

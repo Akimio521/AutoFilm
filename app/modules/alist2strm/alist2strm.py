@@ -208,31 +208,30 @@ class Alist2Strm:
 
         return local_path
 
-    async def __cleanup_local_files(self) -> None:
+    async def __cleanup_local_files(self) -> None :
         """
-        删除服务器中已删除的本地的 .strm 文件及其关联文件
-        如果文件后缀在 sync_ignore 中，则不会被删除
+        删除服务器中已删除的本地的 .strm 文件，保留元数据文件
         """
         logger.info("开始清理本地文件")
 
-        if self.flatten_mode:
-            all_local_files = [f for f in self.target_dir.iterdir() if f.is_file()]
-        else:
-            all_local_files = [f for f in self.target_dir.rglob("*") if f.is_file()]
+        if self.flatten_mode :
+            all_local_files = [f for f in self.target_dir.iterdir() if f.is_file() and f.suffix.lower() == ".strm"]
+        else :
+            all_local_files = [f for f in self.target_dir.rglob("*.strm") if f.is_file()]
 
         files_to_delete = set(all_local_files) - self.processed_local_paths
 
-        for file_path in files_to_delete:
+        for file_path in files_to_delete :
             # 检查文件是否匹配忽略正则表达式
             if self.sync_ignore_pattern and self.sync_ignore_pattern.search(
-                file_path.name
-            ):
+                    file_path.name
+            ) :
                 logger.debug(f"文件 {file_path.name} 在忽略列表中，跳过删除")
                 continue
 
-            try:
-                if file_path.exists():
+            try :
+                if file_path.exists() :
                     await to_thread(file_path.unlink)
                     logger.info(f"删除文件：{file_path}")
-            except Exception as e:
+            except Exception as e :
                 logger.error(f"删除文件 {file_path} 失败：{e}")
