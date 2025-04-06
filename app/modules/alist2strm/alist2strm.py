@@ -234,5 +234,15 @@ class Alist2Strm:
                 if file_path.exists():
                     await to_thread(file_path.unlink)
                     logger.info(f"删除文件：{file_path}")
+
+                    # 检查并删除空目录
+                    parent_dir = file_path.parent
+                    while parent_dir != self.target_dir:
+                        if any(parent_dir.iterdir()):
+                            break  # 目录不为空，跳出循环
+                        else:
+                            parent_dir.rmdir()
+                            logger.info(f"删除空目录：{parent_dir}")
+                        parent_dir = parent_dir.parent
             except Exception as e:
                 logger.error(f"删除文件 {file_path} 失败：{e}")
