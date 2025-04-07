@@ -1,6 +1,7 @@
 from asyncio import get_event_loop
 from sys import path
 from os.path import dirname
+from datetime import datetime, timedelta
 
 path.append(dirname(dirname(__file__)))
 
@@ -41,6 +42,13 @@ if __name__ == "__main__":
                 logger.info(f"{server['id']} 已被添加至后台任务")
             else:
                 logger.warning(f"{server['id']} 未设置 cron")
+            after_time = server.get("after_time")
+            if after_time > 0:
+                run_time = datetime.now() + timedelta(seconds=after_time)
+                scheduler.add_job(
+                    Alist2Strm(**server).run, 'date', run_date=run_time
+                )
+                logger.info(f"{server['id']} 已被添加至 {after_time} 秒后执行")
     else:
         logger.warning("未检测到 Alist2Strm 模块配置")
 
@@ -55,6 +63,13 @@ if __name__ == "__main__":
                 logger.info(f"{server['id']} 已被添加至后台任务")
             else:
                 logger.warning(f"{server['id']} 未设置 cron")
+        after_time = server.get("after_time")
+        if after_time > 0:
+            run_time = datetime.now() + timedelta(seconds=after_time)
+            scheduler.add_job(
+                Ani2Alist(**server).run, 'date', run_date=run_time
+            )
+            logger.info(f"{server['id']} 已被添加至 {after_time} 秒后执行")
     else:
         logger.warning("未检测到 Ani2Alist 模块配置")
 
