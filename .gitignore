@@ -3,6 +3,8 @@ logs/*.log
 strm/*
 media/*
 __pycache__/*
+.idea/
+.run/
 
 .DS_Store
 *bak

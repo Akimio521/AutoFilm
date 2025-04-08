@@ -2,6 +2,8 @@ from asyncio import get_event_loop
 from sys import path
 from os.path import dirname
 from datetime import datetime, timedelta
+import asyncio
+from typing import Optional
 
 path.append(dirname(dirname(__file__)))
 
@@ -11,6 +13,7 @@ from apscheduler.triggers.cron import CronTrigger  # type:ignore
 from app.core import settings, logger
 from app.extensions import LOGO
 from app.modules import Alist2Strm, Ani2Alist
+from app.modules.telegrambot import TelegramBot
 
 
 def print_logo() -> None:
@@ -23,7 +26,10 @@ def print_logo() -> None:
     print("")
 
 
-if __name__ == "__main__":
+async def main() -> None:
+    """
+    主程序入口，初始化并启动所有服务
+    """
     print_logo()
 
     logger.info(f"AutoFilm {settings.APP_VERSION} 启动中...")
@@ -73,10 +79,29 @@ if __name__ == "__main__":
     else:
         logger.warning("未检测到 Ani2Alist 模块配置")
 
+    # 初始化并运行Telegram机器人（如果已配置）
+    telegram_bot: Optional[TelegramBot] = None
+    if hasattr(settings, 'TelegramBot') and settings.TelegramBot.get('token'):
+        logger.info("检测到 Telegram Bot 配置，正在启动")
+        telegram_bot = TelegramBot(**settings.TelegramBot)
+        # 启动Telegram机器人
+        await telegram_bot.start()
+    else:
+        logger.info("未检测到 Telegram Bot 配置")
+
     scheduler.start()
     logger.info("AutoFilm 启动完成")
 
     try:
-        get_event_loop().run_forever()
+        while True:
+            await asyncio.sleep(1)
     except (KeyboardInterrupt, SystemExit):
         logger.info("AutoFilm 程序退出！")
+        if telegram_bot:
+            # 停止Telegram机器人
+            await telegram_bot.stop()
+        # 关闭调度器
+        scheduler.shutdown()
+
+if __name__ == "__main__":
+    asyncio.run(main())

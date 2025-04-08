@@ -55,4 +55,10 @@ Ani2AlistList:
     year: 2024                            # 动漫季度-年份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
     month: 7                              # 动漫季度-月份，仅支持 2019-1 及以后更新的番剧（可选，默认使用当前日期）
     src_domain: aniopen.an-i.workers.dev  # AniOpen 项目域名（可选，默认为 aniopen.an-i.workers.dev）
-    rss_domain: api.ani.rip               # AniOpen 项目 RSS 订阅域名（可选，默认为 api.ani.rip） 
+    rss_domain: api.ani.rip               # AniOpen 项目 RSS 订阅域名（可选，默认为 api.ani.rip）
+
+TelegramBot:
+  token: ""    # 你的 Telegram 机器人令牌（从 BotFather 获取）
+  allowed_users: []          # 允许使用机器人的用户 ID 列表（可选）
+  admin_users: [] #管理员
+  proxy_url: ""  # 代理服务器 URL（可选，如果你需要通过代理访问 Telegram API）
