@@ -111,7 +111,12 @@ class Alist2Strm:
                 logger.debug(f"文件 {path.name} 不在处理列表中")
                 return False
 
-            local_path = self.__get_local_path(path)
+            try:
+                local_path = self.__get_local_path(path)
+            except OSError as e:  # 可能是文件名过长
+                logger.warning(f"获取 {path.path} 本地路径失败：{e}")
+                return False
+
             self.processed_local_paths.add(local_path)
 
             if not self.overwrite and local_path.exists():
