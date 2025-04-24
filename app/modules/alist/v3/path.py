@@ -32,14 +32,14 @@ class AlistPath(BaseModel):
     related: Any = None  # 相关信息
 
     @property
-    def abs_path(self):
+    def abs_path(self) -> str:
         """
         文件/目录在 Alist 服务器上的绝对路径
         """
         return self.base_path.rstrip("/") + self.path
 
     @property
-    def download_url(self):
+    def download_url(self) -> str:
         """
         文件下载地址
         """
@@ -51,14 +51,14 @@ class AlistPath(BaseModel):
         return URLUtils.encode(url)
 
     @property
-    def proxy_download_url(self):
+    def proxy_download_url(self) -> str:
         """
         Alist代理下载地址
         """
         return sub(r"/d/", "/p/", self.download_url, 1)
 
     @property
-    def suffix(self):
+    def suffix(self) -> str:
         """
         文件后缀
         """
