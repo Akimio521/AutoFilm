@@ -373,8 +373,8 @@ class AlistClient(metaclass=Multiton):
         """
 
         for path in await self.async_api_fs_list(dir_path):
-            await sleep(wait_time)
             if path.is_dir:
+                await sleep(wait_time)
                 async for child_path in self.iter_path(
                     dir_path=path.path,
                     wait_time=wait_time,
@@ -385,6 +385,7 @@ class AlistClient(metaclass=Multiton):
 
             if filter(path):
                 if is_detail:
+                    await sleep(wait_time)
                     yield await self.async_api_fs_get(path.path)
                 else:
                     yield path
