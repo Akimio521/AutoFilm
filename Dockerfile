@@ -3,7 +3,9 @@ WORKDIR /builder
 
 RUN apk update && \
     apk add --no-cache \
-    build-base \
+    gcc \
+    python3-dev \
+    musl-dev \
     linux-headers
 
 # 安装构建依赖
@@ -34,7 +36,7 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 COPY --from=builder /builder/app /app
 
-RUN apk del build-base linux-headers && \
+RUN apk del gcc python3-dev musl-dev linux-headers && \
     rm -rf /tmp/* 
 
 ENTRYPOINT ["python", "/app/main.py"]

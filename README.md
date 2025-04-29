@@ -11,6 +11,7 @@
 
 <div align="center">
 
+上游来自： https://github.com/jiusheng6/AutoFilm  和 https://github.com/Akimio521/AutoFilm
 # AutoFilm
 
 **一个为 Emby、Jellyfin 服务器提供直链播放的小项目** 
