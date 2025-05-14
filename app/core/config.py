@@ -126,5 +126,10 @@ class SettingManager:
             config = safe_load(f)
             return config.get(section, {}).get(key, default)
 
+    @property
+    def API_KEY(self) -> str:
+
+        """API验证密钥"""
+        return self._get_config("Settings", "API_KEY", "")
 
 settings = SettingManager()
