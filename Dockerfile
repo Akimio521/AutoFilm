@@ -22,6 +22,22 @@ FROM python:3.12.7-alpine
 
 ENV TZ=Asia/Shanghai
 VOLUME ["/config", "/logs", "/media"]
+EXPOSE 8000  # 新增端口暴露声明
+
+# 添加运行时依赖
+RUN apk update && \
+    apk add --no-cache \
+    tzdata \
+    curl && \
+    cp /usr/share/zoneinfo/${TZ} /etc/localtime && \
+    echo ${TZ} > /etc/timezone
+
+# 创建非root用户
+RUN adduser -D appuser && \
+    chown -R appuser:appuser /app
+
+# 切换用户
+USER appuser
 
 RUN apk update && \
     apk add --no-cache \
