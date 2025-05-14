@@ -38,10 +38,9 @@ RUN apk update && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     -i https://pypi.tuna.tsinghua.edu.cn/simple \
-    --default-timeout=100 && \
-    rm requirements.txt \
-
-RUN pip install fastapi==0.109.0 uvicorn==0.27.0 --force-reinstall
+    --default-timeout=100 \
+    && rm requirements.txt \
+    && pip install fastapi==0.109.0 uvicorn==0.27.0 --force-reinstall
 
 # 清理构建工具
 RUN apk del build-base linux-headers && \
