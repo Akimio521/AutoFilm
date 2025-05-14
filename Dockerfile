@@ -28,7 +28,9 @@ EXPOSE 8000
 RUN apk update && \
     apk add --no-cache \
     tzdata \
-    curl && \
+    curl \
+    build-base \          # 新增构建工具
+    linux-headers && \    # 新增内核头文件
     cp /usr/share/zoneinfo/${TZ} /etc/localtime && \
     echo ${TZ} > /etc/timezone
 
@@ -36,6 +38,10 @@ RUN apk update && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     rm requirements.txt
+
+# 清理构建工具
+RUN apk del build-base linux-headers && \
+    rm -rf /var/cache/apk/*
 
 # 从构建阶段复制应用
 COPY --from=builder /builder/app /app
