@@ -36,6 +36,17 @@ def start_api_server():
         log_config=None
     )
 
+def __mkdir(self) -> None:
+    """
+    创建目录
+    """
+    # 修改前：使用 with self.CONFIG_DIR as dir_path:
+    if not self.CONFIG_DIR.exists():
+        self.CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not self.LOG_DIR.exists():
+        self.LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 if __name__ == "__main__":
     print_logo()
     logger.info(f"AutoFilm {settings.APP_VERSION} 启动中...")

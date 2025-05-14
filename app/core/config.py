@@ -97,5 +97,12 @@ class SettingManager:
             ani2alist_list = safe_load(file).get("Ani2AlistList", [])
         return ani2alist_list
 
+    @property
+    def API_ENABLE(self) -> bool:
+        """
+        是否启用API服务
+        """
+        with self.CONFIG.open(mode="r", encoding="utf-8") as file:
+            return safe_load(file).get("Settings", {}).get("API_ENABLE", False)
 
 settings = SettingManager()
