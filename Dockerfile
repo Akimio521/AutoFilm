@@ -22,7 +22,7 @@ FROM python:3.12.7-alpine
 
 ENV TZ=Asia/Shanghai
 VOLUME ["/config", "/logs", "/media"]
-EXPOSE 8000  # 新增端口暴露声明
+#EXPOSE 8000  # 新增端口暴露声明
 
 # 添加运行时依赖
 RUN apk update && \
