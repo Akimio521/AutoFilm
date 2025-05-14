@@ -10,7 +10,8 @@ def find_py_files(dir: Path) -> list[str]:
     needed_compiled_files = []
     for file in dir.rglob("*.py"):
         # 添加排除条件
-        if file.name not in ["main.py", "__init__.py", "api.py"]:
+        #if file.name not in ["main.py", "__init__.py", "api.py"]:
+        if file.name not in ["main.py"]:
             needed_compiled_files.append(file.as_posix())
     return needed_compiled_files
 
