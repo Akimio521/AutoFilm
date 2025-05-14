@@ -1,13 +1,18 @@
-from fastapi import APIRouter, Security, HTTPException, status, Depends  # 新增 Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
 from app.core import settings, logger
 from app.modules import Alist2Strm, Ani2Alist
 
 router = APIRouter()
-security = APIKeyHeader(name="X-API-Key")
+security = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-async def get_api_key(api_key: str = Depends(security)) -> str:  # 修改 Security 为 Depends
+async def get_api_key(api_key: str = Depends(security)):
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing API Key"
+        )
     if api_key != settings.API_KEY:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
