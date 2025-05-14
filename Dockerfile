@@ -34,6 +34,7 @@ RUN apk update && \
 
 # 创建非root用户
 RUN adduser -D appuser && \
+    mkdir -p /app && \
     chown -R appuser:appuser /app
 
 # 切换用户
