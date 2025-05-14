@@ -29,8 +29,8 @@ RUN apk update && \
     apk add --no-cache \
     tzdata \
     curl \
-    build-base \          # 新增构建工具
-    linux-headers && \    # 新增内核头文件
+    build-base \
+    linux-headers && \
     cp /usr/share/zoneinfo/${TZ} /etc/localtime && \
     echo ${TZ} > /etc/timezone
 
