@@ -8,6 +8,9 @@ router = APIRouter()
 security = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 async def get_api_key(api_key: str = Depends(security)):
+    # 修改前错误声明：
+    # async def get_api_key(api_key: str = Security(security)) -> str:
+    # 正确声明应为通过Depends注入security
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
