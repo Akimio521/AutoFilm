@@ -22,7 +22,8 @@ FROM python:3.12.7-alpine
 
 ENV TZ=Asia/Shanghai
 VOLUME ["/config", "/logs", "/media"]
-#EXPOSE 8000  # 新增端口暴露声明
+# 新增端口暴露声明
+EXPOSE 8000
 
 # 添加运行时依赖
 RUN apk update && \
@@ -54,4 +55,5 @@ COPY --from=builder /builder/app /app
 RUN apk del build-base linux-headers && \
     rm -rf /tmp/* 
 
-ENTRYPOINT ["python", "/app/main.py"]
+ENTRYPOINT ["python", "/app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+#ENTRYPOINT ["python", "/app/main.py"]
