@@ -36,7 +36,9 @@ RUN apk update && \
 
 # 安装Python依赖
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
+RUN pip install --no-cache-dir -r requirements.txt \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    --default-timeout=100 && \
     rm requirements.txt
 
 # 清理构建工具
