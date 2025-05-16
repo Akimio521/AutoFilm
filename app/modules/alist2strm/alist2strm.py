@@ -247,21 +247,41 @@ class Alist2Strm:
                     logger.error(f"Failed to download file {path.download_url} to {local_path}: {e}")
 
     def __get_local_path(self, path: AlistPath) -> Path:
+        # 检查是否是 BDMV 结构中的 m2ts 文件
+        is_bdmv_m2ts = False
+        if path.suffix.lower() == ".m2ts" and "/BDMV/STREAM/" in path.path:
+            is_bdmv_m2ts = True
+            
         if self.flatten_mode:
+            # 扁平模式下，所有文件都直接放在目标目录下
             local_path_name = path.name
-            # If it's the main M2TS from BDMV, user might prefer BDMV folder name.
-            # Current spec: use M2TS name. So, 00001.m2ts -> 00001.strm.
-            # This behavior is maintained.
             local_path = self.target_dir / local_path_name
         else:
+            # 非扁平模式下，需要特殊处理 BDMV 中的主 m2ts 文件
+            if is_bdmv_m2ts:
+                # 对于 BDMV 中的 m2ts 文件，提取电影目录名称
+                # 例如：/movies/海边的异邦人 (2020)/BDMV/STREAM/00002.m2ts
+                # 我们需要提取 "海边的异邦人 (2020)" 作为文件名
+                
+                # 先获取相对路径
+                relative_path_str = path.path.replace(self.source_dir, "", 1)
+                if relative_path_str.startswith("/"):
+                    relative_path_str = relative_path_str[1:]
+                
+                # 分割路径，获取电影目录名称
+                path_parts = relative_path_str.split("/")
+                if len(path_parts) >= 4:  # 至少应该有 [电影名, BDMV, STREAM, 文件名]
+                    movie_dir_name = path_parts[0]
+                    # 使用电影目录名称作为文件名
+                    local_path = self.target_dir / movie_dir_name / f"{movie_dir_name}.strm"
+                    logger.info(f"BDMV m2ts file {path.path} will be flattened to {local_path}")
+                    return local_path
+            
+            # 非 BDMV m2ts 文件或 BDMV 结构不完整，使用原有逻辑
             relative_path_str = path.path.replace(self.source_dir, "", 1)
             if relative_path_str.startswith("/"):
                 relative_path_str = relative_path_str[1:]
             
-            # If path is main M2TS from BDMV, e.g. /Movies/BDMV_Movie/BDMV/STREAM/00001.m2ts
-            # relative_path_str might be BDMV_Movie/BDMV/STREAM/00001.m2ts
-            # The .strm file will be BDMV_Movie/BDMV/STREAM/00001.strm
-            # This seems consistent with original behavior for other files.
             local_path = self.target_dir / Path(relative_path_str)
 
         if path.suffix.lower() in VIDEO_EXTS:
