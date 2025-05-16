@@ -127,7 +127,7 @@ class Alist2Strm:
                 dir_path=self.source_dir,
                 wait_time=self.wait_time,
                 is_detail=is_detail,
-                filter=None,  # Get all items initially
+                # 使用默认的 filter 函数 (lambda x: True)，不要传递 None
             ):
                 all_paths_from_alist.append(path_obj)
         except Exception as e:
