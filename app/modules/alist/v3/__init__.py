@@ -1,3 +1,3 @@
-from app.modules.alist.v3.client import AlistClient
-from app.modules.alist.v3.path import AlistPath
-from app.modules.alist.v3.storage import AlistStorage
+from .client import AlistClient
+from .path import AlistPath
+from .storage import AlistStorage

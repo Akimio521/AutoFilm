@@ -5,10 +5,10 @@ from re import compile as re_compile
 
 from aiofile import async_open
 
-from app.core import logger
-from app.utils import RequestUtils
-from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
-from app.modules.alist import AlistClient, AlistPath
+from ...core import logger
+from ...utils import RequestUtils
+from ...extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
+from ..alist import AlistClient, AlistPath
 
 
 class Alist2Strm:
@@ -34,28 +34,6 @@ class Alist2Strm:
         sync_ignore: str | None = None,
         **_,
     ) -> None:
-        """
-        实例化 Alist2Strm 对象
-
-        :param url: Alist 服务器地址，默认为 "http://localhost:5244"
-        :param username: Alist 用户名，默认为空
-        :param password: Alist 密码，默认为空
-        :param source_dir: 需要同步的 Alist 的目录，默认为 "/"
-        :param target_dir: strm 文件输出目录，默认为当前工作目录
-        :param flatten_mode: 平铺模式，将所有 Strm 文件保存至同一级目录，默认为 False
-        :param subtitle: 是否下载字幕文件，默认为 False
-        :param image: 是否下载图片文件，默认为 False
-        :param nfo: 是否下载 .nfo 文件，默认为 False
-        :param mode: Strm模式(AlistURL/RawURL/AlistPath)
-        :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
-        :param sync_server: 是否同步服务器，启用后若服务器中删除了文件，也会将本地文件删除，默认为 True
-        :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
-        :param max_workers: 最大并发数
-        :param max_downloaders: 最大同时下载
-        :param wait_time: 遍历请求间隔时间，单位为秒，默认为 0
-        :param sync_ignore: 同步时忽略的文件正则表达式
-        """
-
         self.client = AlistClient(url, username, password, token)
         self.mode = mode
 
@@ -77,6 +55,7 @@ class Alist2Strm:
             download_exts |= frozenset(other_ext.lower().split(","))
 
         self.download_exts = download_exts
+        # VIDEO_EXTS will include .m2ts due to changes in app.extensions.exts.py
         self.process_file_exts = VIDEO_EXTS | download_exts
 
         self.overwrite = overwrite
@@ -90,86 +69,147 @@ class Alist2Strm:
         else:
             self.sync_ignore_pattern = None
 
+    def _should_process_file(self, path: AlistPath) -> bool:
+        """
+        Helper function to determine if a file should be processed.
+        Based on the original filter logic.
+        """
+        if path.is_dir:
+            return False
+
+        if path.suffix.lower() not in self.process_file_exts:
+            logger.debug(f"File {path.name} (suffix: {path.suffix.lower()}) with path {path.path} not in process_file_exts: {self.process_file_exts}")
+            return False
+
+        try:
+            local_path = self.__get_local_path(path)
+        except OSError as e:  # May be filename too long
+            logger.warning(f"Getting local path for {path.path} failed: {e}")
+            return False
+
+        # Add to processed_local_paths here, as this file is being considered for processing.
+        # If it's ultimately processed, it will be part of the set for cleanup.
+        # If it's skipped due to overwrite=False and exists, it's still a valid local representation.
+        self.processed_local_paths.add(local_path)
+
+        if not self.overwrite and local_path.exists():
+            if path.suffix.lower() in self.download_exts: # Check for subtitles, images, nfo (non-video files)
+                local_path_stat = local_path.stat()
+                if local_path_stat.st_mtime < path.modified_timestamp:
+                    logger.debug(f"File {local_path.name} is outdated, reprocessing {path.path}")
+                    return True
+                if local_path_stat.st_size < path.size:
+                    logger.debug(f"File {local_path.name} size mismatch, reprocessing {path.path}")
+                    return True
+            logger.debug(f"File {local_path.name} exists and overwrite is false, skipping {path.path}")
+            return False
+
+        return True
+
     async def run(self) -> None:
         """
-        处理主体
+        Main processing logic.
+        Includes BDMV M2TS handling.
         """
-
-        def filter(path: AlistPath) -> bool:
-            """
-            过滤器
-            根据 Alist2Strm 配置判断是否需要处理该文件
-            将云盘上上的文件对应的本地文件路径保存至 self.processed_local_paths
-
-            :param path: AlistPath 对象
-            """
-
-            if path.is_dir:
-                return False
-
-            if path.suffix.lower() not in self.process_file_exts:
-                logger.debug(f"文件 {path.name} 不在处理列表中")
-                return False
-
-            try:
-                local_path = self.__get_local_path(path)
-            except OSError as e:  # 可能是文件名过长
-                logger.warning(f"获取 {path.path} 本地路径失败：{e}")
-                return False
-
-            self.processed_local_paths.add(local_path)
-
-            if not self.overwrite and local_path.exists():
-                if path.suffix in self.download_exts:
-                    local_path_stat = local_path.stat()
-                    if local_path_stat.st_mtime < path.modified_timestamp:
-                        logger.debug(
-                            f"文件 {local_path.name} 已过期，需要重新处理 {path.path}"
-                        )
-                        return True
-                    if local_path_stat.st_size < path.size:
-                        logger.debug(
-                            f"文件 {local_path.name} 大小不一致，可能是本地文件损坏，需要重新处理 {path.path}"
-                        )
-                        return True
-                logger.debug(f"文件 {local_path.name} 已存在，跳过处理 {path.path}")
-                return False
-
-            return True
-
         if self.mode not in ["AlistURL", "RawURL", "AlistPath"]:
-            logger.warning(
-                f"Alist2Strm 的模式 {self.mode} 不存在，已设置为默认模式 AlistURL"
-            )
+            logger.warning(f"Alist2Strm mode {self.mode} is invalid, defaulting to AlistURL")
             self.mode = "AlistURL"
 
-        if self.mode == "RawURL":
-            is_detail = True
-        else:
-            is_detail = False
+        # is_detail must be True to get file sizes for M2TS comparison and for RawURL mode.
+        is_detail = True
 
-        self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
+        self.processed_local_paths = set()  # Reset for each run
+        all_paths_from_alist = []
+        logger.info(f"Starting scan of source directory: {self.source_dir}")
 
-        async with self.__max_workers, TaskGroup() as tg:
-            async for path in self.client.iter_path(
+        try:
+            async for path_obj in self.client.iter_path(
                 dir_path=self.source_dir,
                 wait_time=self.wait_time,
                 is_detail=is_detail,
-                filter=filter,
+                filter=None,  # Get all items initially
             ):
-                tg.create_task(self.__file_processer(path))
+                all_paths_from_alist.append(path_obj)
+        except Exception as e:
+            logger.error(f"Error during Alist directory iteration for {self.source_dir}: {e}")
+            return # Stop if initial scan fails
 
+        logger.info(f"Scan complete. Found {len(all_paths_from_alist)} items. Identifying BDMV structures.")
+
+        bdmv_largest_m2ts_map = {}  # BDMV_dir_path -> AlistPath of largest M2TS
+        other_m2ts_in_bdmv_stream = set() # Paths of M2TS files in STREAM, not the largest
+
+        potential_bdmv_roots = [p for p in all_paths_from_alist if p.is_dir and p.name.upper() == "BDMV"]
+
+        for bdmv_path_obj in potential_bdmv_roots:
+            bdmv_dir_path_str = bdmv_path_obj.path
+            stream_dir_path_str = f"{bdmv_dir_path_str}/STREAM"
+            logger.info(f"Processing potential BDMV directory: {bdmv_dir_path_str}")
+            
+            m2ts_files_in_stream = []
+            for path_obj in all_paths_from_alist:
+                if (not path_obj.is_dir and
+                   path_obj.path.startswith(stream_dir_path_str + "/") and
+                   path_obj.suffix.lower() == ".m2ts"):
+                    m2ts_files_in_stream.append(path_obj)
+            
+            if m2ts_files_in_stream:
+                largest_m2ts = max(m2ts_files_in_stream, key=lambda f: f.size)
+                bdmv_largest_m2ts_map[bdmv_dir_path_str] = largest_m2ts
+                logger.info(f"Identified largest M2TS for BDMV at {bdmv_dir_path_str}: {largest_m2ts.path} (Size: {largest_m2ts.size})")
+                for m2ts_file in m2ts_files_in_stream:
+                    if m2ts_file.path != largest_m2ts.path:
+                        other_m2ts_in_bdmv_stream.add(m2ts_file.path)
+            else:
+                logger.info(f"No M2TS files found in {stream_dir_path_str} for BDMV at {bdmv_dir_path_str}")
+
+        files_to_process_final_map = {}
+
+        for path_obj in all_paths_from_alist:
+            is_main_bdmv_m2ts = any(path_obj.path == main_m2ts.path for main_m2ts in bdmv_largest_m2ts_map.values())
+
+            if is_main_bdmv_m2ts:
+                if self._should_process_file(path_obj):
+                    logger.info(f"Adding main BDMV M2TS to process list: {path_obj.path}")
+                    files_to_process_final_map[path_obj.path] = path_obj
+                continue
+
+            if path_obj.path in other_m2ts_in_bdmv_stream:
+                logger.debug(f"Skipping non-largest M2TS from BDMV/STREAM: {path_obj.path}")
+                continue
+
+            is_inside_processed_bdmv = False
+            for bdmv_root_path in bdmv_largest_m2ts_map.keys():
+                if path_obj.path.startswith(bdmv_root_path + "/"):
+                    # This file is inside a BDMV structure that we've identified a main M2TS for.
+                    # We only want the main M2TS from such structures.
+                    is_inside_processed_bdmv = True
+                    break
+            
+            if is_inside_processed_bdmv:
+                logger.debug(f"Skipping other file/dir inside an identified BDMV structure: {path_obj.path}")
+                continue
+            
+            # Regular file/directory not part of an identified BDMV structure (or a BDMV structure that had no M2TS)
+            if self._should_process_file(path_obj):
+                logger.debug(f"Adding regular file to process list: {path_obj.path}")
+                files_to_process_final_map[path_obj.path] = path_obj
+
+        logger.info(f"Identified {len(files_to_process_final_map)} unique files for processing.")
+
+        async with self.__max_workers, TaskGroup() as tg:
+            for path_obj_to_process in files_to_process_final_map.values():
+                tg.create_task(self.__file_processer(path_obj_to_process))
+        
+        logger.info(f"File processing tasks created. Waiting for completion.")
+
+        # Cleanup needs to happen after TaskGroup finishes, implicitly handled by 'async with'
         if self.sync_server:
             await self.__cleanup_local_files()
-            logger.info("清理过期的 .strm 文件完成")
-        logger.info("Alist2Strm 处理完成")
+            logger.info("Cleanup of local files complete.")
+        logger.info("Alist2Strm processing run finished.")
 
     async def __file_processer(self, path: AlistPath) -> None:
-        """
-        异步保存文件至本地
-
-        :param path: AlistPath 对象
-        """
         local_path = self.__get_local_path(path)
 
         if self.mode == "AlistURL":
@@ -179,34 +219,50 @@ class Alist2Strm:
         elif self.mode == "AlistPath":
             content = path.path
         else:
-            raise ValueError(f"AlistStrm 未知的模式 {self.mode}")
+            # This case should ideally be caught earlier, but as a safeguard:
+            logger.error(f"Unknown Alist2Strm mode '{self.mode}' in __file_processer for {path.path}")
+            return
 
-        await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
+        try:
+            await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
+        except Exception as e:
+            logger.error(f"Failed to create parent directory for {local_path}: {e}")
+            return
 
-        logger.debug(f"开始处理 {local_path}")
+        logger.debug(f"Starting to process {local_path} for {path.path}")
         if local_path.suffix == ".strm":
-            async with async_open(local_path, mode="w", encoding="utf-8") as file:
-                await file.write(content)
-            logger.info(f"{local_path.name} 创建成功")
+            try:
+                async with async_open(local_path, mode="w", encoding="utf-8") as file:
+                    await file.write(content)
+                logger.info(f".strm file {local_path.name} created successfully for {path.path}")
+            except Exception as e:
+                logger.error(f"Failed to write .strm file {local_path}: {e}")
         else:
+            # This branch is for downloadable files like subtitles, images, nfo
             async with self.__max_downloaders:
-                await RequestUtils.download(path.download_url, local_path)
-                logger.info(f"{local_path.name} 下载成功")
+                try:
+                    await RequestUtils.download(path.download_url, local_path)
+                    logger.info(f"File {local_path.name} downloaded successfully for {path.path}")
+                except Exception as e:
+                    logger.error(f"Failed to download file {path.download_url} to {local_path}: {e}")
 
     def __get_local_path(self, path: AlistPath) -> Path:
-        """
-        根据给定的 AlistPath 对象和当前的配置，计算出本地文件路径。
-
-        :param path: AlistPath 对象
-        :return: 本地文件路径
-        """
         if self.flatten_mode:
-            local_path = self.target_dir / path.name
+            local_path_name = path.name
+            # If it's the main M2TS from BDMV, user might prefer BDMV folder name.
+            # Current spec: use M2TS name. So, 00001.m2ts -> 00001.strm.
+            # This behavior is maintained.
+            local_path = self.target_dir / local_path_name
         else:
-            relative_path = path.path.replace(self.source_dir, "", 1)
-            if relative_path.startswith("/"):
-                relative_path = relative_path[1:]
-            local_path = self.target_dir / relative_path
+            relative_path_str = path.path.replace(self.source_dir, "", 1)
+            if relative_path_str.startswith("/"):
+                relative_path_str = relative_path_str[1:]
+            
+            # If path is main M2TS from BDMV, e.g. /Movies/BDMV_Movie/BDMV/STREAM/00001.m2ts
+            # relative_path_str might be BDMV_Movie/BDMV/STREAM/00001.m2ts
+            # The .strm file will be BDMV_Movie/BDMV/STREAM/00001.strm
+            # This seems consistent with original behavior for other files.
+            local_path = self.target_dir / Path(relative_path_str)
 
         if path.suffix.lower() in VIDEO_EXTS:
             local_path = local_path.with_suffix(".strm")
@@ -214,40 +270,44 @@ class Alist2Strm:
         return local_path
 
     async def __cleanup_local_files(self) -> None:
-        """
-        删除服务器中已删除的本地的 .strm 文件及其关联文件
-        如果文件后缀在 sync_ignore 中，则不会被删除
-        """
-        logger.info("开始清理本地文件")
+        logger.info("Starting cleanup of local files based on server state.")
+
+        if not self.target_dir.exists():
+            logger.info(f"Target directory {self.target_dir} does not exist. No cleanup needed.")
+            return
 
         if self.flatten_mode:
             all_local_files = [f for f in self.target_dir.iterdir() if f.is_file()]
         else:
             all_local_files = [f for f in self.target_dir.rglob("*") if f.is_file()]
 
+        # self.processed_local_paths contains local paths corresponding to server files
+        # that *were considered* for processing in the current run (either processed or skipped due to overwrite=false)
         files_to_delete = set(all_local_files) - self.processed_local_paths
 
+        deleted_count = 0
         for file_path in files_to_delete:
-            # 检查文件是否匹配忽略正则表达式
-            if self.sync_ignore_pattern and self.sync_ignore_pattern.search(
-                file_path.name
-            ):
-                logger.debug(f"文件 {file_path.name} 在忽略列表中，跳过删除")
+            if self.sync_ignore_pattern and self.sync_ignore_pattern.search(file_path.name):
+                logger.debug(f"File {file_path.name} is in sync_ignore list, skipping deletion.")
                 continue
 
             try:
-                if file_path.exists():
+                if file_path.exists(): # Double check existence before unlinking
                     await to_thread(file_path.unlink)
-                    logger.info(f"删除文件：{file_path}")
+                    logger.info(f"Deleted obsolete local file: {file_path}")
+                    deleted_count +=1
 
-                    # 检查并删除空目录
-                    parent_dir = file_path.parent
-                    while parent_dir != self.target_dir:
-                        if any(parent_dir.iterdir()):
-                            break  # 目录不为空，跳出循环
-                        else:
-                            parent_dir.rmdir()
-                            logger.info(f"删除空目录：{parent_dir}")
-                        parent_dir = parent_dir.parent
-            except Exception as e:
-                logger.error(f"删除文件 {file_path} 失败：{e}")
+                    if not self.flatten_mode:
+                        parent_dir = file_path.parent
+                        while parent_dir != self.target_dir and parent_dir.exists() and not any(parent_dir.iterdir()):
+                            try:
+                                parent_dir.rmdir()
+                                logger.info(f"Deleted empty directory: {parent_dir}")
+                            except OSError as e_rmdir:
+                                logger.warning(f"Failed to delete empty directory {parent_dir}: {e_rmdir}")
+                                break # Stop trying to delete parents if one fails
+                            parent_dir = parent_dir.parent
+            except Exception as e_delete:
+                logger.error(f"Error deleting file {file_path}: {e_delete}")
+        logger.info(f"Cleanup complete. Deleted {deleted_count} files.")
+
