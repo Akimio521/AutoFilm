@@ -20,9 +20,9 @@ RUN mv setup.py setup.py.original && \
     python setup.py && \
     mv setup.py.original setup.py
 
+# 只删除 .c 文件，保留所有 Python 源文件
 RUN apk del build-base linux-headers && \
-    find app -type f \( -name "*.c" \) -delete && \
-    find app -type f -name "*.py" ! -name "main.py" ! -name "__init__.py" ! -name "config.py" ! -name "log.py" ! -name "version.py" -delete
+    find app -type f -name "*.c" -delete
 
 FROM python:3.12.7-alpine
 
