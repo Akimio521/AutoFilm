@@ -21,6 +21,8 @@ RUN apk del build-base linux-headers && \
 FROM python:3.12.7-alpine
 
 ENV TZ=Asia/Shanghai
+ENV PYTHONPATH=/app
+
 VOLUME ["/config", "/logs", "/media"]
 
 RUN apk update && \
