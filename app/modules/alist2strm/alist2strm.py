@@ -155,7 +155,7 @@ class Alist2Strm:
                 dir_path=self.source_dir,
                 wait_time=self.wait_time,
                 is_detail=is_detail,
-                filter=filter,
+                # 使用默认的 filter 函数 (lambda x: True)，不要传递 None
             ):
                 tg.create_task(self.__file_processer(path))
 
