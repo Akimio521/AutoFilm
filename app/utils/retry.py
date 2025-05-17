@@ -3,8 +3,8 @@ from typing import Type, Callable, ParamSpec, TypeVar, Optional, Awaitable
 from time import sleep
 from functools import wraps
 
-from app.core.log import logger
-from app.utils.singleton import Singleton
+from ..core.log import logger
+from .singleton import Singleton
 
 P = ParamSpec("P")
 R = TypeVar("R")

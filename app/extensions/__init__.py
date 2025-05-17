@@ -1,8 +1,8 @@
-from app.extensions.exts import (
+from .exts import (
     VIDEO_EXTS,
     EXTENDED_VIDEO_EXTS,
     SUBTITLE_EXTS,
     IMAGE_EXTS,
     NFO_EXTS,
 )
-from app.extensions.logo import LOGO
+from .logo import LOGO

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from app.core.config import settings
+from .config import settings
 
 FMT = "%(prefix)s %(message)s"
 

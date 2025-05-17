@@ -4,10 +4,10 @@ from time import time
 
 from httpx import Response
 
-from app.core import logger
-from app.utils import RequestUtils, Multiton
-from app.modules.alist.v3.path import AlistPath
-from app.modules.alist.v3.storage import AlistStorage
+from ....core import logger
+from ....utils import RequestUtils, Multiton
+from .path import AlistPath
+from .storage import AlistStorage
 
 
 class AlistClient(metaclass=Multiton):

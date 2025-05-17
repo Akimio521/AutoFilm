@@ -1,2 +1,2 @@
-from app.core.config import settings
-from app.core.log import logger
+from .config import settings
+from .log import logger
