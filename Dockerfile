@@ -11,12 +11,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir cython setuptools
 
 COPY setup.py setup.py
+COPY setup.py.simple setup.py.simple
 COPY app ./app
 
-RUN python setup.py
+# 跳过 Cython 编译以解决架构兼容性问题
+RUN mv setup.py setup.py.original && \
+    mv setup.py.simple setup.py && \
+    python setup.py && \
+    mv setup.py.original setup.py
 
+# 只删除 .c 文件，保留所有 Python 源文件
 RUN apk del build-base linux-headers && \
-    find app -type f \( -name "*.py" ! -name "main.py" ! -name "__init__.py" -o -name "*.c" \) -delete 
+    find app -type f -name "*.c" -delete
 
 FROM python:3.12.7-alpine
 
