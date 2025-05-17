@@ -1,0 +1,1 @@
+print("Skipping Cython compilation for compatibility")

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.utils import URLUtils
+from ....utils import URLUtils
 
 
 class AlistPath(BaseModel):

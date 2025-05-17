@@ -2,7 +2,7 @@ from hmac import new as hmac_new
 from hashlib import sha256 as hashlib_sha256
 from base64 import urlsafe_b64encode
 
-from app.utils.singleton import Singleton
+from .singleton import Singleton
 
 
 class AlistUtils(metaclass=Singleton):
