@@ -1,197 +1,154 @@
-from asyncio import to_thread, Semaphore, TaskGroup
-from os import PathLike
+from asyncio import TaskGroup
 from pathlib import Path
+from typing import List, Set, Dict, Any, Callable, Optional
 from re import compile as re_compile
 
 from aiofile import async_open
 
-from app.core import logger
-from app.utils import RequestUtils
-from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
-from app.modules.alist import AlistClient, AlistPath
+from ...core import logger
+from ...utils import RequestUtils
+from ...extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
+from ..alist import AlistClient, AlistPath
 
 
 class Alist2Strm:
+    """
+    将 Alist 中的视频文件转换为 .strm 文件
+    """
+
     def __init__(
         self,
-        url: str = "http://localhost:5244",
-        username: str = "",
-        password: str = "",
-        token: str = "",
-        source_dir: str = "/",
-        target_dir: str | PathLike = "",
+        client: AlistClient,
+        source_dir: str,
+        target_dir: str,
+        max_workers: int = 10,
         flatten_mode: bool = False,
-        subtitle: bool = False,
-        image: bool = False,
-        nfo: bool = False,
-        mode: str = "AlistURL",
-        overwrite: bool = False,
-        other_ext: str = "",
-        max_workers: int = 50,
-        max_downloaders: int = 5,
-        wait_time: float | int = 0,
         sync_server: bool = False,
         sync_ignore: str | None = None,
         **_,
-    ) -> None:
+    ):
         """
-        实例化 Alist2Strm 对象
+        初始化 Alist2Strm 对象
 
-        :param url: Alist 服务器地址，默认为 "http://localhost:5244"
-        :param username: Alist 用户名，默认为空
-        :param password: Alist 密码，默认为空
-        :param source_dir: 需要同步的 Alist 的目录，默认为 "/"
-        :param target_dir: strm 文件输出目录，默认为当前工作目录
-        :param flatten_mode: 平铺模式，将所有 Strm 文件保存至同一级目录，默认为 False
-        :param subtitle: 是否下载字幕文件，默认为 False
-        :param image: 是否下载图片文件，默认为 False
-        :param nfo: 是否下载 .nfo 文件，默认为 False
-        :param mode: Strm模式(AlistURL/RawURL/AlistPath)
-        :param overwrite: 本地路径存在同名文件时是否重新生成/下载该文件，默认为 False
-        :param sync_server: 是否同步服务器，启用后若服务器中删除了文件，也会将本地文件删除，默认为 True
-        :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
+        :param client: AlistClient 对象
+        :param source_dir: Alist 中的源目录
+        :param target_dir: 本地目标目录
         :param max_workers: 最大并发数
-        :param max_downloaders: 最大同时下载
-        :param wait_time: 遍历请求间隔时间，单位为秒，默认为 0
-        :param sync_ignore: 同步时忽略的文件正则表达式
+        :param flatten_mode: 是否扁平化目录结构
+        :param sync_server: 是否同步服务器文件
+        :param sync_ignore: 同步忽略的文件后缀，使用 | 分隔
         """
-
-        self.client = AlistClient(url, username, password, token)
-        self.mode = mode
-
+        self.client = client
         self.source_dir = source_dir
         self.target_dir = Path(target_dir)
-
+        self.max_workers = max_workers
         self.flatten_mode = flatten_mode
-        if flatten_mode:
-            subtitle = image = nfo = False
-
-        download_exts: set[str] = set()
-        if subtitle:
-            download_exts |= SUBTITLE_EXTS
-        if image:
-            download_exts |= IMAGE_EXTS
-        if nfo:
-            download_exts |= NFO_EXTS
-        if other_ext:
-            download_exts |= frozenset(other_ext.lower().split(","))
-
-        self.download_exts = download_exts
-        self.process_file_exts = VIDEO_EXTS | download_exts
-
-        self.overwrite = overwrite
-        self.__max_workers = Semaphore(max_workers)
-        self.__max_downloaders = Semaphore(max_downloaders)
-        self.wait_time = wait_time
         self.sync_server = sync_server
+        self.sync_ignore = sync_ignore
+        self.wait_time = 0.5
 
-        if sync_ignore:
-            self.sync_ignore_pattern = re_compile(sync_ignore)
-        else:
-            self.sync_ignore_pattern = None
+        self.__max_workers = RequestUtils.Semaphore(max_workers)
+        self.processed_local_paths: Set[Path] = set()
 
-    async def run(self) -> None:
+    async def process(self, filter: Callable[[AlistPath], bool] | None = None) -> None:
         """
-        处理主体
+        处理 Alist 中的视频文件
+
+        :param filter: 过滤函数，返回 True 表示处理该文件，返回 False 表示跳过该文件
         """
+        if filter is None:
+            filter = lambda x: True
 
-        def filter(path: AlistPath) -> bool:
-            """
-            过滤器
-            根据 Alist2Strm 配置判断是否需要处理该文件
-            将云盘上上的文件对应的本地文件路径保存至 self.processed_local_paths
+        # 确保目标目录存在
+        self.target_dir.mkdir(parents=True, exist_ok=True)
 
-            :param path: AlistPath 对象
-            """
-
-            if path.is_dir:
-                return False
-
-            if path.suffix.lower() not in self.process_file_exts:
-                logger.debug(f"文件 {path.name} 不在处理列表中")
-                return False
-
-            try:
-                local_path = self.__get_local_path(path)
-            except OSError as e:  # 可能是文件名过长
-                logger.warning(f"获取 {path.path} 本地路径失败：{e}")
-                return False
-
-            self.processed_local_paths.add(local_path)
-
-            if not self.overwrite and local_path.exists():
-                if path.suffix in self.download_exts:
-                    local_path_stat = local_path.stat()
-                    if local_path_stat.st_mtime < path.modified_timestamp:
-                        logger.debug(
-                            f"文件 {local_path.name} 已过期，需要重新处理 {path.path}"
-                        )
-                        return True
-                    if local_path_stat.st_size < path.size:
-                        logger.debug(
-                            f"文件 {local_path.name} 大小不一致，可能是本地文件损坏，需要重新处理 {path.path}"
-                        )
-                        return True
-                logger.debug(f"文件 {local_path.name} 已存在，跳过处理 {path.path}")
-                return False
-
-            return True
-
-        if self.mode not in ["AlistURL", "RawURL", "AlistPath"]:
-            logger.warning(
-                f"Alist2Strm 的模式 {self.mode} 不存在，已设置为默认模式 AlistURL"
-            )
-            self.mode = "AlistURL"
-
-        if self.mode == "RawURL":
-            is_detail = True
-        else:
+        # 获取 Alist 中的所有文件
+        all_paths_from_alist: List[AlistPath] = []
+        try:
             is_detail = False
+            if self.sync_server:
+                is_detail = True
 
-        self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
+            self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
-        async with self.__max_workers, TaskGroup() as tg:
-            async for path in self.client.iter_path(
-                dir_path=self.source_dir,
-                wait_time=self.wait_time,
-                is_detail=is_detail,
-                filter=filter,
-            ):
-                tg.create_task(self.__file_processer(path))
+            async with self.__max_workers, TaskGroup() as tg:
+                async for path in self.client.iter_path(
+                    dir_path=self.source_dir,
+                    wait_time=self.wait_time,
+                    is_detail=is_detail,
+                    # 使用默认的 filter 函数 (lambda x: True)，不要传递 None
+                ):
+                    tg.create_task(self.__file_processer(path))
+
+        except Exception as e:
+            logger.error(f"Failed to get all paths from Alist: {e}")
 
         if self.sync_server:
             await self.__cleanup_local_files()
-            logger.info("清理过期的 .strm 文件完成")
-        logger.info("Alist2Strm 处理完成")
 
     async def __file_processer(self, path: AlistPath) -> None:
         """
-        异步保存文件至本地
+        处理单个文件
 
         :param path: AlistPath 对象
         """
-        local_path = self.__get_local_path(path)
+        try:
+            # 如果是目录，则跳过
+            if path.is_dir:
+                return
 
-        if self.mode == "AlistURL":
-            content = path.download_url
-        elif self.mode == "RawURL":
-            content = path.raw_url
-        elif self.mode == "AlistPath":
-            content = path.path
-        else:
-            raise ValueError(f"AlistStrm 未知的模式 {self.mode}")
+            # 如果不是视频文件，则跳过
+            if path.suffix.lower() not in VIDEO_EXTS:
+                return
 
-        await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
+            # 获取本地文件路径
+            local_path = self.__get_local_path(path)
 
-        logger.debug(f"开始处理 {local_path}")
-        if local_path.suffix == ".strm":
-            async with async_open(local_path, mode="w", encoding="utf-8") as file:
-                await file.write(content)
-            logger.info(f"{local_path.name} 创建成功")
-        else:
-            async with self.__max_downloaders:
-                await RequestUtils.download(path.download_url, local_path)
-                logger.info(f"{local_path.name} 下载成功")
+            # 确保父目录存在
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # 记录处理过的本地文件路径
+            self.processed_local_paths.add(local_path)
+
+            # 如果本地文件已存在，则跳过
+            if local_path.exists():
+                return
+
+            # 写入 .strm 文件
+            async with async_open(local_path, "w") as f:
+                await f.write(path.download_url)
+                logger.info(f"Created .strm file: {local_path}")
+        except Exception as e:
+            logger.error(f"Failed to process file {path.path}: {e}")
+
+    async def download_file(self, path: AlistPath, local_path: Path | None = None) -> None:
+        """
+        下载文件
+
+        :param path: AlistPath 对象
+        :param local_path: 本地文件路径，如果为 None，则使用默认路径
+        """
+        if local_path is None:
+            local_path = self.__get_local_path(path)
+
+        # 确保父目录存在
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # 如果本地文件已存在，则跳过
+        if local_path.exists():
+            return
+
+        # 下载文件
+        try:
+            async with self.client.session.get(path.download_url) as resp:
+                if resp.status == 200:
+                    async with async_open(local_path, "wb") as f:
+                        await f.write(await resp.read())
+                    logger.info(f"Downloaded file: {local_path}")
+                else:
+                    logger.error(f"Failed to download file {path.download_url} to {local_path}: {resp.status}")
+        except Exception as e:
+            logger.error(f"Failed to download file {path.download_url} to {local_path}: {e}")
 
     def __get_local_path(self, path: AlistPath) -> Path:
         """
@@ -200,9 +157,37 @@ class Alist2Strm:
         :param path: AlistPath 对象
         :return: 本地文件路径
         """
+        # 检查是否是 BDMV 结构中的 m2ts 文件
+        is_bdmv_m2ts = False
+        if path.suffix.lower() == ".m2ts" and "/BDMV/STREAM/" in path.path:
+            is_bdmv_m2ts = True
+            
         if self.flatten_mode:
-            local_path = self.target_dir / path.name
+            # 扁平模式下，所有文件都直接放在目标目录下
+            local_path_name = path.name
+            local_path = self.target_dir / local_path_name
         else:
+            # 非扁平模式下，需要特殊处理 BDMV 中的主 m2ts 文件
+            if is_bdmv_m2ts:
+                # 对于 BDMV 中的 m2ts 文件，提取电影目录名称
+                # 例如：/movies/海边的异邦人 (2020)/BDMV/STREAM/00002.m2ts
+                # 我们需要提取 "海边的异邦人 (2020)" 作为文件名
+                
+                # 先获取相对路径
+                relative_path_str = path.path.replace(self.source_dir, "", 1)
+                if relative_path_str.startswith("/"):
+                    relative_path_str = relative_path_str[1:]
+                
+                # 分割路径，获取电影目录名称
+                path_parts = relative_path_str.split("/")
+                if len(path_parts) >= 4:  # 至少应该有 [电影名, BDMV, STREAM, 文件名]
+                    movie_dir_name = path_parts[0]
+                    # 使用电影目录名称作为文件名
+                    local_path = self.target_dir / movie_dir_name / f"{movie_dir_name}.strm"
+                    logger.info(f"BDMV m2ts file {path.path} will be flattened to {local_path}")
+                    return local_path
+            
+            # 非 BDMV m2ts 文件或 BDMV 结构不完整，使用原有逻辑
             relative_path = path.path.replace(self.source_dir, "", 1)
             if relative_path.startswith("/"):
                 relative_path = relative_path[1:]
@@ -218,26 +203,28 @@ class Alist2Strm:
         删除服务器中已删除的本地的 .strm 文件及其关联文件
         如果文件后缀在 sync_ignore 中，则不会被删除
         """
-        logger.info("开始清理本地文件")
+        # 获取本地所有的 .strm 文件
+        local_strm_files = set()
+        for strm_file in self.target_dir.glob("**/*.strm"):
+            local_strm_files.add(strm_file)
 
-        if self.flatten_mode:
-            all_local_files = [f for f in self.target_dir.iterdir() if f.is_file()]
-        else:
-            all_local_files = [f for f in self.target_dir.rglob("*") if f.is_file()]
+        # 计算需要删除的文件
+        files_to_delete = local_strm_files - self.processed_local_paths
 
-        files_to_delete = set(all_local_files) - self.processed_local_paths
+        # 如果有 sync_ignore，则过滤掉不需要删除的文件
+        if self.sync_ignore:
+            ignore_pattern = re_compile(self.sync_ignore)
+            files_to_delete = {
+                file_path
+                for file_path in files_to_delete
+                if not ignore_pattern.search(str(file_path))
+            }
 
+        # 删除文件
         for file_path in files_to_delete:
-            # 检查文件是否匹配忽略正则表达式
-            if self.sync_ignore_pattern and self.sync_ignore_pattern.search(
-                file_path.name
-            ):
-                logger.debug(f"文件 {file_path.name} 在忽略列表中，跳过删除")
-                continue
-
             try:
                 if file_path.exists():
-                    await to_thread(file_path.unlink)
+                    file_path.unlink()
                     logger.info(f"删除文件：{file_path}")
 
                     # 检查并删除空目录
