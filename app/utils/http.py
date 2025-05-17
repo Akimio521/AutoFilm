@@ -10,9 +10,9 @@ from weakref import WeakSet
 from httpx import AsyncClient, Client, Response, TimeoutException
 from aiofile import async_open
 
-from app.core import settings, logger
-from app.utils.url import URLUtils
-from app.utils.retry import Retry
+from ..core import settings, logger
+from .url import URLUtils
+from .retry import Retry
 
 
 class HTTPClient:

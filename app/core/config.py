@@ -2,7 +2,7 @@ from pathlib import Path
 from yaml import safe_load
 from typing import Any
 
-from app.version import APP_VERSION
+from ..version import APP_VERSION
 
 
 class SettingManager:
