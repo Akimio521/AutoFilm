@@ -6,7 +6,7 @@ from feedparser import parse  # type:ignore
 
 from app.core import logger
 from app.utils import RequestUtils, URLUtils
-from app.utils import AlistUrlTreeUtils
+from app.utils import AlistUtils
 from app.modules.alist import AlistClient
 
 VIDEO_MINETYPE: Final = frozenset(("video/mp4", "video/x-matroska"))
@@ -53,6 +53,7 @@ class Ani2Alist:
         :param origin: Alist 服务器地址，默认为 "http://localhost:5244"
         :param username: Alist 用户名，默认为空
         :param password: Alist 密码，默认为空
+        :param token: Alist Token，默认为空
         :param target_dir: 挂载到 Alist 服务器上目录，默认为 "/Anime"
         :param rss_update: 使用 RSS 追更最新番剧，默认为 True
         :param year: 动画年份，默认为空
@@ -62,33 +63,13 @@ class Ani2Alist:
         :param key_word: 自定义关键字，默认为空
         """
 
-        def is_time_valid(year: int, month: int) -> bool:
-            """
-            判断时间是否合理
-            """
-            current_date = datetime.now()
-            if (year, month) == (2019, 4):
-                logger.warning("2019-4 季度暂无数据")
-                return False
-            elif (year, month) < (2019, 1):
-                logger.warning("ANI Open 项目仅支持2019年1月及其之后的数据")
-                return False
-            elif (year, month) > (current_date.year, current_date.month):
-                logger.warning("传入的年月晚于当前时间")
-                return False
-            else:
-                return True
-
-        self.__url = url
-        self.__username = username
-        self.__password = password
-        self.__token = token
+        self.client = AlistClient(url, username, password, token)
         self.__target_dir = "/" + target_dir.strip("/")
 
-        self.__year = None
-        self.__month = None
-        self.__key_word = None
-        self.__rss_update = rss_update
+        self.__year: int | None = None
+        self.__month: int | None = None
+        self.__key_word: str | None = None
+        self.__rss_update: bool = rss_update
 
         if rss_update:
             logger.debug("使用 RSS 追更最新番剧")
@@ -96,39 +77,23 @@ class Ani2Alist:
             logger.debug(f"使用自定义关键字：{key_word}")
             self.__key_word = key_word
         elif year and month:
-            if is_time_valid(year, month):
-                logger.debug(f"传入季度：{year}-{month}")
-                self.__year = year
-                self.__month = month
+            self.__year = year
+            self.__month = month
         elif year or month:
             logger.warning("未传入完整时间参数，默认使用当前季度")
         else:
-            logger.debug("未传入时间参数，默认使用当前季度")
+            logger.info("未传入时间参数，默认使用当前季度")
 
         self.__src_domain = src_domain.strip()
         self.__rss_domain = rss_domain.strip()
 
     async def run(self) -> None:
-        def merge_dicts(target_dict: dict, source_dict: dict) -> dict:
-            for key, value in source_dict.items():
-                if key not in target_dict:
-                    target_dict[key] = value
-                elif isinstance(target_dict[key], dict) and isinstance(value, dict):
-                    merge_dicts(target_dict[key], value)
-                else:
-                    target_dict[key] = value
-            return target_dict
+        is_valid, error_msg = self.__is_valid()
+        if not is_valid:
+            logger.error(error_msg)
+            return
 
-        folder = self.__get_folder
-        logger.info(f"开始更新 ANI Open {folder} 番剧")
-
-        if self.__rss_update:
-            anime_dict = await self.get_rss_anime_dict
-        else:
-            anime_dict = await self.get_season_anime_list
-
-        client = AlistClient(self.__url, self.__username, self.__password, self.__token)
-        storage = await client.get_storage_by_mount_path(
+        storage = await self.client.get_storage_by_mount_path(
             mount_path=self.__target_dir,
             create=True,
             driver="UrlTree",
@@ -138,51 +103,78 @@ class Ani2Alist:
             return
 
         addition_dict = storage.addition2dict
-        url_dict = AlistUrlTreeUtils.structure2dict(
-            addition_dict.get("url_structure", {})
-        )
+        url_dict = AlistUtils.structure2dict(addition_dict.get("url_structure", ""))
 
-        if url_dict.get(folder) is None:
-            url_dict[folder] = {}
+        await self.__update_url_dicts(url_dict)
 
-        url_dict[folder] = merge_dicts(url_dict[folder], anime_dict)
-
-        addition_dict["url_structure"] = AlistUrlTreeUtils.dict2structure(url_dict)
+        addition_dict["url_structure"] = AlistUtils.dict2structure(url_dict)
         storage.set_addition_by_dict(addition_dict)
 
-        await client.sync_api_admin_storage_update(storage)
-        logger.info(f"ANI Open {folder} 更新完成")
+        await self.client.async_api_admin_storage_update(storage)
 
-    @property
-    def __get_folder(self) -> str:
+    async def __update_url_dicts(self, url_dict: dict):
         """
-        根据 self.__year 和 self.__month 以及关键字 self.__key_word 返回文件夹名
+        更新 URL 字典
         """
-        if self.__key_word:
-            return self.__key_word
-
-        current_date = datetime.now()
-        if self.__year and self.__month:
-            year = self.__year
-            month = self.__month
+        if self.__rss_update:
+            await self.update_rss_anime_dict(url_dict)
         else:
-            year = current_date.year
-            month = current_date.month
+            await self.update_season_anime_dict(url_dict)
 
-        for _month in range(month, 0, -1):
-            if _month in ANI_SEASION:
-                return f"{year}-{_month}"
-
-    @property
-    async def get_season_anime_list(self) -> dict:
+    def __is_valid(self) -> tuple[bool, str]:
         """
-        获取指定季度的动画列表
+        判断参数是否合理
+        :return: (是否合理, 错误信息)
         """
-        folder = self.__get_folder
-        logger.debug(f"开始获取 ANI Open {folder} 动画列表")
-        url = URLUtils.encode(f"https://{self.__src_domain}/{folder}/")
+        if self.__rss_update:
+            return True, ""
+        if self.__year is None and self.__month is None:
+            return True, ""
+        current_date = datetime.now()
+        if (self.__year, self.__month) == (2019, 4):
+            return False, "2019-4季度暂无数据"
+        elif (self.__year, self.__month) < (2019, 1):
+            return False, "ANI Open 项目仅支持2019年1月及其之后的数据"
+        elif (self.__year, self.__month) > (current_date.year, current_date.month):
+            return False, "传入的年月晚于当前时间"
+        else:
+            return True, ""
 
-        async def parse_data(_url: str = url) -> dict:
+    async def update_season_anime_dict(self, url_dict: dict):
+        """
+        更新指定季度/关键字的动画列表
+        """
+
+        def get_key() -> str:
+            """
+            根据 self.__year 和 self.__month 以及关键字 self.__key_word 返回关键字
+            """
+            if self.__key_word:
+                return self.__key_word
+
+            if self.__year and self.__month:
+                year = self.__year
+                month = self.__month
+            else:
+                current_date = datetime.now()
+                year = current_date.year
+                month = current_date.month
+
+            for _month in range(month, 0, -1):
+                if _month in ANI_SEASION:
+                    return f"{year}-{_month}"
+
+        def __parse2timestamp(time_str: str) -> int:
+            """
+            将 RSS 订阅中时间字符串转换为时间戳
+            """
+            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+            return int(dt.timestamp())
+
+        async def update_data(_url: str, _url_dict: dict):
+            """
+            用于递归更新解析数据
+            """
             logger.debug(f"请求地址：{_url}")
             _resp = await RequestUtils.post(_url)
             if _resp.status_code != 200:
@@ -190,38 +182,69 @@ class Ani2Alist:
 
             _result = _resp.json()
 
-            _anime_dict = {}
             for file in _result["files"]:
                 mimeType: str = file["mimeType"]
                 name: str = file["name"]
                 quoted_name = URLUtils.encode(name)
 
                 if mimeType in FILE_MINETYPE:
-                    size: int = file["size"]
+                    size: str = file["size"]
+                    modifed_time_stamp: str = str(
+                        __parse2timestamp(file["modifiedTime"])
+                    )
                     __url = _url + quoted_name + "?d=true"
                     logger.debug(
                         f"获取文件：{name}，文件大小：{int(size) / 1024 / 1024:.2f}MB，播放地址：{__url}"
                     )
-                    _anime_dict[name] = [
+                    _url_dict[name] = [
                         size,
+                        modifed_time_stamp,
                         __url,
                     ]
                 elif mimeType == "application/vnd.google-apps.folder":
                     logger.debug(f"获取目录：{name}")
-                    __url = _url + quoted_name + "/"
-                    _anime_dict[name] = await parse_data(__url)
+                    if name not in _url_dict:
+                        _url_dict[name] = {}
+                    await update_data(_url + quoted_name + "/", _url_dict[name])
                 else:
-                    raise RuntimeError(f"无法识别类型：{mimeType}，文件详情：\n{file}")
-            return _anime_dict
+                    logger.warning(f"无法识别类型：{mimeType}，文件详情：{file}")
 
-        logger.debug(f"获取 ANI Open {folder} 动画列表成功")
-        return await parse_data()
+        key = get_key()
+        if key not in url_dict:
+            url_dict[key] = {}
+        await update_data(f"https://{self.__src_domain}/{key}/", url_dict[key])
+        return
 
-    @property
-    async def get_rss_anime_dict(self) -> dict:
+    async def update_rss_anime_dict(self, url_dict: dict):
         """
-        获取 RSS 动画列表
+        更新 RSS 动画列表
         """
+
+        def __parse2timestamp(time_str: str) -> int:
+            """
+            将 RSS 订阅中时间字符串转换为时间戳
+            """
+            dt = datetime.strptime(time_str, "%a, %d %b %Y %H:%M:%S %Z")
+            return int(dt.timestamp())
+
+        def handle_recursive(url_dict: dict, entry) -> None:
+            """
+            处理 RSS 数据，解析 URL 多级目录
+            """
+            parents = URLUtils.decode(entry.link).split("/")[3:]  # 拆分多级目录
+            current_dict = url_dict
+            for index in range(len(parents)):
+                name = parents[index]
+                if index == len(parents) - 1:
+                    current_dict[entry.title] = [
+                        str(convert_size_to_bytes(entry.anime_size)),
+                        str(__parse2timestamp(entry.published)),
+                        entry.link,
+                    ]
+                else:
+                    if name not in current_dict:
+                        current_dict[name] = {}
+                    current_dict = current_dict[name]
 
         def convert_size_to_bytes(size_str: str) -> int:
             """
@@ -231,16 +254,11 @@ class Ani2Alist:
             number, unit = [string.strip() for string in size_str.split()]
             return int(float(number) * units[unit])
 
-        logger.debug(f"开始获取 ANI Open RSS 动画列表")
-        url = f"https://{self.__rss_domain}/ani-download.xml"
-
-        resp = await RequestUtils.get(url)
+        resp = await RequestUtils.get(f"https://{self.__rss_domain}/ani-download.xml")
         if resp.status_code != 200:
             raise Exception(f"请求发送失败，状态码：{resp.status_code}")
-        # print(type(resp.text()), "\n", resp.text())
         feeds = parse(resp.text)
 
-        rss_anime_dict = {}
         for entry in feeds.entries:
             """
             print(type(entry))
@@ -280,10 +298,4 @@ class Ani2Alist:
                 "anime_size": "473.0 MB",
             }
             """
-            rss_anime_dict[entry.title] = [
-                convert_size_to_bytes(entry.anime_size),
-                entry.link,
-            ]
-
-        logger.debug(f"获取 RSS 动画列表成功")
-        return rss_anime_dict
+            handle_recursive(url_dict, entry)

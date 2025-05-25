@@ -1,14 +1,13 @@
 from asyncio import sleep as async_sleep
-from typing import TypeVar, Callable, Any
+from typing import Type, Callable, ParamSpec, TypeVar, Optional, Awaitable
 from time import sleep
 from functools import wraps
-from collections.abc import Coroutine
 
 from app.core.log import logger
 from app.utils.singleton import Singleton
 
-T1 = TypeVar("T1")
-T2 = TypeVar("T2")
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class Retry(metaclass=Singleton):
@@ -16,22 +15,21 @@ class Retry(metaclass=Singleton):
     重试装饰器
     """
 
-    TRIES = 3  # 默认最大重试次数
-    DELAY = 3  # 默认延迟时间
-    BACKOFF = 1  # 默认延迟倍数
+    TRIES: int = 3  # 默认最大重试次数
+    DELAY: int = 3  # 默认延迟时间
+    BACKOFF: int = 1  # 默认延迟倍数
 
-    WARNING_MSG = "{}，{}秒后重试 ..."
-    ERROR_MSG = "{}，超出最大重试次数！"
+    WARNING_MSG: str = "{}，{}秒后重试 ..."
+    ERROR_MSG: str = "{}，超出最大重试次数！"
 
     @classmethod
     def sync_retry(
         cls,
-        exception: Exception,
+        exception: Type[Exception],
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
-        ret: T2 = None,
-    ) -> Callable[..., Callable[..., T1 | T2]]:
+    ) -> Callable[[Callable[P, R]], Callable[P, Optional[R]]]:
         """
         同步重试装饰器
 
@@ -42,10 +40,9 @@ class Retry(metaclass=Singleton):
         :param ret: 默认返回
         """
 
-        def inner(func: Callable[..., T1]) -> Callable[..., T1 | T2]:
-
+        def inner(func: Callable[P, R]) -> Callable[P, Optional[R]]:
             @wraps(func)
-            def wrapper(*args, **kwargs) -> T1 | T2:
+            def wrapper(*args, **kwargs) -> Optional[R]:
                 remaining_retries = tries
                 while remaining_retries > 0:
                     try:
@@ -58,7 +55,7 @@ class Retry(metaclass=Singleton):
                             sleep(_delay)
                         else:
                             logger.error(cls.ERROR_MSG.format(e))
-                            return ret
+                            return None
 
             return wrapper
 
@@ -67,12 +64,11 @@ class Retry(metaclass=Singleton):
     @classmethod
     def async_retry(
         cls,
-        exception: Exception,
+        exception: Type[Exception],
         tries: int = TRIES,
         delay: int = DELAY,
         backoff: int = BACKOFF,
-        ret: T1 = None,
-    ) -> Callable[..., Callable[..., Coroutine[Any, Any, T1 | T2]]]:
+    ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[Optional[R]]]]:
         """
         异步重试装饰器
 
@@ -80,15 +76,13 @@ class Retry(metaclass=Singleton):
         :param tries: 最大重试次数
         :param delay: 延迟时间
         :param backoff: 延迟倍数
-        :param ret: 默认返回
         """
 
         def inner(
-            func: Callable[..., T1]
-        ) -> Callable[..., Coroutine[Any, Any, T1 | T2]]:
-
+            func: Callable[P, Awaitable[R]],
+        ) -> Callable[P, Awaitable[Optional[R]]]:
             @wraps(func)
-            async def wrapper(*args, **kwargs) -> T1 | T2:
+            async def wrapper(*args, **kwargs) -> Optional[R]:
                 remaining_retries = tries
                 while remaining_retries > 0:
                     try:
@@ -101,7 +95,7 @@ class Retry(metaclass=Singleton):
                             await async_sleep(_delay)
                         else:
                             logger.error(cls.ERROR_MSG.format(e))
-                            return ret
+                            return None
 
             return wrapper
 

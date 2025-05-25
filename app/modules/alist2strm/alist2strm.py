@@ -13,7 +13,6 @@ from app.modules.alist import AlistClient, AlistPath
 
 
 class Alist2Strm:
-
     # 添加手动运行 Alist2Strm 的选项
     def run_manual(self) -> None:
         """
@@ -40,6 +39,7 @@ class Alist2Strm:
         other_ext: str = "",
         max_workers: int = 50,
         max_downloaders: int = 5,
+        wait_time: float | int = 0,
         sync_server: bool = False,
         sync_ignore: str | None = None,
         **_,
@@ -62,12 +62,11 @@ class Alist2Strm:
         :param other_ext: 自定义下载后缀，使用西文半角逗号进行分割，默认为空
         :param max_workers: 最大并发数
         :param max_downloaders: 最大同时下载
+        :param wait_time: 遍历请求间隔时间，单位为秒，默认为 0
         :param sync_ignore: 同步时忽略的文件正则表达式
         """
-        self.url = url
-        self.__username = username
-        self.__password = password
-        self.__tokenen = token
+
+        self.client = AlistClient(url, username, password, token)
         self.mode = mode
 
         self.source_dir = source_dir
@@ -93,6 +92,7 @@ class Alist2Strm:
         self.overwrite = overwrite
         self.__max_workers = Semaphore(max_workers)
         self.__max_downloaders = Semaphore(max_downloaders)
+        self.wait_time = wait_time
         self.sync_server = sync_server
 
         if sync_ignore:
@@ -117,20 +117,37 @@ class Alist2Strm:
             if path.is_dir:
                 return False
 
-            if not path.suffix.lower() in self.process_file_exts:
+            if path.suffix.lower() not in self.process_file_exts:
                 logger.debug(f"文件 {path.name} 不在处理列表中")
                 return False
 
-            local_path = self.__get_local_path(path)
+            try:
+                local_path = self.__get_local_path(path)
+            except OSError as e:  # 可能是文件名过长
+                logger.warning(f"获取 {path.path} 本地路径失败：{e}")
+                return False
+
             self.processed_local_paths.add(local_path)
 
             if not self.overwrite and local_path.exists():
+                if path.suffix in self.download_exts:
+                    local_path_stat = local_path.stat()
+                    if local_path_stat.st_mtime < path.modified_timestamp:
+                        logger.debug(
+                            f"文件 {local_path.name} 已过期，需要重新处理 {path.path}"
+                        )
+                        return True
+                    if local_path_stat.st_size < path.size:
+                        logger.debug(
+                            f"文件 {local_path.name} 大小不一致，可能是本地文件损坏，需要重新处理 {path.path}"
+                        )
+                        return True
                 logger.debug(f"文件 {local_path.name} 已存在，跳过处理 {path.path}")
                 return False
 
             return True
 
-        if not self.mode in ["AlistURL", "RawURL", "AlistPath"]:
+        if self.mode not in ["AlistURL", "RawURL", "AlistPath"]:
             logger.warning(
                 f"Alist2Strm 的模式 {self.mode} 不存在，已设置为默认模式 AlistURL"
             )
@@ -143,20 +160,19 @@ class Alist2Strm:
 
         self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
-        async with self.__max_workers:
-            async with TaskGroup() as tg:
-                client = AlistClient(
-                    self.url, self.__username, self.__password, self.__tokenen
-                )
-                async for path in client.iter_path(
-                    dir_path=self.source_dir, is_detail=is_detail, filter=filter
-                ):
-                    tg.create_task(self.__file_processer(path))
-        logger.info("Alist2Strm 处理完成")
+        async with self.__max_workers, TaskGroup() as tg:
+            async for path in self.client.iter_path(
+                dir_path=self.source_dir,
+                wait_time=self.wait_time,
+                is_detail=is_detail,
+                filter=filter,
+            ):
+                tg.create_task(self.__file_processer(path))
 
         if self.sync_server:
             await self.__cleanup_local_files()
             logger.info("清理过期的 .strm 文件完成")
+        logger.info("Alist2Strm 处理完成")
 
     async def __file_processer(self, path: AlistPath) -> None:
         """
@@ -202,10 +218,12 @@ class Alist2Strm:
                 relative_path = relative_path[1:]
             local_path = self.target_dir / relative_path
 
+        if path.suffix.lower() in VIDEO_EXTS:
         ext = path.suffix.lower()
         # 修改:当后缀在other_ext里时会被下载而不是转换为strm
         if ext in VIDEO_EXTS and ext.lstrip('.') not in self.download_exts:
             local_path = local_path.with_suffix(".strm")
+
         return local_path
 
     async def __cleanup_local_files(self) -> None:
@@ -234,5 +252,15 @@ class Alist2Strm:
                 if file_path.exists():
                     await to_thread(file_path.unlink)
                     logger.info(f"删除文件：{file_path}")
+
+                    # 检查并删除空目录
+                    parent_dir = file_path.parent
+                    while parent_dir != self.target_dir:
+                        if any(parent_dir.iterdir()):
+                            break  # 目录不为空，跳出循环
+                        else:
+                            parent_dir.rmdir()
+                            logger.info(f"删除空目录：{parent_dir}")
+                        parent_dir = parent_dir.parent
             except Exception as e:
                 logger.error(f"删除文件 {file_path} 失败：{e}")

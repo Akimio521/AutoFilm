@@ -1,4 +1,4 @@
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 
 class URLUtils:
@@ -14,6 +14,13 @@ class URLUtils:
         URL 编码
         """
         return quote(url, safe=cls.SAFE_WORD)
+
+    @staticmethod
+    def decode(strings: str) -> str:
+        """
+        URL 解码
+        """
+        return unquote(strings)
 
     @staticmethod
     def get_resolve_url(url: str) -> tuple[str, str, int]:

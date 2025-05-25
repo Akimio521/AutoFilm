@@ -79,9 +79,9 @@ def main():
                 scheduler.add_job(
                     Alist2Strm(**server).run, trigger=CronTrigger.from_crontab(cron)
                 )
-                logger.info(f'{server["id"]} 已被添加至后台任务')
+                logger.info(f"{server['id']} 已被添加至后台任务")
             else:
-                logger.warning(f'{server["id"]} 未设置 cron')
+                logger.warning(f"{server['id']} 未设置 cron")
     else:
         logger.warning("未检测到 Alist2Strm 模块配置")
 
@@ -93,9 +93,9 @@ def main():
                 scheduler.add_job(
                     Ani2Alist(**server).run, trigger=CronTrigger.from_crontab(cron)
                 )
-                logger.info(f'{server["id"]} 已被添加至后台任务')
+                logger.info(f"{server['id']} 已被添加至后台任务")
             else:
-                logger.warning(f'{server["id"]} 未设置 cron')
+                logger.warning(f"{server['id']} 未设置 cron")
     else:
         logger.warning("未检测到 Ani2Alist 模块配置")
 

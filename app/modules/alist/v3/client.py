@@ -1,3 +1,4 @@
+from asyncio import sleep
 from typing import Callable, AsyncGenerator
 from time import time
 
@@ -17,8 +18,8 @@ class AlistClient(metaclass=Multiton):
     def __init__(
         self,
         url: str,
-        username: str,
-        password: str,
+        username: str = "",
+        password: str = "",
         token: str = "",
     ) -> None:
         """
@@ -29,6 +30,9 @@ class AlistClient(metaclass=Multiton):
         :param password: Alist 密码
         :param token: Alist 永久令牌
         """
+
+        if (username == "" or password == "") and token == "":
+            raise ValueError("用户名及密码为空或令牌 Token 为空")
 
         self.__client = RequestUtils.get_client()
         self.__token = {
@@ -146,7 +150,7 @@ class AlistClient(metaclass=Multiton):
         result = resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f'更新令牌，错误信息：{result["message"]}')
+            raise RuntimeError(f"更新令牌，错误信息：{result['message']}")
 
         logger.debug(f"{self.username} 更新令牌成功")
         return result["data"]["token"]
@@ -166,12 +170,12 @@ class AlistClient(metaclass=Multiton):
         result = resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f'获取用户信息失败，错误信息：{result["message"]}')
+            raise RuntimeError(f"获取用户信息失败，错误信息：{result['message']}")
 
         try:
             self.base_path: str = result["data"]["base_path"]
             self.id: int = result["data"]["id"]
-        except:
+        except Exception:
             raise RuntimeError("获取用户信息失败")
 
     async def async_api_fs_list(self, dir_path: str) -> list[AlistPath]:
@@ -202,7 +206,7 @@ class AlistClient(metaclass=Multiton):
 
         if result["code"] != 200:
             raise RuntimeError(
-                f'获取目录 {dir_path} 的文件列表失败，错误信息：{result["message"]}'
+                f"获取目录 {dir_path} 的文件列表失败，错误信息：{result['message']}"
             )
 
         logger.debug(f"获取目录 {dir_path} 的文件列表成功")
@@ -244,7 +248,7 @@ class AlistClient(metaclass=Multiton):
 
         if result["code"] != 200:
             raise RuntimeError(
-                f'获取路径 {path} 详细信息失败，详细信息：{result["message"]}'
+                f"获取路径 {path} 详细信息失败，详细信息：{result['message']}"
             )
 
         logger.debug(f"获取路径 {path} 详细信息成功")
@@ -271,7 +275,7 @@ class AlistClient(metaclass=Multiton):
         result = resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f'获取存储器列表失败，详细信息：{result["message"]}')
+            raise RuntimeError(f"获取存储器列表失败，详细信息：{result['message']}")
 
         logger.debug("获取存储器列表成功")
         return [AlistStorage(**storage) for storage in result["data"]["content"]]
@@ -295,7 +299,7 @@ class AlistClient(metaclass=Multiton):
             "driver": storage.driver,
             "order_by": storage.order_by,
             "order_direction": storage.order_direction,
-            "addition": storage.raw_addition,
+            "addition": storage.addition,
         }
 
         resp = await self.__post(self.url + "/api/admin/storage/create", json=json)
@@ -304,12 +308,12 @@ class AlistClient(metaclass=Multiton):
         result = resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f'创建存储失败，详细信息：{result["message"]}')
+            raise RuntimeError(f"创建存储失败，详细信息：{result['message']}")
 
         logger.debug("创建存储成功")
         return
 
-    async def sync_api_admin_storage_update(self, storage: AlistStorage) -> None:
+    async def async_api_admin_storage_update(self, storage: AlistStorage) -> None:
         """
         更新存储，需要管理员用户权限
 
@@ -343,7 +347,7 @@ class AlistClient(metaclass=Multiton):
         result = resp.json()
 
         if result["code"] != 200:
-            raise RuntimeError(f'更新存储器失败，详细信息：{result["message"]}')
+            raise RuntimeError(f"更新存储器失败，详细信息：{result['message']}")
 
         logger.debug(
             f"更新存储器成功，存储器ID：{storage.id}，挂载路径：{storage.mount_path}"
@@ -353,6 +357,7 @@ class AlistClient(metaclass=Multiton):
     async def iter_path(
         self,
         dir_path: str,
+        wait_time: float | int,
         is_detail: bool = True,
         filter: Callable[[AlistPath], bool] = lambda x: True,
     ) -> AsyncGenerator[AlistPath, None]:
@@ -361,21 +366,26 @@ class AlistClient(metaclass=Multiton):
         返回目录及其子目录的所有文件和目录的 AlistPath 对象
 
         :param dir_path: 目录路径
+        :param wait_time: 每轮遍历等待时间（单位秒）,
         :param is_detail：是否获取详细信息（raw_url）
         :param filter: 匿名函数过滤器（默认不启用）
         :return: AlistPath 对象生成器
         """
 
         for path in await self.async_api_fs_list(dir_path):
+            await sleep(wait_time)
             if path.is_dir:
                 async for child_path in self.iter_path(
-                    dir_path=path.path, is_detail=is_detail, filter=filter
+                    dir_path=path.path,
+                    wait_time=wait_time,
+                    is_detail=is_detail,
+                    filter=filter,
                 ):
                     yield child_path
 
             if filter(path):
                 if is_detail:
-                    yield await self.async_api_fs_get(path)
+                    yield await self.async_api_fs_get(path.path)
                 else:
                     yield path
 

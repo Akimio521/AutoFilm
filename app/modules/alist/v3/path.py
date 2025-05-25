@@ -1,5 +1,6 @@
 from re import sub
 from typing import Any
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -31,14 +32,14 @@ class AlistPath(BaseModel):
     related: Any = None  # 相关信息
 
     @property
-    def abs_path(self):
+    def abs_path(self) -> str:
         """
         文件/目录在 Alist 服务器上的绝对路径
         """
         return self.base_path.rstrip("/") + self.path
 
     @property
-    def download_url(self):
+    def download_url(self) -> str:
         """
         文件下载地址
         """
@@ -50,14 +51,14 @@ class AlistPath(BaseModel):
         return URLUtils.encode(url)
 
     @property
-    def proxy_download_url(self):
+    def proxy_download_url(self) -> str:
         """
         Alist代理下载地址
         """
         return sub(r"/d/", "/p/", self.download_url, 1)
 
     @property
-    def suffix(self):
+    def suffix(self) -> str:
         """
         文件后缀
         """
@@ -65,6 +66,27 @@ class AlistPath(BaseModel):
             return ""
         else:
             return "." + self.name.split(".")[-1]
+
+    def __parse_timestamp(self, time_str: str) -> float:
+        """
+        解析时间字符串得到时间的时间戳
+        """
+        dt = datetime.fromisoformat(time_str)
+        return dt.timestamp()
+
+    @property
+    def modified_timestamp(self) -> float:
+        """
+        获得修改时间的时间戳
+        """
+        return self.__parse_timestamp(self.modified)
+
+    @property
+    def created_timestamp(self) -> float:
+        """
+        获得创建时间的时间戳
+        """
+        return self.__parse_timestamp(self.created)
 
 
 if __name__ == "__main__":
