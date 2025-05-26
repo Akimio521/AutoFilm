@@ -87,39 +87,3 @@ class AlistPath(BaseModel):
         获得创建时间的时间戳
         """
         return self.__parse_timestamp(self.created)
-
-
-if __name__ == "__main__":
-    result = {
-        "code": 200,
-        "message": "success",
-        "data": {
-            "content": [
-                {
-                    "name": "Alist V3.md",
-                    "size": 1592,
-                    "is_dir": False,
-                    "modified": "2024-05-17T13:47:55.4174917+08:00",
-                    "created": "2024-05-17T13:47:47.5725906+08:00",
-                    "sign": "",
-                    "thumb": "",
-                    "type": 4,
-                    "hashinfo": "null",
-                    "hash_info": None,
-                }
-            ],
-            "total": 1,
-            "readme": "",
-            "header": "",
-            "write": True,
-            "provider": "Local",
-        },
-    }
-    for item in result["data"]["content"]:
-        path = AlistPath(
-            _server="https://alist.nn.ci",
-            _base_path="/",
-            _path="/",
-            **item,
-        )
-        print(path)
