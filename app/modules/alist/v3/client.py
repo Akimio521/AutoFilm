@@ -215,9 +215,9 @@ class AlistClient(metaclass=Multiton):
             return []
         return [
             AlistPath(
-                server_url=self.url,
-                base_path=self.base_path,
-                path=dir_path + "/" + alist_path["name"],
+                _server=self.url,
+                _base_path=self.base_path,
+                _path=dir_path + "/" + alist_path["name"],
                 **alist_path,
             )
             for alist_path in result["data"]["content"]
@@ -253,9 +253,9 @@ class AlistClient(metaclass=Multiton):
 
         logger.debug(f"获取路径 {path} 详细信息成功")
         return AlistPath(
-            server_url=self.url,
-            base_path=self.base_path,
-            path=path,
+            _server=self.url,
+            _base_path=self.base_path,
+            _path=path,
             **result["data"],
         )
 
