@@ -1,3 +1,4 @@
+from asyncio import get_event_loop
 from typing import Final
 from datetime import datetime
 
@@ -17,6 +18,16 @@ ANI_SEASION: Final = frozenset((1, 4, 7, 10))
 
 
 class Ani2Alist:
+
+    # 添加手动运行 Ani2Alist 的选项
+    def run_manual(self) -> None:
+        """
+        手动运行 Ani2Alist 任务
+        """
+        logger.info(f"手动启动 Ani2Alist 任务")
+        loop = get_event_loop()
+        loop.run_until_complete(self.run())
+
     """
     将 ANI Open 项目的视频通过地址树的方式挂载在 Alist服务器上
     """
