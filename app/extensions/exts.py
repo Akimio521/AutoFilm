@@ -10,7 +10,7 @@ VIDEO_EXTS: Final = frozenset(
         ".ts",
         ".rmvb",
         ".webm",
-        "wmv",
+        ".wmv",
         ".mpg",
         ".m2ts",
     )
