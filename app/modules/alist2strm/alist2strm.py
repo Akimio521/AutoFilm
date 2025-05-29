@@ -94,71 +94,59 @@ class Alist2Strm:
         """
         处理主体
         """
-
-        def filter(path: AlistPath) -> bool:
+        def filter(path: AlistPath, full_path: str) -> bool:
             """
             过滤器
             根据 Alist2Strm 配置判断是否需要处理该文件
             将云盘上上的文件对应的本地文件路径保存至 self.processed_local_paths
-
             :param path: AlistPath 对象
+            :param full_path: 完整路径
             """
-
             if path.is_dir:
                 return False
-
             if path.suffix.lower() not in self.process_file_exts:
                 logger.debug(f"文件 {path.name} 不在处理列表中")
                 return False
-
             try:
-                local_path = self.__get_local_path(path)
+                local_path = self.__get_local_path(path, full_path)
             except OSError as e:  # 可能是文件名过长
-                logger.warning(f"获取 {path.path} 本地路径失败：{e}")
+                logger.warning(f"获取 {full_path} 本地路径失败：{e}")
                 return False
-
             self.processed_local_paths.add(local_path)
-
             if not self.overwrite and local_path.exists():
                 if path.suffix in self.download_exts:
                     local_path_stat = local_path.stat()
                     if local_path_stat.st_mtime < path.modified_timestamp:
                         logger.debug(
-                            f"文件 {local_path.name} 已过期，需要重新处理 {path.path}"
+                            f"文件 {local_path.name} 已过期，需要重新处理 {full_path}"
                         )
                         return True
                     if local_path_stat.st_size < path.size:
                         logger.debug(
-                            f"文件 {local_path.name} 大小不一致，可能是本地文件损坏，需要重新处理 {path.path}"
+                            f"文件 {local_path.name} 大小不一致，可能是本地文件损坏，需要重新处理 {full_path}"
                         )
                         return True
-                logger.debug(f"文件 {local_path.name} 已存在，跳过处理 {path.path}")
+                logger.debug(f"文件 {local_path.name} 已存在，跳过处理 {full_path}")
                 return False
-
             return True
-
         if self.mode not in ["AlistURL", "RawURL", "AlistPath"]:
             logger.warning(
                 f"Alist2Strm 的模式 {self.mode} 不存在，已设置为默认模式 AlistURL"
             )
             self.mode = "AlistURL"
-
         if self.mode == "RawURL":
             is_detail = True
         else:
             is_detail = False
-
         self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
-
         async with self.__max_workers, TaskGroup() as tg:
             async for path in self.client.iter_path(
                 dir_path=self.source_dir,
                 wait_time=self.wait_time,
                 is_detail=is_detail,
-                filter=filter,
+                filter=filter,  # 传递修改后的 filter 函数
             ):
                 tg.create_task(self.__file_processer(path))
-
         if self.sync_server:
             await self.__cleanup_local_files()
             logger.info("清理过期的 .strm 文件完成")
@@ -193,24 +181,22 @@ class Alist2Strm:
                 await RequestUtils.download(path.download_url, local_path)
                 logger.info(f"{local_path.name} 下载成功")
 
-    def __get_local_path(self, path: AlistPath) -> Path:
+    def __get_local_path(self, path: AlistPath, full_path: str = "") -> Path:
         """
         根据给定的 AlistPath 对象和当前的配置，计算出本地文件路径。
-
         :param path: AlistPath 对象
+        :param full_path: 完整路径
         :return: 本地文件路径
         """
         if self.flatten_mode:
             local_path = self.target_dir / path.name
         else:
-            relative_path = path.path.replace(self.source_dir, "", 1)
+            relative_path = full_path.replace(self.source_dir, "", 1) if full_path else path.name
             if relative_path.startswith("/"):
                 relative_path = relative_path[1:]
             local_path = self.target_dir / relative_path
-
         if path.suffix.lower() in VIDEO_EXTS:
             local_path = local_path.with_suffix(".strm")
-
         return local_path
 
     async def __cleanup_local_files(self) -> None:
@@ -251,3 +237,4 @@ class Alist2Strm:
                         parent_dir = parent_dir.parent
             except Exception as e:
                 logger.error(f"删除文件 {file_path} 失败：{e}")
+

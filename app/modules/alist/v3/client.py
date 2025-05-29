@@ -181,13 +181,10 @@ class AlistClient(metaclass=Multiton):
     async def async_api_fs_list(self, dir_path: str) -> list[AlistPath]:
         """
         获取文件列表
-
         :param dir_path: 目录路径
         :return: AlistPath 对象列表
         """
-
         logger.debug(f"获取目录 {dir_path} 下的文件列表")
-
         json = {
             "path": dir_path,
             "password": "",
@@ -195,29 +192,24 @@ class AlistClient(metaclass=Multiton):
             "per_page": 0,
             "refresh": False,
         }
-
         resp = await self.__post(self.url + "/api/fs/list", json=json)
         if resp.status_code != 200:
             raise RuntimeError(
                 f"获取目录 {dir_path} 的文件列表请求发送失败，状态码：{resp.status_code}"
             )
-
         result = resp.json()
-
         if result["code"] != 200:
             raise RuntimeError(
                 f"获取目录 {dir_path} 的文件列表失败，错误信息：{result['message']}"
             )
-
         logger.debug(f"获取目录 {dir_path} 的文件列表成功")
-
         if result["data"]["total"] == 0:
             return []
         return [
             AlistPath(
                 server_url=self.url,
                 base_path=self.base_path,
-                path=dir_path + "/" + alist_path["name"],
+                full_path=dir_path + "/" + alist_path["name"] if dir_path != "/" else "/" + alist_path["name"],  # 重命名为 full_path
                 **alist_path,
             )
             for alist_path in result["data"]["content"]
@@ -226,11 +218,9 @@ class AlistClient(metaclass=Multiton):
     async def async_api_fs_get(self, path: str) -> AlistPath:
         """
         获取文件/目录详细信息
-
         :param path: 文件/目录路径
         :return: AlistPath 对象
         """
-
         json = {
             "path": path,
             "password": "",
@@ -238,24 +228,21 @@ class AlistClient(metaclass=Multiton):
             "per_page": 0,
             "refresh": False,
         }
-
         resp = await self.__post(self.url + "/api/fs/get", json=json)
         if resp.status_code != 200:
             raise RuntimeError(
                 f"获取路径 {path} 详细信息请求发送失败，状态码：{resp.status_code}"
             )
         result = resp.json()
-
         if result["code"] != 200:
             raise RuntimeError(
                 f"获取路径 {path} 详细信息失败，详细信息：{result['message']}"
             )
-
         logger.debug(f"获取路径 {path} 详细信息成功")
         return AlistPath(
             server_url=self.url,
             base_path=self.base_path,
-            path=path,
+            full_path=path,  # 重命名为 full_path
             **result["data"],
         )
 
@@ -359,33 +346,31 @@ class AlistClient(metaclass=Multiton):
         dir_path: str,
         wait_time: float | int,
         is_detail: bool = True,
-        filter: Callable[[AlistPath], bool] = lambda x: True,
+        filter: Callable[[AlistPath, str], bool] = lambda x, y: True,  # 修改签名，接受两个参数
     ) -> AsyncGenerator[AlistPath, None]:
         """
         异步路径列表生成器
         返回目录及其子目录的所有文件和目录的 AlistPath 对象
-
         :param dir_path: 目录路径
         :param wait_time: 每轮遍历等待时间（单位秒）,
         :param is_detail：是否获取详细信息（raw_url）
-        :param filter: 匿名函数过滤器（默认不启用）
+        :param filter: 匿名函数过滤器，接受 AlistPath 和完整路径作为参数
         :return: AlistPath 对象生成器
         """
-
         for path in await self.async_api_fs_list(dir_path):
             await sleep(wait_time)
+            full_path = f"{dir_path}/{path.name}" if dir_path != "/" else f"/{path.name}"
             if path.is_dir:
                 async for child_path in self.iter_path(
-                    dir_path=path.path,
+                    dir_path=full_path,
                     wait_time=wait_time,
                     is_detail=is_detail,
                     filter=filter,
                 ):
                     yield child_path
-
-            if filter(path):
+            if filter(path, full_path):  # 传递完整路径给 filter 函数
                 if is_detail:
-                    yield await self.async_api_fs_get(path.path)
+                    yield await self.async_api_fs_get(full_path)
                 else:
                     yield path
 
@@ -413,3 +398,4 @@ class AlistClient(metaclass=Multiton):
             return storage
 
         return None
+

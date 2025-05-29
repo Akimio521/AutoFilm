@@ -12,6 +12,7 @@ from app.core import settings, logger
 from app.extensions import LOGO
 from app.modules import Alist2Strm, Ani2Alist
 from app.modules.telegram_bot import TelegramBot
+from datetime import datetime, timedelta
 
 
 def print_logo() -> None:
@@ -51,6 +52,7 @@ async def main() -> None:
         logger.warning("未检测到 Alist2Strm 模块配置")
 
     after_time = server.get("after_time")
+    logger.info(f"XXXX{server['id']} {after_time}已被添加至后台任务")
     if after_time != None:
         if after_time > 0:
             run_time = datetime.now() + timedelta(seconds=after_time)
