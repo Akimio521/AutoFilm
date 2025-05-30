@@ -219,7 +219,8 @@ class TestAlistPath(unittest.TestCase):
             path = AlistPath(
                 server_url="https://alist.nn.ci",
                 base_path="/",
-                **{**item, "path": "/" + item["name"]},
+                full_path="/" + item["name"],
+                **item,
             )
             self.assertIsInstance(path, AlistPath)
             self.assertEqual(path.name, item["name"])
@@ -298,7 +299,8 @@ class TestAlistPath(unittest.TestCase):
             path = AlistPath(
                 server_url="https://alist.nn.ci",
                 base_path="/",
-                **{**item, "path": "/" + item["name"]},
+                full_path="/" + item["name"],
+                **item,
             )
 
             self.assertIsInstance(path, AlistPath)
