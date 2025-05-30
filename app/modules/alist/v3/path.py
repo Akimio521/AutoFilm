@@ -15,6 +15,8 @@ class AlistPath(BaseModel):
     _server: str  # 服务器地址
     _base_path: str  # 基础路径（用于计算文件/目录在 Alist 服务器上的绝对地址）
     _path: str  # 文件/目录路径
+    id: str | None = None  # 文件/目录 ID（Alist V3.45）
+    path: str | None = None  # 文件/目录路径（Alist V3.45）
     name: str  # 文件/目录名称
     size: int  # 文件大小
     is_dir: bool  # 是否为目录
