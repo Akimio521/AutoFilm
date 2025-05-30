@@ -21,17 +21,19 @@ class AlistPath(BaseModel):
     name: str  # 文件/目录名称
     size: int  # 文件大小
     is_dir: bool  # 是否为目录
-    modified: str = ""  # 修改时间
-    created: str = ""  # 创建时间
-    sign: str = ""  # 签名
-    thumb: str = ""  # 缩略图
-    type: int = ""  # 类型
-    hashinfo: str = "null"  # 哈希信息（字符串）
+    modified: str  # 修改时间
+    created: str  # 创建时间
+    sign: str  # 签名
+    thumb: str  # 缩略图
+    type: int  # 类型
+    hashinfo: str  # 哈希信息（字符串）
     hash_info: dict | None = None  # 哈希信息（键值对）
-    raw_url: str = ""  # 原始地址
-    readme: str = ""  # Readme 地址
-    header: str = ""  # 头部信息
-    provider: str = ""  # 提供者
+
+    # g/api/fs/get 返回新增的字段（详细信息）
+    raw_url: str | None = None  # 原始地址
+    readme: str | None = None  # Readme 地址
+    header: str | None = None  # 头部信息
+    provider: str | None = None  # 提供者
     related: Any = None  # 相关信息
 
     @property
