@@ -213,12 +213,12 @@ class AlistClient(metaclass=Multiton):
 
         if result["data"]["total"] == 0:
             return []
+        
         return [
             AlistPath(
-                _server=self.url,
-                _base_path=self.base_path,
-                _path=dir_path + "/" + alist_path["name"],
-                **alist_path,
+                server_url=self.url,
+                base_path=self.base_path,
+                **{**alist_path, "path": dir_path + "/" + alist_path["name"]}, # 将 V3.45 的 path 字段替换掉
             )
             for alist_path in result["data"]["content"]
         ]
@@ -253,8 +253,8 @@ class AlistClient(metaclass=Multiton):
 
         logger.debug(f"获取路径 {path} 详细信息成功")
         return AlistPath(
-            _server=self.url,
-            _base_path=self.base_path,
+            server_url=self.url,
+            base_path=self.base_path,
             _path=path,
             **result["data"],
         )
@@ -376,7 +376,7 @@ class AlistClient(metaclass=Multiton):
             await sleep(wait_time)
             if path.is_dir:
                 async for child_path in self.iter_path(
-                    dir_path=path._path,
+                    dir_path=path.path,
                     wait_time=wait_time,
                     is_detail=is_detail,
                     filter=filter,
@@ -385,7 +385,7 @@ class AlistClient(metaclass=Multiton):
 
             if filter(path):
                 if is_detail:
-                    yield await self.async_api_fs_get(path._path)
+                    yield await self.async_api_fs_get(path.path)
                 else:
                     yield path
 

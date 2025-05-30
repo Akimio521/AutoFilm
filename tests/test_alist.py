@@ -25,7 +25,7 @@ class TestAlistPath(unittest.TestCase):
         """
         测试类清理
         """
-        print("\nAlistPath 测试完成")
+        print("\nAlistPath 测试通过")
 
     def test_alist_path_initialization_old(self) -> None:
         """
@@ -217,10 +217,9 @@ class TestAlistPath(unittest.TestCase):
 """)
         for item in resp["data"]["content"]:
             path = AlistPath(
-                _server="https://alist.nn.ci",
-                _base_path="/",
-                _path="/",
-                **item,
+                server_url="https://alist.nn.ci",
+                base_path="/",
+                **{**item, "path": "/" + item["name"]},
             )
             self.assertIsInstance(path, AlistPath)
             self.assertEqual(path.name, item["name"])
@@ -297,11 +296,11 @@ class TestAlistPath(unittest.TestCase):
             """)
         for item in resp["data"]["content"]:
             path = AlistPath(
-                _server="https://alist.nn.ci",
-                _base_path="/",
-                _path="/",
-                **item,
+                server_url="https://alist.nn.ci",
+                base_path="/",
+                **{**item, "path": "/" + item["name"]},
             )
+
             self.assertIsInstance(path, AlistPath)
             self.assertEqual(path.name, item["name"])
             self.assertEqual(path.size, item["size"])
