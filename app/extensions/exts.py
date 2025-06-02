@@ -1,7 +1,19 @@
 from typing import Final
 
 VIDEO_EXTS: Final = frozenset(
-    (".mp4", ".mkv", ".flv", ".avi", ".wmv", ".ts", ".rmvb", ".webm", "wmv", ".mpg")
+    (
+        ".mp4",
+        ".mkv",
+        ".flv",
+        ".avi",
+        ".wmv",
+        ".ts",
+        ".rmvb",
+        ".webm",
+        ".wmv",
+        ".mpg",
+        ".m2ts",
+    )
 )  # 视频文件后缀
 EXTENDED_VIDEO_EXTS: Final = VIDEO_EXTS.union((".strm",))  # 扩展视频文件后缀
 

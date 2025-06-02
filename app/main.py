@@ -1,6 +1,5 @@
-import argparse
-from asyncio import get_event_loop
-from sys import path
+import asyncio # 确保导入 asyncio
+from sys import path, argv # 导入 argv 用于命令行参数
 from os.path import dirname
 
 path.append(dirname(dirname(__file__)))
@@ -20,93 +19,129 @@ def print_logo() -> None:
     print(f" {settings.APP_NAME} {settings.APP_VERSION} ".center(65, "="))
     print("")
 
+async def run_all_alist2strm_tasks() -> None:
+    """
+    手动运行所有 Alist2Strm 任务
+    """
+    if settings.AlistServerList:
+        logger.info("开始手动执行 Alist2Strm 任务...")
+        for server_config in settings.AlistServerList:
+            task_id = server_config.get('id', '未命名任务')
+            logger.info(f"正在执行 Alist2Strm 任务: {task_id}")
+            try:
+                # Alist2Strm 的构造函数是 __init__
+                alist_task_instance = Alist2Strm(**server_config)
+                await alist_task_instance.run()
+                logger.info(f"Alist2Strm 任务 {task_id} 执行完成。")
+            except Exception as e:
+                logger.error(f"执行 Alist2Strm 任务 {task_id} 时发生错误: {e}", exc_info=True)
+        logger.info("所有 Alist2Strm 任务已处理完毕。")
+    else:
+        logger.warning("未检测到 Alist2Strm 模块配置，无任务执行。")
 
-def main():
-    # 创建命令行参数解析器
-    parser = argparse.ArgumentParser(description="AutoFilm 自动化工具")
+async def run_all_ani2alist_tasks() -> None:
+    """
+    手动运行所有 Ani2Alist 任务
+    """
+    if settings.Ani2AlistList:
+        logger.info("开始手动执行 Ani2Alist 任务...")
+        for server_config in settings.Ani2AlistList:
+            task_id = server_config.get('id', '未命名任务') # Ani2Alist 配置中可能没有 'id'，需要确认或调整
+            logger.info(f"正在执行 Ani2Alist 任务 (配置 target_dir: {server_config.get('target_dir', '未知')})")
+            try:
+                # Ani2Alist 的构造函数是 __init__
+                ani_task_instance = Ani2Alist(**server_config)
+                await ani_task_instance.run()
+                logger.info(f"Ani2Alist 任务 (配置 target_dir: {server_config.get('target_dir', '未知')}) 执行完成。")
+            except Exception as e:
+                logger.error(f"执行 Ani2Alist 任务 (配置 target_dir: {server_config.get('target_dir', '未知')}) 时发生错误: {e}", exc_info=True)
+        logger.info("所有 Ani2Alist 任务已处理完毕。")
+    else:
+        logger.warning("未检测到 Ani2Alist 模块配置，无任务执行。")
 
-    # 添加手动运行 Ani2Alist 的选项
-    parser.add_argument(
-        "-ani2alist",
-        action="store_true",
-        help="手动运行 Ani2Alist 任务"
-    )
-    # 添加手动运行 Alist2Strm 的选项
-    parser.add_argument(
-        "-alist2strm",
-        action="store_true",
-        help="手动运行 Alist2Strm 任务"
-    )
-
-    args = parser.parse_args()
-
+if __name__ == "__main__":
     print_logo()
-
     logger.info(f"AutoFilm {settings.APP_VERSION} 启动中...")
     logger.debug(f"是否开启 DEBUG 模式: {settings.DEBUG}")
 
-    # 如果命令行参数中包含手动运行 Ani2Alist
-    if args.ani2alist:
-        # 手动运行 Ani2Alist
-        logger.info("手动运行 Ani2Alist 模块...")
-        if settings.Ani2AlistList:
-            for server in settings.Ani2AlistList:
-                ani2alist = Ani2Alist(**server)
-                ani2alist.run_manual()  # 手动触发任务
-        else:
-            logger.warning("未检测到 Ani2Alist 模块配置")
-        return  # 手动运行后退出程序
+    command = "server"  # 默认为 server 模式
+    if len(argv) > 1:
+        command = argv[1].lower()
 
-    # 如果命令行参数中包含手动运行 Alist2Strm
-    if args.alist2strm:
-        logger.info("手动运行 Alist2Strm 模块...")
+    if command == "server":
+        logger.info("以服务模式启动...")
+        scheduler = AsyncIOScheduler()
         if settings.AlistServerList:
+            logger.info("检测到 Alist2Strm 模块配置，正在添加至后台任务")
             for server in settings.AlistServerList:
-                alist2strm = Alist2Strm(**server)
-                alist2strm.run_manual()  # 手动触发任务
+                cron = server.get("cron")
+                if cron:
+                    # Alist2Strm 的构造函数是 __init__
+                    alist_task_instance = Alist2Strm(**server)
+                    scheduler.add_job(
+                        alist_task_instance.run, trigger=CronTrigger.from_crontab(cron)
+                    )
+                    logger.info(f"{server['id']} 已被添加至后台任务")
+                else:
+                    logger.warning(f"{server['id']} 未设置 cron")
         else:
             logger.warning("未检测到 Alist2Strm 模块配置")
-        return  # 手动运行后退出程序
 
-    # 定时任务部分
-    scheduler = AsyncIOScheduler()
+        if settings.Ani2AlistList:
+            logger.info("检测到 Ani2Alist 模块配置，正在添加至后台任务")
+            for server in settings.Ani2AlistList:
+                cron = server.get("cron")
+                if cron:
+                    # Ani2Alist 的构造函数是 __init__
+                    ani_task_instance = Ani2Alist(**server)
+                    scheduler.add_job(
+                        ani_task_instance.run, trigger=CronTrigger.from_crontab(cron)
+                    )
+                    # Ani2Alist 配置中可能没有 'id'，使用 target_dir 代替或添加 id
+                    task_id_log = server.get('id', f"Ani2Alist (target: {server.get('target_dir')})")
+                    logger.info(f"{task_id_log} 已被添加至后台任务")
+                else:
+                    task_id_log = server.get('id', f"Ani2Alist (target: {server.get('target_dir')})")
+                    logger.warning(f"{task_id_log} 未设置 cron")
+        else:
+            logger.warning("未检测到 Ani2Alist 模块配置")
 
-    if settings.AlistServerList:
-        logger.info("检测到 Alist2Strm 模块配置，正在添加至后台任务")
-        for server in settings.AlistServerList:
-            cron = server.get("cron")
-            if cron:
-                scheduler.add_job(
-                    Alist2Strm(**server).run, trigger=CronTrigger.from_crontab(cron)
-                )
-                logger.info(f"{server['id']} 已被添加至后台任务")
-            else:
-                logger.warning(f"{server['id']} 未设置 cron")
+        if scheduler.get_jobs():
+            scheduler.start()
+            logger.info("AutoFilm 启动完成，后台任务已调度。")
+            try:
+                asyncio.get_event_loop().run_forever()
+            except (KeyboardInterrupt, SystemExit):
+                logger.info("AutoFilm 程序退出！")
+            finally:
+                scheduler.shutdown()
+        else:
+            logger.info("没有配置任何定时任务，AutoFilm 将退出。")
+
+    elif command == "alist2strm":
+        logger.info("手动执行 Alist2Strm 模式...")
+        try:
+            asyncio.run(run_all_alist2strm_tasks())
+        except (KeyboardInterrupt, SystemExit):
+            logger.info("手动 Alist2Strm 任务被中断。")
+        except Exception as e:
+            logger.error(f"手动执行 Alist2Strm 任务时发生未捕获错误: {e}", exc_info=True)
+        finally:
+            logger.info("Alist2Strm 手动任务执行结束，程序退出。")
+            # asyncio.get_event_loop().stop() # 确保事件循环停止
+
+    elif command == "ani2alist":
+        logger.info("手动执行 Ani2Alist 模式...")
+        try:
+            asyncio.run(run_all_ani2alist_tasks())
+        except (KeyboardInterrupt, SystemExit):
+            logger.info("手动 Ani2Alist 任务被中断。")
+        except Exception as e:
+            logger.error(f"手动执行 Ani2Alist 任务时发生未捕获错误: {e}", exc_info=True)
+        finally:
+            logger.info("Ani2Alist 手动任务执行结束，程序退出。")
+            # asyncio.get_event_loop().stop() # 确保事件循环停止
+    
     else:
-        logger.warning("未检测到 Alist2Strm 模块配置")
-
-    if settings.Ani2AlistList:
-        logger.info("检测到 Ani2Alist 模块配置，正在添加至后台任务")
-        for server in settings.Ani2AlistList:
-            cron = server.get("cron")
-            if cron:
-                scheduler.add_job(
-                    Ani2Alist(**server).run, trigger=CronTrigger.from_crontab(cron)
-                )
-                logger.info(f"{server['id']} 已被添加至后台任务")
-            else:
-                logger.warning(f"{server['id']} 未设置 cron")
-    else:
-        logger.warning("未检测到 Ani2Alist 模块配置")
-
-    scheduler.start()
-    logger.info("AutoFilm 启动完成")
-
-    try:
-        get_event_loop().run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("AutoFilm 程序退出！")
-
-
-if __name__ == "__main__":
-    main()
+        logger.error(f"未知的命令: {command}")
+        print(f"用法: python3 app/main.py [server|alist2strm|ani2alist]")
