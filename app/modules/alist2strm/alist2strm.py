@@ -114,7 +114,7 @@ class Alist2Strm:
             try:
                 local_path = self.__get_local_path(path)
             except OSError as e:  # 可能是文件名过长
-                logger.warning(f"获取 {path.path} 本地路径失败：{e}")
+                logger.warning(f"获取 {path.full_path} 本地路径失败：{e}")
                 return False
 
             self.processed_local_paths.add(local_path)
@@ -124,15 +124,17 @@ class Alist2Strm:
                     local_path_stat = local_path.stat()
                     if local_path_stat.st_mtime < path.modified_timestamp:
                         logger.debug(
-                            f"文件 {local_path.name} 已过期，需要重新处理 {path.path}"
+                            f"文件 {local_path.name} 已过期，需要重新处理 {path.full_path}"
                         )
                         return True
                     if local_path_stat.st_size < path.size:
                         logger.debug(
-                            f"文件 {local_path.name} 大小不一致，可能是本地文件损坏，需要重新处理 {path.path}"
+                            f"文件 {local_path.name} 大小不一致，可能是本地文件损坏，需要重新处理 {path.full_path}"
                         )
                         return True
-                logger.debug(f"文件 {local_path.name} 已存在，跳过处理 {path.path}")
+                logger.debug(
+                    f"文件 {local_path.name} 已存在，跳过处理 {path.full_path}"
+                )
                 return False
 
             return True
@@ -177,7 +179,7 @@ class Alist2Strm:
         elif self.mode == "RawURL":
             content = path.raw_url
         elif self.mode == "AlistPath":
-            content = path.path
+            content = path.full_path
         else:
             raise ValueError(f"AlistStrm 未知的模式 {self.mode}")
 
@@ -203,7 +205,7 @@ class Alist2Strm:
         if self.flatten_mode:
             local_path = self.target_dir / path.name
         else:
-            relative_path = path.path.replace(self.source_dir, "", 1)
+            relative_path = path.full_path.replace(self.source_dir, "", 1)
             if relative_path.startswith("/"):
                 relative_path = relative_path[1:]
             local_path = self.target_dir / relative_path

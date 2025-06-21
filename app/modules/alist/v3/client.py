@@ -213,11 +213,12 @@ class AlistClient(metaclass=Multiton):
 
         if result["data"]["total"] == 0:
             return []
+
         return [
             AlistPath(
                 server_url=self.url,
                 base_path=self.base_path,
-                path=dir_path + "/" + alist_path["name"],
+                full_path=dir_path + "/" + alist_path["name"],
                 **alist_path,
             )
             for alist_path in result["data"]["content"]
@@ -255,7 +256,7 @@ class AlistClient(metaclass=Multiton):
         return AlistPath(
             server_url=self.url,
             base_path=self.base_path,
-            path=path,
+            full_path=path,
             **result["data"],
         )
 
@@ -376,7 +377,7 @@ class AlistClient(metaclass=Multiton):
             await sleep(wait_time)
             if path.is_dir:
                 async for child_path in self.iter_path(
-                    dir_path=path.path,
+                    dir_path=path.full_path,
                     wait_time=wait_time,
                     is_detail=is_detail,
                     filter=filter,
@@ -385,7 +386,7 @@ class AlistClient(metaclass=Multiton):
 
             if filter(path):
                 if is_detail:
-                    yield await self.async_api_fs_get(path.path)
+                    yield await self.async_api_fs_get(path.full_path)
                 else:
                     yield path
 

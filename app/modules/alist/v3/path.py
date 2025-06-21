@@ -13,22 +13,27 @@ class AlistPath(BaseModel):
     """
 
     server_url: str  # 服务器地址
-    base_path: str  # 基础路径（用于计算文件/目录在 Alist 服务器上的绝对地址）
-    path: str  # 文件/目录路径
+    base_path: str  # 用户基础路径（用于计算文件/目录在 Alist 服务器上的绝对地址）
+    full_path: str  # 相对用户根文件/目录路径
+
+    id: str | None = None  # 文件/目录 ID（Alist V3.45）
+    path: str | None = None  # 相对存储器根目录的文件/目录路径（Alist V3.45）
     name: str  # 文件/目录名称
     size: int  # 文件大小
     is_dir: bool  # 是否为目录
-    modified: str = ""  # 修改时间
-    created: str = ""  # 创建时间
-    sign: str = ""  # 签名
-    thumb: str = ""  # 缩略图
-    type: int = ""  # 类型
-    hashinfo: str = "null"  # 哈希信息（字符串）
+    modified: str  # 修改时间
+    created: str  # 创建时间
+    sign: str  # 签名
+    thumb: str  # 缩略图
+    type: int  # 类型
+    hashinfo: str  # 哈希信息（字符串）
     hash_info: dict | None = None  # 哈希信息（键值对）
-    raw_url: str = ""  # 原始地址
-    readme: str = ""  # Readme 地址
-    header: str = ""  # 头部信息
-    provider: str = ""  # 提供者
+
+    # g/api/fs/get 返回新增的字段（详细信息）
+    raw_url: str | None = None  # 原始地址
+    readme: str | None = None  # Readme 地址
+    header: str | None = None  # 头部信息
+    provider: str | None = None  # 提供者
     related: Any = None  # 相关信息
 
     @property
@@ -36,7 +41,7 @@ class AlistPath(BaseModel):
         """
         文件/目录在 Alist 服务器上的绝对路径
         """
-        return self.base_path.rstrip("/") + self.path
+        return self.base_path.rstrip("/") + self.full_path
 
     @property
     def download_url(self) -> str:
@@ -55,7 +60,7 @@ class AlistPath(BaseModel):
         """
         Alist代理下载地址
         """
-        return sub(r"/d/", "/p/", self.download_url, 1)
+        return sub("/d/", "/p/", self.download_url, 1)
 
     @property
     def suffix(self) -> str:
@@ -87,39 +92,3 @@ class AlistPath(BaseModel):
         获得创建时间的时间戳
         """
         return self.__parse_timestamp(self.created)
-
-
-if __name__ == "__main__":
-    result = {
-        "code": 200,
-        "message": "success",
-        "data": {
-            "content": [
-                {
-                    "name": "Alist V3.md",
-                    "size": 1592,
-                    "is_dir": False,
-                    "modified": "2024-05-17T13:47:55.4174917+08:00",
-                    "created": "2024-05-17T13:47:47.5725906+08:00",
-                    "sign": "",
-                    "thumb": "",
-                    "type": 4,
-                    "hashinfo": "null",
-                    "hash_info": None,
-                }
-            ],
-            "total": 1,
-            "readme": "",
-            "header": "",
-            "write": True,
-            "provider": "Local",
-        },
-    }
-    for item in result["data"]["content"]:
-        path = AlistPath(
-            server_url="https://alist.nn.ci",
-            base_path="/",
-            path="/",
-            **item,
-        )
-        print(path)
