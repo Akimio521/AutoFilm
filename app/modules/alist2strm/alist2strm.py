@@ -2,7 +2,6 @@ from asyncio import to_thread, Semaphore, TaskGroup
 from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
-from typing import Dict, List, Tuple
 
 from aiofile import async_open
 
@@ -92,8 +91,8 @@ class Alist2Strm:
             self.sync_ignore_pattern = None
 
         # BDMV 处理相关变量
-        self.bdmv_collections: Dict[str, List[Tuple[AlistPath, int]]] = {}  # BDMV目录 -> [(文件路径, 文件大小)]
-        self.bdmv_largest_files: Dict[str, AlistPath] = {}  # BDMV目录 -> 最大文件路径
+        self.bdmv_collections: dict[str, list[tuple[AlistPath, int]]] = {}  # BDMV目录 -> [(文件路径, 文件大小)]
+        self.bdmv_largest_files: dict[str, AlistPath] = {}  # BDMV目录 -> 最大文件路径
 
     async def run(self) -> None:
         """
