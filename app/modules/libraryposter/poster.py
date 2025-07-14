@@ -173,6 +173,20 @@ class LibraryPoster:
         ROTATION_ANGLE = -18  # 旋转角度
         RIGHT_MARGIN = int(width * 0.05)  # 右边距占5%
 
+        # 根据图片大小自适应计算阴影参数
+        # 文字阴影偏移：基于字体大小和背景尺寸
+        text_shadow_offset_x = max(2, int(width * 0.002))  # 最小2px，约占宽度的0.2%
+        text_shadow_offset_y = max(2, int(height * 0.003))  # 最小2px，约占高度的0.3%
+        text_shadow_offset = (text_shadow_offset_x, text_shadow_offset_y)
+
+        # 图片阴影参数：基于图片尺寸
+        img_shadow_offset_x = max(3, int(CELL_WIDTH * 0.015))
+        img_shadow_offset_y = max(3, int(CELL_HEIGHT * 0.012))
+        img_shadow_offset = (img_shadow_offset_x, img_shadow_offset_y)
+        img_shadow_blur = max(
+            2, int(min(CELL_WIDTH, CELL_HEIGHT) * 0.012)
+        )  # 模糊半径基于图片较小边
+
         # 获取主题色并创建背景
         theme_color, text_color = PhotoUtils.get_primary_color(random.choice(images))
         background = PhotoUtils.create_gradient_background(width, height, theme_color)
@@ -214,7 +228,7 @@ class LibraryPoster:
             title_font,
             text_color,
             shadow_enabled=False,
-            shadow_offset=(2, 2),
+            shadow_offset=text_shadow_offset,
         )
 
         # 副标题在左侧中间偏下
@@ -230,7 +244,7 @@ class LibraryPoster:
             subtitle_font,
             text_color,
             shadow_enabled=True,
-            shadow_offset=(2, 2),
+            shadow_offset=text_shadow_offset,
         )
 
         # 计算右半边区域
@@ -264,10 +278,9 @@ class LibraryPoster:
                 # 2. 应用圆角
                 rounded = PhotoUtils.apply_rounded_corners(resized, CORNER_RADIUS)
 
-                # 3. 添加阴影（适当调整阴影大小）
-                shadow_offset = (max(3, CELL_WIDTH // 100), max(3, CELL_HEIGHT // 100))
+                # 3. 添加阴影
                 shadowed = PhotoUtils.add_shadow(
-                    rounded, offset=shadow_offset, blur_radius=max(2, CELL_WIDTH // 120)
+                    rounded, offset=img_shadow_offset, blur_radius=img_shadow_blur
                 )
 
                 # 4. 计算基础位置 - 让每列的中心点在一条斜线上
