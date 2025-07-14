@@ -1,62 +1,74 @@
-from collections import Counter
 from io import BytesIO
-
-from PIL import Image, ImageFilter, ImageDraw, ImageFont
 from base64 import b64encode
+
+import numpy as np
+from PIL import Image, ImageFilter, ImageDraw, ImageFont
+from sklearn.cluster import KMeans
 
 
 class PhotoUtils:
     @staticmethod
-    def get_primary_color(img: Image.Image) -> tuple[int, int, int, int]:
+    def get_primary_color(
+        img: Image.Image, num_colors: int = 5, bg_clusters: int = 1
+    ) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
         """
-        分析图片并提取主色调
-        :param img: PIL Image 对象
-        :return: 主色调颜色，RGBA格式
+        从PIL图像对象中提取主题色（背景色）和适配的文字颜色
+        :param img: PIL图像对象
+        :param num_colors: 要提取的主色数量（默认5）
+        :param bg_clusters: 用于合并背景色的主色数量（默认1）
+        :return: 返回一个元组，包含背景色和文字颜色
+        格式为 ((r, g, b), (r, g, b))
+        其中背景色是RGB格式，文字颜色是根据背景色亮度计算的
         """
-        img = img.resize((100, 150))  # 缩小图片尺寸以加快处理速度
-        if img.mode != "RGBA":
-            img = img.convert("RGBA")
-        pixels = list(img.getdata())
+        # 将PIL图像转换为NumPy数组 (RGB格式)
+        img_array = np.array(img)
 
-        # 过滤掉接近黑色和白色的像素，以及透明度低的像素
-        filtered_pixels = [
-            (r, g, b, 255)
-            for r, g, b, a in pixels
-            if a >= 200 and 30 <= (r + g + b) / 3 <= 220
-        ]
+        # 如果图像有透明通道，移除alpha通道
+        if img_array.shape[2] == 4:
+            img_array = img_array[:, :, :3]
 
-        if not filtered_pixels:
-            filtered_pixels = [(p[0], p[1], p[2], 255) for p in pixels if p[3] > 100]
+        # 将图像数据重塑为2D数组 (像素 x RGB)
+        pixel_data = img_array.reshape((-1, 3))
 
-        if not filtered_pixels:
-            return (150, 100, 50, 255)
+        # 使用K-Means聚类提取主色
+        kmeans = KMeans(n_clusters=num_colors, n_init=10, random_state=42)
+        kmeans.fit(pixel_data)
 
-        color_counter = Counter(filtered_pixels)
-        most_common = color_counter.most_common(1)
-        if most_common:
-            return most_common[0][0]
+        # 获取聚类中心和对应的像素数量
+        colors = kmeans.cluster_centers_
+        counts = np.bincount(kmeans.labels_)
 
-        # 如果无法找到主色调，使用平均值
-        r_avg = sum(p[0] for p in filtered_pixels) // len(filtered_pixels)
-        g_avg = sum(p[1] for p in filtered_pixels) // len(filtered_pixels)
-        b_avg = sum(p[2] for p in filtered_pixels) // len(filtered_pixels)
-        return (r_avg, g_avg, b_avg, 255)
+        # 按出现频率排序颜色
+        sorted_indices = np.argsort(counts)[::-1]
+        main_colors = colors[sorted_indices].astype(int)
+
+        # 合并指定数量的聚类作为背景色
+        background_color = np.mean(main_colors[:bg_clusters], axis=0).astype(int)
+
+        # 计算背景色的相对亮度
+        r, g, b = background_color
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+        # 根据亮度选择文字颜色
+        text_color = (0, 0, 0) if luminance > 0.5 else (255, 255, 255)
+
+        return tuple(background_color), tuple(text_color)
 
     @staticmethod
     def create_gradient_background(
         width: int,
         height: int,
-        color: tuple[int, int, int, int],
+        color: tuple[int, int, int],
     ) -> Image.Image:
         """
         创建一个从左到右的渐变背景，使用遮罩技术实现渐变效果
         左侧颜色更深，右侧颜色适中，提供更明显的渐变效果
         :param width: 背景宽度
         :param height: 背景高度
-        :param color: 主题色，格式为 (r, g, b, a)
+        :param color: 主题色，格式为 (r, g, b)
         :return: 渐变背景图像
         """
-        base = Image.new("RGBA", (width, height), color)  # 创建基础图像（右侧原始颜色）
+        base = Image.new("RGB", (width, height), color)  # 创建基础图像（右侧原始颜色）
 
         # 创建渐变遮罩（水平方向：左黑右白）
         gradient = Image.new("L", (width, 1))  # 单行渐变
@@ -76,9 +88,8 @@ class PhotoUtils:
             int(color[0] * dark_factor),
             int(color[1] * dark_factor),
             int(color[2] * dark_factor),
-            color[3],  # 保持原始透明度
         )
-        dark = Image.new("RGBA", (width, height), dark_color)
+        dark = Image.new("RGB", (width, height), dark_color)
 
         # 使用遮罩混合两种颜色
         return Image.composite(base, dark, mask)
@@ -131,7 +142,7 @@ class PhotoUtils:
         text: str,
         position: tuple[int, int],
         font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
-        fill_color: tuple[int, int, int, int] = (255, 255, 255, 255),
+        fill_color: tuple[int, int, int] = (255, 255, 255),
         shadow_enabled: bool = False,
         shadow_color: tuple[int, int, int, int] = (0, 0, 0, 180),
         shadow_offset: tuple[int, int] = (2, 2),
@@ -143,7 +154,7 @@ class PhotoUtils:
         :param position: 文字位置 (x, y)
         :param font: 字体对象
         :param font_size: 字体大小
-        :param fill_color: 文字颜色，RGBA格式
+        :param fill_color: 文字颜色，RGB格式
         :param shadow_enabled: 是否启用文字阴影
         :param shadow_color: 阴影颜色，RGBA格式
         :param shadow_offset: 阴影偏移量，(x, y)格式
@@ -163,12 +174,12 @@ class PhotoUtils:
     @staticmethod
     def draw_multiline_text_on_image(
         image: Image.Image,
-        text: str,
+        texts: list[str],
         position: tuple[int, int],
         font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
         font_size: int,
         line_spacing: int = 10,
-        fill_color=(255, 255, 255, 255),
+        fill_color=(255, 255, 255),
         shadow_enabled=False,
         shadow_color=(0, 0, 0, 180),
         shadow_offset=(2, 2),
@@ -184,34 +195,18 @@ class PhotoUtils:
         :param line_spacing: 行间距
         :param fill_color: 文字颜色，RGBA格式
         :param shadow_enabled: 是否启用文字阴影
-        :param shadow_color: 阴影颜色，RGBA格式
+        :param shadow_color: 阴影颜色，RGB格式
         :param shadow_offset: 阴影偏移量，(x, y)格式
         """
         draw = ImageDraw.Draw(image)
-        # 按空格分割文本
-        lines = text.split(" ")
-        # 如果只有一行，直接绘制并返回
-        if len(lines) <= 1:
-            if shadow_enabled:
-                shadow_position = (
-                    position[0] + shadow_offset[0],
-                    position[1] + shadow_offset[1],
-                )
-                draw.text(shadow_position, text, font=font, fill=shadow_color)
-            draw.text(position, text, font=font, fill=fill_color)
-            return
-
-        # 绘制多行文本
         x, y = position
-        for i, line in enumerate(lines):
+        for i, line in enumerate(texts):
             current_y = y + i * (font_size + line_spacing)
-            # 如果启用阴影，先绘制阴影文字
-            if shadow_enabled:
+            if shadow_enabled:  # 如果启用阴影，先绘制阴影文字
                 shadow_x = x + shadow_offset[0]
                 shadow_y = current_y + shadow_offset[1]
                 draw.text((shadow_x, shadow_y), line, font=font, fill=shadow_color)
-            # 绘制正常文字
-            draw.text((x, current_y), line, font=font, fill=fill_color)
+            draw.text((x, current_y), line, font=font, fill=fill_color)  # 绘制正常文字
 
     @staticmethod
     def encode_image(image: Image.Image, format: str = "PNG") -> bytes:

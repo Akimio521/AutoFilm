@@ -170,7 +170,7 @@ class LibraryPoster:
         RIGHT_MARGIN = int(width * 0.05)  # 右边距占5%
 
         # 获取主题色并创建背景
-        theme_color = PhotoUtils.get_primary_color(random.choice(images))
+        theme_color, text_color = PhotoUtils.get_primary_color(random.choice(images))
         background = PhotoUtils.create_gradient_background(width, height, theme_color)
 
         draw = ImageDraw.Draw(background)
@@ -208,8 +208,8 @@ class LibraryPoster:
             title,
             (title_x, title_y),
             title_font,
-            163,
-            shadow_enabled=True,
+            text_color,
+            shadow_enabled=False,
             shadow_offset=(2, 2),
         )
 
@@ -224,7 +224,7 @@ class LibraryPoster:
             subtitle,
             (subtitle_x, subtitle_y),
             subtitle_font,
-            163,
+            text_color,
             shadow_enabled=True,
             shadow_offset=(2, 2),
         )
