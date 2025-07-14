@@ -97,5 +97,11 @@ class SettingManager:
             ani2alist_list = safe_load(file).get("Ani2AlistList", [])
         return ani2alist_list
 
+    @property
+    def LibraryPosterList(self) -> list[dict[str, Any]]:
+        with self.CONFIG.open(mode="r", encoding="utf-8") as file:
+            library_poster_list = safe_load(file).get("LibraryPosterList", [])
+        return library_poster_list
+
 
 settings = SettingManager()
