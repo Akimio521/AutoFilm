@@ -3,8 +3,10 @@ logs/*.log
 strm/*
 media/*
 __pycache__/*
+.mypy_cache/*
 
 .DS_Store
 *bak
 *test*
 *pyc*
+
