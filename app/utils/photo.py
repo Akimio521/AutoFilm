@@ -3,7 +3,7 @@ from base64 import b64encode
 
 import numpy as np
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans  # type: ignore
 
 
 class PhotoUtils:
