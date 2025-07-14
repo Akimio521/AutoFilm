@@ -1,7 +1,7 @@
 FROM python:3.12.7-alpine
 
 ENV TZ=Asia/Shanghai
-VOLUME ["/config", "/logs", "/media"]
+VOLUME ["/config", "/logs", "/media","/fonts"]
 
 RUN apk update
 RUN apk add --no-cache build-base linux-headers tzdata
