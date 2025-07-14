@@ -100,34 +100,38 @@ class LibraryPoster:
         return resp.json()["Items"]
 
     async def download_item_image(
-        self, item_id: str, image_type: str = "Primary"
+        self,
+        item: dict[str, Any],
+        image_type: str = "Primary",
     ) -> Image.Image | None:
         """
-        下载指定媒体库项目的海报图片
-        :param item_id: 媒体库项目 ID
+        下载指定项目海报图片
+        :param item: 项目字典
         :return: 图片字节内容
         """
-        url = f"{self.__server_url}/Items/{item_id}/Images/{image_type}?api_key={self.__api_key}"
+        url = f"{self.__server_url}/Items/{item['Id']}/Images/{image_type}?api_key={self.__api_key}"
         resp = await RequestUtils.get(url)
 
         if resp is None or resp.status_code != 200:
             logger.warning(
-                f"下载 {item_id} 海报图片失败, 状态码: {resp.status_code if resp else '无响应'}"
+                f"下载项目 {item['Name']} {image_type} 类型图片失败, 状态码: {resp.status_code if resp else '无响应'}"
             )
             return None
 
         return Image.open(BytesIO(resp.content))
 
     async def download_library_poster(
-        self, library_id: str
+        self,
+        library: dict[str, Any],
     ) -> AsyncGenerator[Image.Image, None]:
         """
         下载媒体库海报
-        :param library_id: 媒体库 ID
+        :param library: 媒体库字典
         :return:
         """
-        for items in await self.get_library_items(library_id):
-            image = await self.download_item_image(items["Id"])
+        logger.info(f"开始下载 {library['Name']} 媒体库的海报图片")
+        for items in await self.get_library_items(library["Id"]):
+            image = await self.download_item_image(items)
             if image is not None:
                 yield image
 
@@ -336,7 +340,7 @@ class LibraryPoster:
         """
 
         images: list[Image.Image] = []
-        async for image in self.download_library_poster(library["Id"]):
+        async for image in self.download_library_poster(library):
             images.append(image)
             if len(images) >= limit:
                 break
