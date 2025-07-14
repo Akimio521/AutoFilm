@@ -57,7 +57,7 @@
 - [x] 增加 Docker 镜像
 - [x] 本地同步网盘
 - [x] Alist 永久令牌
-- [x] LibraryPoster（媒体库海报）
+- [x] LibraryPoster（媒体库海报，感谢[HappyQuQu/jellyfin-library-poster](https://github.com/HappyQuQu/jellyfin-library-poster)）
 - [ ] 使用 API 触发任务
 - [ ] 通知功能
 - [ ] ~~对接 TMDB 实现分类、重命名、刮削等功能~~
@@ -70,6 +70,7 @@
 ![LibraryPoster](./img/LibraryPoster.png)
 
 # 更新日志
+- 2025.7.14：v1.4.0，修复 Ani2Alist 模块时间解析问题，新增 LibraryPoster 美化媒体库封面模块
 - 2025.5.29：v1.3.3，Alist2Strm 模块支持添加删除空目录的功能；提高 Alist V3.45 兼容性；添加 m2ts 视频文件后缀到视频扩展集合；修复视频扩展集合中".wmv"缺失前缀错误
 - 2025.4.4：v1.3.2，添加 .mpg 视频文件后缀；优化重试装饰器；优化重试装饰器；新增遍历文件间隔时间，防止被风控；修正部分方法名、返回变量类型、文档表述错误
 - 2025.3.15：v1.3.1，修复重试装饰器参数类型错误；在 AlistStorage 中添加 model_config 以忽略特定类型避免 Cython 编译后无法使用；修改 AlistClient 中的异常捕获以避免捕获其他异常；使用 Cython 对 Docker 容器内的 py 文件编译，提高性能
