@@ -2,6 +2,7 @@ from asyncio import to_thread, Semaphore, TaskGroup
 from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
+import traceback
 
 from aiofile import async_open
 
@@ -90,14 +91,14 @@ class Alist2Strm:
         else:
             self.sync_ignore_pattern = None
 
-        # BDMV 处理相关变量
-        self.bdmv_collections: dict[str, list[tuple[AlistPath, int]]] = {}  # BDMV目录 -> [(文件路径, 文件大小)]
-        self.bdmv_largest_files: dict[str, AlistPath] = {}  # BDMV目录 -> 最大文件路径
-
     async def run(self) -> None:
         """
         处理主体
         """
+        
+        # BDMV 处理相关变量初始化
+        self.bdmv_collections: dict[str, list[tuple[AlistPath, int]]] = {}  # BDMV目录 -> [(文件路径, 文件大小)]
+        self.bdmv_largest_files: dict[str, AlistPath] = {}  # BDMV目录 -> 最大文件路径
 
         def filter(path: AlistPath) -> bool:
             """
@@ -171,15 +172,16 @@ class Alist2Strm:
 
         self.processed_local_paths = set()  # 云盘文件对应的本地文件路径
 
-        # 第一阶段：收集所有文件信息
-        files_to_process = []
-        async for path in self.client.iter_path(
-            dir_path=self.source_dir,
-            wait_time=self.wait_time,
-            is_detail=is_detail,
-            filter=filter,
-        ):
-            files_to_process.append(path)
+        # 第一阶段：收集所有文件信息并直接处理普通文件
+        async with self.__max_workers, TaskGroup() as tg:
+            async for path in self.client.iter_path(
+                dir_path=self.source_dir,
+                wait_time=self.wait_time,
+                is_detail=is_detail,
+                filter=filter,
+            ):
+                # 直接处理普通文件，不需要额外的 list
+                tg.create_task(self.__file_processer(path))
 
         # 完成 BDMV 文件收集，确定最大文件
         self._finalize_bdmv_collections()
@@ -213,14 +215,8 @@ class Alist2Strm:
                 logger.info(f"BDMV 文件处理完成: {largest_file.name}")
             except Exception as e:
                 logger.error(f"处理 BDMV 文件 {largest_file.full_path} 时出错：{e}")
-                import traceback
                 logger.error(f"详细错误信息: {traceback.format_exc()}")
                 continue
-
-        # 第三阶段：处理普通文件
-        async with self.__max_workers, TaskGroup() as tg:
-            for path in files_to_process:
-                tg.create_task(self.__file_processer(path))
 
         if self.sync_server:
             await self.__cleanup_local_files()
