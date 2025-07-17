@@ -230,9 +230,7 @@ class Alist2Strm:
         :param path: AlistPath 对象
         """
         local_path = self.__get_local_path(path)
-        logger.debug(f"__file_processer: 处理文件 {path.full_path}")
-        logger.debug(f"__file_processer: 本地路径 {local_path}")
-        logger.debug(f"__file_processer: 模式 {self.mode}")
+        logger.debug(f"__file_processer: 处理文件 {path.full_path} -> 本地路径 {local_path} | 模式 {self.mode}")
 
         # 统一的 URL 生成逻辑，BDMV 文件与普通文件使用相同的逻辑
         if self.mode == "AlistURL":
@@ -258,7 +256,7 @@ class Alist2Strm:
 
         await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
 
-        logger.debug(f"开始处理 {local_path}")
+        logger.debug(f"开始处理 {local_path} | 内容: {content}")
         if local_path.suffix == ".strm":
             async with async_open(local_path, mode="w", encoding="utf-8") as file:
                 await file.write(content)
