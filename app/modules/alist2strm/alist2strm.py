@@ -244,15 +244,9 @@ class Alist2Strm:
 
         logger.debug(f"__file_processer: 初始 content = {content}")
 
-        # 如果 URL 为空，提供 fallback（适用于所有文件类型）
         if not content:
-            if self.mode == "AlistURL":
-                content = f"{self.client.url}/d{path.full_path}"
-            elif self.mode == "RawURL":
-                content = path.download_url or f"{self.client.url}/d{path.full_path}"
-            elif self.mode == "AlistPath":
-                content = path.full_path
-            logger.debug(f"__file_processer: fallback content = {content}")
+            logger.warning(f"文件 {path.full_path} 的内容为空，跳过处理")
+            return
 
         await to_thread(local_path.parent.mkdir, parents=True, exist_ok=True)
 
