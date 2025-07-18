@@ -10,7 +10,7 @@ from app.core import logger
 from app.utils import RequestUtils
 from app.extensions import VIDEO_EXTS, SUBTITLE_EXTS, IMAGE_EXTS, NFO_EXTS
 from app.modules.alist import AlistClient, AlistPath
-
+from app.modules.alist2strm.mode import Alist2StrmMode
 
 class Alist2Strm:
     def __init__(
@@ -58,7 +58,7 @@ class Alist2Strm:
         """
 
         self.client = AlistClient(url, username, password, token)
-        self.mode = mode
+        self.mode = Alist2StrmMode.from_str(mode)
 
         self.source_dir = source_dir
         self.target_dir = Path(target_dir)
@@ -159,13 +159,8 @@ class Alist2Strm:
 
             return True
 
-        if self.mode not in ["AlistURL", "RawURL", "AlistPath"]:
-            logger.warning(
-                f"Alist2Strm 的模式 {self.mode} 不存在，已设置为默认模式 AlistURL"
-            )
-            self.mode = "AlistURL"
 
-        if self.mode == "RawURL":
+        if self.mode == Alist2StrmMode.RawURL:
             is_detail = True
         else:
             is_detail = False
@@ -194,7 +189,7 @@ class Alist2Strm:
                 logger.info(f"最大文件: {largest_file.full_path}")
                 
                 # 重新获取详细信息以确保有 raw_url
-                if self.mode == "RawURL" and not largest_file.raw_url:
+                if self.mode == Alist2StrmMode.RawURL and not largest_file.raw_url:
                     logger.debug(f"重新获取 BDMV 文件详细信息: {largest_file.full_path}")
                     try:
                         updated_path = await self.client.async_api_fs_get(largest_file.full_path)
@@ -233,14 +228,12 @@ class Alist2Strm:
         logger.debug(f"__file_processer: 处理文件 {path.full_path} -> 本地路径 {local_path} | 模式 {self.mode}")
 
         # 统一的 URL 生成逻辑，BDMV 文件与普通文件使用相同的逻辑
-        if self.mode == "AlistURL":
+        if self.mode == Alist2StrmMode.AlistURL:
             content = path.download_url
-        elif self.mode == "RawURL":
+        elif self.mode == Alist2StrmMode.RawURL:
             content = path.raw_url
-        elif self.mode == "AlistPath":
+        elif self.mode == Alist2StrmMode.AlistPath:
             content = path.full_path
-        else:
-            raise ValueError(f"AlistStrm 未知的模式 {self.mode}")
 
         logger.debug(f"__file_processer: 初始 content = {content}")
 
