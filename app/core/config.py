@@ -131,5 +131,10 @@ class SettingManager:
 
         """API验证密钥"""
         return self._get_config("Settings", "API_KEY", "")
+    def LibraryPosterList(self) -> list[dict[str, Any]]:
+        with self.CONFIG.open(mode="r", encoding="utf-8") as file:
+            library_poster_list = safe_load(file).get("LibraryPosterList", [])
+        return library_poster_list
+
 
 settings = SettingManager()

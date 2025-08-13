@@ -12,6 +12,7 @@ from app.extensions import LOGO
 from app.modules import Alist2Strm, Ani2Alist
 from fastapi import FastAPI
 import uvicorn
+from app.modules import Alist2Strm, Ani2Alist, LibraryPoster
 
 
 def print_logo() -> None:
@@ -86,6 +87,20 @@ if __name__ == "__main__":
                 logger.warning(f"{server['id']} 未设置 cron")
     else:
         logger.warning("未检测到 Ani2Alist 模块配置")
+
+    if settings.LibraryPosterList:
+        logger.info("检测到 LibraryPoster 模块配置，正在添加至后台任务")
+        for poster in settings.LibraryPosterList:
+            cron = poster.get("cron")
+            if cron:
+                scheduler.add_job(
+                    LibraryPoster(**poster).run, trigger=CronTrigger.from_crontab(cron)
+                )
+                logger.info(f"{poster['id']} 已被添加至后台任务")
+            else:
+                logger.warning(f"{poster['id']} 未设置 cron")
+    else:
+        logger.warning("未检测到 LibraryPoster 模块配置")
 
     scheduler.start()
     logger.info("AutoFilm 启动完成")

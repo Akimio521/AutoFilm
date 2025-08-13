@@ -178,8 +178,8 @@ class Ani2Alist:
 
                 if mimeType in FILE_MINETYPE:
                     size: str = file["size"]
-                    modifed_time_stamp: str = str(
-                        __parse2timestamp(file["modifiedTime"])
+                    created_time_stamp: str = str(
+                        __parse2timestamp(file["createdTime"])
                     )
                     __url = _url + quoted_name + "?d=true"
                     logger.debug(
@@ -187,7 +187,7 @@ class Ani2Alist:
                     )
                     _url_dict[name] = [
                         size,
-                        modifed_time_stamp,
+                        created_time_stamp,
                         __url,
                     ]
                 elif mimeType == "application/vnd.google-apps.folder":

@@ -5,6 +5,7 @@ from app.utils.url import URLUtils
 from app.utils.singleton import Singleton
 from app.utils.multiton import Multiton
 from app.utils.strings import StringsUtils
+from app.utils.photo import PhotoUtils
 
 __all__ = [
     RequestUtils,
@@ -15,4 +16,5 @@ __all__ = [
     Singleton,
     Multiton,
     StringsUtils,
+    PhotoUtils,
 ]
