@@ -40,6 +40,12 @@
     ```bash
     docker run -d --name autofilm  -v ./config:/config -v ./media:/media -v ./logs:/logs akimio/autofilm
     ```
+
+2. Docker 中手动触发特定任务
+    ```bash
+    docker exec autofilm python /app/run.py <任务ID>
+    ```
+    通过`docker exec`命令可以在运行中的容器内执行run.py脚本来手动触发特定任务。
 2. Python 环境运行（Python3.12）
     ```bash
     python app/main.py

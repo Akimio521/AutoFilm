@@ -30,7 +30,8 @@ RUN apk update && \
     tzdata \
     curl \
     build-base \
-    linux-headers && \
+    linux-headers \
+    libgomp && \
     cp /usr/share/zoneinfo/${TZ} /etc/localtime && \
     echo ${TZ} > /etc/timezone
 
