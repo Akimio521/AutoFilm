@@ -31,6 +31,29 @@ class LibraryPoster:
         self.__title_font_path = Path(title_font_path)
         self.__subtitle_font_path = Path(subtitle_font_path)
         self.__configs = configs
+    async def fetch_items(self, parent_id: str, user_id: str, max_depth: int = 1, current_depth: int = 0) -> list[
+        dict[str, Any]]:
+        all_items = []
+        url = f"{self.__server_url}/Users/{user_id}/Items?ParentId={parent_id}&api_key={self.__api_key}"
+        resp = await RequestUtils.get(url)
+
+        if not resp or resp.status_code != 200:
+            return []
+
+        for item in resp.json().get("Items", []):
+            if item.get("IsFolder", False) and current_depth < max_depth:
+                # 递归获取子项
+                sub_items = await self.fetch_items(
+                    parent_id=item["Id"],
+                    user_id=user_id,
+                    max_depth=max_depth,
+                    current_depth=current_depth + 1
+                )
+                all_items.extend(sub_items)
+            else:
+                all_items.append(item)
+
+        return all_items
 
     async def get_users(self) -> list[dict[str, Any]]:
         """
@@ -70,7 +93,7 @@ class LibraryPoster:
 
         return resp.json()["Items"]
 
-    async def get_library_items(
+    async def get_library_items(#修改的函数
         self,
         library_id: str,
         user_id: str = "",
@@ -81,6 +104,7 @@ class LibraryPoster:
         :param user_id: 用户 ID（可选）
         :return: 媒体库项目列表
         """
+        max_depth = 0
         all_items = []
         if not user_id:
             users = await self.get_users()
@@ -97,16 +121,12 @@ class LibraryPoster:
                 f"获取 {library_id} 媒体库信息失败, 状态码: {resp.status_code if resp else '无响应'}"
             )
             return []
-        for item in resp.json().get("Items", []):
-            if item.get("IsFolder", False):
-                # 递归获取子项
-                url = f"{self.__server_url}/Users/{user_id}/Items?ParentId={item['Id']}&api_key={self.__api_key}"
-                sub_items = await RequestUtils.get(url)
-                if sub_items and sub_items.status_code == 200:
-                    all_items.extend(sub_items.json().get("Items", []))
-            else:
-                all_items.append(item)
 
+        while len(all_items) < 15 and max_depth <= 5:
+            all_items = await self.fetch_items(library_id, user_id, max_depth=max_depth)
+            max_depth += 1
+
+        logger.info(f'当前文件夹可用海报数目：{len(all_items)}')
         return all_items
 
     async def download_item_image(
