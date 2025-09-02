@@ -81,6 +81,7 @@ class LibraryPoster:
         :param user_id: 用户 ID（可选）
         :return: 媒体库项目列表
         """
+        all_items = []
         if not user_id:
             users = await self.get_users()
             if not users:
@@ -96,8 +97,17 @@ class LibraryPoster:
                 f"获取 {library_id} 媒体库信息失败, 状态码: {resp.status_code if resp else '无响应'}"
             )
             return []
+        for item in resp.json().get("Items", []):
+            if item.get("IsFolder", False):
+                # 递归获取子项
+                url = f"{self.__server_url}/Users/{user_id}/Items?ParentId={item['Id']}&api_key={self.__api_key}"
+                sub_items = await RequestUtils.get(url)
+                if sub_items and sub_items.status_code == 200:
+                    all_items.extend(sub_items.json().get("Items", []))
+            else:
+                all_items.append(item)
 
-        return resp.json()["Items"]
+        return all_items
 
     async def download_item_image(
         self,
