@@ -93,7 +93,7 @@ class LibraryPoster:
 
         return resp.json()["Items"]
 
-    async def get_library_items(#修改的函数
+    async def get_library_items(
         self,
         library_id: str,
         user_id: str = "",
@@ -122,7 +122,7 @@ class LibraryPoster:
             )
             return []
 
-        while len(all_items) < 15 and max_depth <= 5:
+        while len(all_items) < 15 and max_depth <= 5:#如果当前目录获取的海报小于15张，那么增加一级文件夹层级获取更多海报，最多5个级别
             all_items = await self.fetch_items(library_id, user_id, max_depth=max_depth)
             max_depth += 1
 
